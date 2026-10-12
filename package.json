@@ -2,7 +2,7 @@
   "name": "ariad",
   "private": true,
   "version": "0.1.0",
-  "description": "Ariad — email marketing you host yourself",
+  "description": "Ariad \u2014 email marketing you host yourself",
   "type": "module",
   "engines": {
     "node": "^22.12.0 || >=24.0.0"
@@ -19,6 +19,7 @@
     "dev:web": "npm run dev -w @ariad/web",
     "build": "npm run build:shared && npm run build -w @ariad/api && npm run build -w @ariad/web",
     "start": "npm run start -w @ariad/api",
+    "mail:catch": "node scripts/mail-catcher.mjs",
     "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
     "test": "npm run build:shared && npm run test --workspaces --if-present",
     "format": "prettier --write \"**/*.{ts,tsx,css,json,md}\"",
@@ -27,7 +28,8 @@
   "devDependencies": {
     "concurrently": "^9.2.1",
     "prettier": "^3.6.2",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "smtp-server": "^3.19.21"
   },
   "allowScripts": {
     "better-sqlite3@13.0.3": true,

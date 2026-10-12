@@ -1,0 +1,182 @@
+/* ============================================================================
+   ARIAD — COMPONENT TIER
+   Ariad's own rules, on top of the Bible's token and base layers. Anything in
+   here reads semantic tokens (--ds-*) only.
+   ========================================================================= */
+
+/* ============================================================================
+   TOUCH TARGETS — UI Bible
+   ----------------------------------------------------------------------------
+   A 44x44 hit area on coarse pointers, delivered by an ::after overlay so the
+   button's own box stays at its designed size. Growing the box instead
+   flattens the whole size ladder: xs, sm and md all become 44px the moment a
+   touch device is in play, and the density the sizes exist for is gone.
+
+   Three things this has to keep doing. The first two have been shipped broken
+   in a sibling product, so they are asserted here rather than assumed:
+
+     1. NO `pointer-events: none`. That removes the pseudo-element from hit
+        testing altogether and the promised 44px is not real. Probe it with
+        `document.elementFromPoint(x, boxTop - 4)` — it must return the button.
+     2. Icon buttons need the horizontal half too. `inset-inline: 0` alone
+        gives a 44px-tall, 28px-wide target on an xs icon button.
+     3. Adjacent icon buttons need clear space, because the overlay overhangs
+        by (44 - height) / 2 — 8px at xs, 6px at sm, 4px at md. Give a row of
+        icon buttons `coarse:gap-3` or the later sibling wins the tap.
+
+   A labelled button's overlay is `inset-inline: 0` and so only grows
+   vertically, which is what keeps rule 3 an icon-button problem only.
+   ========================================================================= */
+
+@custom-variant coarse (@media (pointer: coarse));
+
+@media (pointer: coarse) {
+  .touch-target {
+    position: relative;
+  }
+  .touch-target::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
+  }
+  .touch-target--icon::after {
+    inset-inline: auto;
+    left: 50%;
+    width: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ============================================================================
+   AUTOFILL — UI Bible, Text Field
+   ----------------------------------------------------------------------------
+   A browser paints its own pale background over a field it has filled in, and
+   on a near-black page that is a white slab with the caret lost in it. There
+   is no property that turns the paint off, so it is painted over: an inset
+   shadow in the field's own color, and the text put back to the foreground.
+
+   `.control-input` is the borderless input inside a TextInput's shell. Two
+   rules and not one selector list, so a browser that knows only one of the two
+   spellings still keeps the rule it does know.
+   ========================================================================= */
+
+.control-input:autofill {
+  -webkit-text-fill-color: var(--ds-fg);
+  caret-color: var(--ds-fg);
+  box-shadow: 0 0 0 1000px var(--ds-field) inset;
+}
+.control-input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ds-fg);
+  caret-color: var(--ds-fg);
+  box-shadow: 0 0 0 1000px var(--ds-field) inset;
+}
+
+/* ============================================================================
+   POPOVERS AND MENUS — UI Bible (Menu)
+   ----------------------------------------------------------------------------
+   The panel is positioned by Popover in script; everything about how it looks
+   is here. A menu sits above a dialog, because a dialog's own controls open
+   menus.
+   ========================================================================= */
+:root {
+  --z-popover: 60;
+}
+
+.popover {
+  position: fixed;
+  z-index: var(--z-popover);
+  min-width: 11rem;
+  max-width: min(18rem, calc(100vw - 16px));
+  overflow-y: auto;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--ds-surface-overlay);
+  color: var(--ds-fg);
+  box-shadow: var(--ds-shadow-4);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .popover {
+    animation: scale-in 140ms var(--ease-standard) both;
+    transform-origin: top left;
+  }
+}
+.popover--menu {
+  padding: 4px;
+}
+
+/* A hairline between groups, full width inside the panel's padding. */
+.menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background-color: var(--ds-border-subtle);
+}
+
+.menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 30px;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 8px;
+  border-radius: var(--radius-md);
+  color: var(--ds-fg-secondary);
+  font-size: var(--text-label);
+  font-weight: 500;
+  text-align: left;
+}
+.menu-item:hover:not(:disabled),
+.menu-item:focus-visible {
+  background-color: var(--ds-layer-hover);
+  color: var(--ds-fg);
+  outline: none;
+}
+.menu-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ds-focus-ring);
+}
+.menu-item:disabled {
+  color: var(--ds-fg-disabled);
+  cursor: not-allowed;
+}
+
+/* The gutter is kept even when an item has no icon, so the labels form one
+   column. */
+.menu-item__mark {
+  display: inline-flex;
+  flex: none;
+  width: 14px;
+  justify-content: center;
+  color: var(--ds-fg-muted);
+}
+.menu-item:disabled .menu-item__mark {
+  color: var(--ds-fg-disabled);
+}
+.menu-item__text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.menu-item__trail {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
+  color: var(--ds-accent-text);
+}
+.menu-item[aria-checked='true'] {
+  color: var(--ds-fg);
+}
+
+/* The destructive item: its color and its own icon, so it survives grayscale. */
+.menu-item--danger:not(:disabled),
+.menu-item--danger:not(:disabled) .menu-item__mark,
+.menu-item--danger:hover:not(:disabled) {
+  color: var(--ds-danger-text);
+}
+
+@media (pointer: coarse) {
+  .menu-item {
+    min-height: 44px;
+  }
+}

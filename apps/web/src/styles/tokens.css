@@ -1,0 +1,746 @@
+/* ============================================================================
+   UI BIBLE — TOKEN LAYER
+   ----------------------------------------------------------------------------
+   Three tiers, in strict order. Never skip a tier.
+
+     1. PRIMITIVE   --p-*    Raw values. No meaning. Never used in components.
+     2. SEMANTIC    --ds-*   Meaning, not appearance. Theme-swappable.
+     3. COMPONENT   --c-*    Per-component overrides. Reference semantics only.
+
+   A component that reaches past the semantic tier is a bug. It will look
+   correct in one theme and break in the other.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------------------
+   TIER 1 — PRIMITIVES
+   Perceptually even ramps. Authored in hex for portability; the lightness
+   steps were spaced in OKLCH so each step is a visually equal jump.
+   ------------------------------------------------------------------------ */
+:root {
+  /* Neutral — very slightly cool. A pure gray reads "dead" on screens. */
+  --p-neutral-0: #ffffff;
+  --p-neutral-25: #fafbfc;
+  --p-neutral-50: #f4f6f8;
+  --p-neutral-100: #e9ecf1;
+  --p-neutral-200: #d6dae3;
+  --p-neutral-300: #b9bfcc;
+  --p-neutral-400: #949cad;
+  --p-neutral-500: #6e7686;
+  --p-neutral-600: #545c6b;
+  --p-neutral-700: #3d444f;
+  --p-neutral-800: #2a2f38;
+  --p-neutral-850: #21252c;
+  --p-neutral-900: #171a20;
+  --p-neutral-925: #131519;
+  --p-neutral-950: #0e1014;
+  --p-neutral-975: #0a0b0e;
+  --p-neutral-1000: #000000;
+
+  /* Brand — C64 Purple from the Spanish Palette, the derivation's `primary`.
+     500 is the palette colour itself; lighter steps mix toward white, darker
+     toward --ds-sunken, so both ends land inside the palette's own world rather
+     than drifting to a generic violet. 900 comes out at #2c2c54 — Lucky Point,
+     the palette's own second purple — which is the check that the anchors are
+     right rather than a coincidence worth admiring. */
+  --p-brand-50: #f4f3fb;
+  --p-brand-100: #e8e8f8;
+  --p-brand-200: #d1d1f1;
+  --p-brand-300: #b2b1e7;    /* 9.4:1 on canvas — the text-safe step */
+  --p-brand-400: #8f8fdd;    /* 6.5:1 */
+  --p-brand-500: #706fd3;    /* taken: C64 Purple */
+  --p-brand-600: #5c5cae;
+  --p-brand-700: #4c4c90;
+  --p-brand-800: #3c3c72;
+  --p-brand-900: #2c2c54;    /* = Lucky Point, arrived at by the ramp */
+  --p-brand-950: #222240;
+
+  /* Success — emerald */
+  --p-success-50: #e8fbf2;
+  --p-success-100: #cdf5e3;
+  --p-success-200: #9cebc8;
+  --p-success-300: #62dca7;
+  --p-success-400: #35c98a;
+  --p-success-500: #16b375;
+  --p-success-600: #0e9260;
+  --p-success-700: #0c744e;
+  --p-success-800: #0b5b3e;
+  --p-success-900: #0a3a2a;
+  --p-success-950: #04231a;
+
+  /* Warning — amber */
+  --p-warning-50: #fff8e6;
+  --p-warning-100: #ffedbf;
+  --p-warning-200: #ffdd8a;
+  --p-warning-300: #ffc94d;
+  --p-warning-400: #f7b222;
+  --p-warning-500: #e29508;
+  --p-warning-600: #bc7605;
+  --p-warning-700: #955a08;
+  --p-warning-800: #74470d;
+  --p-warning-900: #452b0b;
+  --p-warning-950: #2a1a06;
+
+  /* Danger — rose */
+  --p-danger-50: #fff0f1;
+  --p-danger-100: #ffdde0;
+  --p-danger-200: #ffbec4;
+  --p-danger-300: #ff929b;
+  --p-danger-400: #fa6470;
+  --p-danger-500: #ee4351;
+  --p-danger-600: #d62838;
+  --p-danger-700: #b21c2b;
+  --p-danger-800: #8c1925;
+  --p-danger-900: #551119;
+  --p-danger-950: #33090f;
+
+  /* Info — blue */
+  --p-info-50: #edf5ff;
+  --p-info-100: #d9eaff;
+  --p-info-200: #b5d5ff;
+  --p-info-300: #85b9ff;
+  --p-info-400: #529aff;
+  --p-info-500: #2e7df6;
+  --p-info-600: #1b62db;
+  --p-info-700: #164eb0;
+  --p-info-800: #163f8a;
+  --p-info-900: #122850;
+  --p-info-950: #0a1830;
+
+  /* Categorical — data viz, tags, avatars. Ordered for maximum adjacent
+     separation, including for deuteranopia. Never used for status. */
+  --p-viz-1: #706fd3;   /* C64 Purple */
+  --p-viz-2: #33d9b2;   /* Celestial Green */
+  --p-viz-3: #ff5252;   /* Fluorescent Red */
+  --p-viz-4: #ccae62;   /* Desert */
+  --p-viz-5: #218c74;   /* Palm Springs Splash */
+  --p-viz-6: #ff793f;   /* Synthetic Pumpkin */
+  --p-viz-7: #f7f1e3;   /* Swan White */
+  --p-viz-8: #ffb142;   /* Mandarin Sorbet */
+}
+
+/* ---------------------------------------------------------------------------
+   TIER 2 — SEMANTICS · DARK (the default)
+   ------------------------------------------------------------------------ */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* ---------------------------------------------------------------------
+     A NEUTRAL BLACK GROUND, CARRYING THE SPANISH PALETTE
+
+     The ground is black and has no hue at all: every surface below is a pure
+     neutral (r = g = b), so nothing in the chrome competes with the colour.
+     The palette still runs the whole system — C64 Purple is the accent,
+     Celestial Green / Spiced Butternut / Synthetic Pumpkin / Summer Sky carry
+     status — but it now sits ON the page instead of BEING the page, which is
+     what makes a saturated accent read as saturated.
+
+     The ramp is not eyeballed. Its eight steps are evenly spaced in OKLCH
+     lightness, and every adjacent pair was then re-checked as a contrast ratio,
+     because the two disagree near black: OKLCH calls the bottom rung the biggest
+     jump in the ladder, and the eye calls it the smallest. Where they disagree
+     this close to the floor, the ratio is right — which is why the page sits at
+     #101010 rather than #000000, and why the floor under it is not pure black
+     either. Both leave the one step of headroom a well needs.
+
+       sunken 0.115  canvas 0.173  inset  0.209  surface 0.239
+       raised 0.277  overlay 0.309  field 0.341  f-hvr   0.360
+
+     Two structural changes came out of the move.
+
+     The old ground had room for two rungs below the page, so a well could be
+     darker than the canvas. A black page has room for one. So --ds-surface-inset
+     now sits just ABOVE the canvas and is defined against the container it sits
+     in — a table header inside a card, a code header on a code block — rather
+     than against the page. Which is what it always was in practice; the old
+     value only looked absolute because there was room underneath it.
+
+     And --ds-field now clears --ds-surface-overlay, which it never did before.
+     The Bible's own rule is that a control goes above its container regardless
+     of how deep that container is, yet a text input inside a dialog used to
+     land a rung BELOW the dialog — the same "control fell through the floor"
+     bug the Dark Theme page demonstrates, in the system's own tokens. Fixing it
+     meant lowering the overlay rather than raising the field: --ds-fg-muted
+     stops clearing 4.5:1 above about #404040, so the ceiling is set by the
+     dimmest text that has to sit on it, not by how much lift a dialog wants.
+     A dialog gets its lift from the scrim; a menu gets it from --ds-border.
+
+     Every ratio below was re-measured, not carried over. Foregrounds were
+     re-solved as pure neutrals at the same ratios they had before, and the
+     three status `-text` tokens were lifted toward white until their own
+     `-subtle` fill clears 4.5:1 at the TOP of the ramp — a chip on a hovered
+     control, the one composite the previous values missed at 4.1:1.
+
+     The light theme below is untouched: it was never a hue-carrying ground.
+     --------------------------------------------------------------------- */
+
+  /* Surfaces. In dark UI, elevation is communicated by getting *lighter*,
+     not by casting a bigger shadow — a shadow on black is invisible, and on
+     THIS page it is invisible in the literal sense. The ramp does all of it. */
+  --ds-canvas: #101010;             /* the page */
+  --ds-sunken: #050505;             /* the floor: one step under the page */
+  --ds-surface: #1f1f1f;            /* panels and the nav column */
+  --ds-surface-raised: #282828;     /* cards — an object on a panel */
+  --ds-surface-overlay: #303030;    /* dialogs, drawers, menus — over a scrim */
+  --ds-surface-inset: #181818;      /* wells only, see --ds-field */
+
+  /* Interactive control surfaces. Material 3 puts a filled field on
+     surface-container-highest — the LIGHTEST container in the ramp, never a
+     darker one — because a control you can act on is a surface standing on the
+     page, not a hole cut into it. So these sit above EVERY surface, the overlay
+     included: a field reads as raised whether it lands on the canvas, inside a
+     card, or inside a dialog. That last case is the one systems get wrong.
+     --ds-surface-inset stays, but only for the things it was always right for:
+     non-interactive wells (code blocks, table headers, meter tracks, media
+     areas), where nothing is asking to be clicked. */
+  --ds-field: #383838;              /* above the whole ramp — a control, not a well */
+  --ds-field-hover: #3d3d3d;        /* the ceiling: muted text still reads 4.7:1 here */
+
+  /* Interaction layers — always alpha so they compose over any surface. */
+  --ds-layer-hover: rgb(255 255 255 / 0.045);
+  --ds-layer-active: rgb(255 255 255 / 0.075);
+  --ds-layer-selected: rgb(112 111 211 / 0.16);
+  --ds-layer-scrim: rgb(0 0 0 / 0.72);
+
+  /* Foreground. Pure neutrals, like the ground: a faintly violet gray was
+     invisible on a violet page and reads as a colour cast on a black one.
+     Ratios are against --ds-canvas; the second figure is the LIGHTEST ground
+     the token can land on, which is the one that decides whether it passes.
+
+     The ceiling is deliberate. #f6f5f4 measures 17.5:1 on this page — past the
+     point where light text starts to bloom against a dark field, which is the
+     halation the Dark Theme page warns about. Darkened until it reads 15.0:1,
+     the same ratio the previous, lighter ground gave. */
+  --ds-fg: #e5e4e3;                 /* 15.0:1 page · 8.6:1 on the lightest control */
+  --ds-fg-secondary: #b6b6b6;       /* 9.4:1 page · 5.4:1 on the lightest control */
+  /* Muted text does not only sit on the page — it is the placeholder inside a
+     field and the caption on an overlay, both lighter grounds. This value is
+     certified against the overlay, not the page, for exactly that reason. */
+  --ds-fg-muted: #aaaaaa;           /* 8.2:1 page · 5.7:1 overlay · 4.7:1 field-hover */
+  --ds-fg-disabled: #585858;        /* 2.7:1 — not text, a state */
+  --ds-fg-on-accent: #ffffff;
+  --ds-fg-inverse: #101010;
+
+  /* Borders. Alpha, so one value composes over every level of the ramp. The
+     alphas are ~8% higher than the previous ground's: a white overlay wins less
+     contrast against a dark neutral than against a mid purple, and these were
+     re-solved so an edge reads with the same strength it did before. */
+  --ds-border-subtle: rgb(255 255 255 / 0.063);
+  --ds-border: rgb(255 255 255 / 0.115);
+  --ds-border-strong: rgb(255 255 255 / 0.19);
+  --ds-border-interactive: rgb(255 255 255 / 0.148);
+
+  /* Brand — C64 Purple, the derivation's `primary`. The nearest thing this
+     palette has to the violet the Bible already used, so the identity survives
+     the swap; hover lightens and active darkens, per the elevation rule. */
+  /* One step under C64 Purple. The palette colour itself takes a white label at
+     4.28:1 — the derivation reports 4.3 and accepts it, but that is under AA for
+     normal text, and this fill's whole job is carrying button labels. Darkened
+     until the label passes; the palette colour survives untouched as
+     --p-brand-500 and as the chart's eighth series. */
+  --ds-accent: #6867c9;             /* derived from C64 Purple for label contrast */
+  --ds-accent-hover: #7f7edb;       /* derived: lightened */
+  --ds-accent-active: #5554a0;      /* derived: pressed */
+  --ds-accent-fg: #ffffff;          /* 4.8:1 on the fill, measured */
+  --ds-accent-subtle: rgb(112 111 211 / 0.18);
+  --ds-accent-subtle-hover: rgb(112 111 211 / 0.26);
+  --ds-accent-border: rgb(112 111 211 / 0.42);
+  /* The fill itself is too dark for text here. Lifted 9% toward white against
+     the old value so it clears 4.5:1 on --ds-accent-subtle composited over the
+     OVERLAY — a purple chip inside a dialog, where it previously read 4.1:1. */
+  --ds-accent-text: #b5b3ed;        /* 9.6:1 page · 4.7:1 on its own subtle fill */
+
+  /* Status — `-text` is the pair certified for text on `-subtle`.
+     Roles are the derivation's, so they are checkable against the palette page.
+     Where it names a darker palette colour as the hover, that becomes `-active`
+     instead: on a dark ground a control lightens under the pointer and darkens
+     under the press, and inverting that would contradict the elevation rule two
+     sections up. Every `-fg` is the measured pair for its fill. */
+  --ds-success: #33d9b2;            /* taken: Celestial Green */
+  --ds-success-hover: #5ce3c4;      /* derived: lightened */
+  --ds-success-active: #218c74;     /* taken: Palm Springs Splash */
+  --ds-success-fg: #101010;         /* 10.7:1 on the fill */
+  --ds-success-subtle: rgb(51 217 178 / 0.14);
+  --ds-success-border: rgb(51 217 178 / 0.34);
+  --ds-success-text: #5ce3c4;       /* 5.2:1 on its own subtle fill over an overlay */
+
+  --ds-warning: #ffda79;            /* taken: Spiced Butternut */
+  --ds-warning-hover: #ffe79c;      /* derived: lightened */
+  --ds-warning-active: #ffb142;     /* taken: Mandarin Sorbet */
+  --ds-warning-fg: #101010;         /* 14.2:1 on the fill */
+  --ds-warning-subtle: rgb(255 218 121 / 0.14);
+  --ds-warning-border: rgb(255 218 121 / 0.34);
+  --ds-warning-text: #ffda79;       /* 5.6:1 on its own subtle fill over an overlay */
+
+  --ds-danger: #ff793f;             /* taken: Synthetic Pumpkin */
+  --ds-danger-hover: #ff9463;       /* derived: lightened */
+  --ds-danger-active: #cd6133;      /* taken: Chilean Fire */
+  --ds-danger-fg: #101010;          /* 7.4:1 on the fill */
+  --ds-danger-subtle: rgb(255 121 63 / 0.14);
+  --ds-danger-border: rgb(255 121 63 / 0.36);
+  --ds-danger-text: #ffa57b;        /* lifted 8%: 4.6:1 on its own subtle fill over an overlay */
+
+  --ds-info: #34ace0;               /* taken: Summer Sky */
+  --ds-info-hover: #5cbde7;         /* derived: lightened */
+  --ds-info-active: #227093;        /* taken: Devil Blue */
+  --ds-info-fg: #101010;            /* 7.4:1 on the fill */
+  --ds-info-subtle: rgb(52 172 224 / 0.14);
+  --ds-info-border: rgb(52 172 224 / 0.34);
+  --ds-info-text: #73c7eb;          /* lifted 5%: 4.6:1 on its own subtle fill over an overlay */
+
+  /* Focus — one ring for the whole system. Users learn it once. */
+  --ds-focus-ring: #8584dd;         /* 5.8:1 page · 3.3:1 field-hover — clears 3:1 everywhere */
+  --ds-focus-ring-offset: #101010;
+
+  /* Elevation. Dark shadows are near-black and tighter than light shadows;
+     a soft gray shadow just fogs the surface. On a black page they do almost
+     nothing on their own, which is the point: the surface ramp carries the
+     elevation and the shadow only softens the edge where a panel overhangs a
+     LIGHTER surface. Every raised component pairs one with --ds-border, and on
+     this ground the border is the half that reads. */
+  --ds-shadow-0: 0 0 #0000;
+  --ds-shadow-1: 0 1px 2px -1px rgb(0 0 0 / 0.6), 0 1px 1px rgb(0 0 0 / 0.32);
+  --ds-shadow-2: 0 2px 4px -2px rgb(0 0 0 / 0.6), 0 4px 8px -2px rgb(0 0 0 / 0.36);
+  --ds-shadow-3: 0 4px 8px -4px rgb(0 0 0 / 0.6), 0 12px 20px -6px rgb(0 0 0 / 0.44);
+  --ds-shadow-4: 0 8px 16px -6px rgb(0 0 0 / 0.62), 0 24px 40px -12px rgb(0 0 0 / 0.52);
+  --ds-shadow-5: 0 16px 32px -8px rgb(0 0 0 / 0.66), 0 40px 72px -16px rgb(0 0 0 / 0.6);
+  --ds-shadow-accent: 0 0 0 1px rgb(112 111 211 / 0.4), 0 8px 24px -8px rgb(112 111 211 / 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+   TIER 2 — SEMANTICS · LIGHT
+   Not an inversion. Light UI carries elevation with shadow and hairlines;
+   dark UI carries it with surface lightness. The token *names* stay identical,
+   which is the entire point of the tier.
+   ------------------------------------------------------------------------ */
+[data-theme='light'] {
+  color-scheme: light;
+
+  --ds-canvas: #ffffff;
+  --ds-sunken: #f4f6f8;
+  --ds-surface: #ffffff;
+  --ds-surface-raised: #ffffff;
+  --ds-surface-overlay: #ffffff;
+  --ds-surface-inset: #f7f8fa;
+
+  /* The rule is "a control is its own container", not "a control is lighter".
+     Light theme has nowhere to go above white, so the container tints AWAY from
+     the page instead — the same separation, achieved in the only direction
+     available. This is why the two themes cannot be inversions of each other. */
+  --ds-field: #f7f8fa;
+  --ds-field-hover: #f0f2f5;
+
+  --ds-layer-hover: rgb(16 18 22 / 0.04);
+  --ds-layer-active: rgb(16 18 22 / 0.075);
+  --ds-layer-selected: rgb(106 85 242 / 0.09);
+  --ds-layer-scrim: rgb(23 26 32 / 0.42);
+
+  --ds-fg: #171a20;
+  --ds-fg-secondary: #545c6b;
+  --ds-fg-muted: #6e7686;
+  --ds-fg-disabled: #b0b6c2;
+  --ds-fg-on-accent: #ffffff;
+  --ds-fg-inverse: #ffffff;
+
+  --ds-border-subtle: rgb(16 18 22 / 0.07);
+  --ds-border: rgb(16 18 22 / 0.13);
+  --ds-border-strong: rgb(16 18 22 / 0.24);
+  --ds-border-interactive: rgb(16 18 22 / 0.16);
+
+  --ds-accent: #6a55f2;
+  --ds-accent-hover: #5942d6;
+  --ds-accent-active: #4835a8;
+  --ds-accent-fg: #ffffff;
+  --ds-accent-subtle: rgb(106 85 242 / 0.09);
+  --ds-accent-subtle-hover: rgb(106 85 242 / 0.14);
+  --ds-accent-border: rgb(106 85 242 / 0.3);
+  --ds-accent-text: #5942d6;
+
+  --ds-success: #0e9260;
+  --ds-success-hover: #0c744e;
+  --ds-success-fg: #ffffff;
+  --ds-success-subtle: rgb(22 179 117 / 0.11);
+  --ds-success-border: rgb(14 146 96 / 0.28);
+  --ds-success-text: #0c744e;
+
+  --ds-warning: #e29508;
+  --ds-warning-hover: #bc7605;
+  --ds-warning-fg: #2a1a06;
+  --ds-warning-subtle: rgb(247 178 34 / 0.16);
+  --ds-warning-border: rgb(188 118 5 / 0.3);
+  --ds-warning-text: #955a08;
+
+  --ds-danger: #d62838;
+  --ds-danger-hover: #b21c2b;
+  --ds-danger-active: #8c1925;
+  --ds-danger-fg: #ffffff;
+  --ds-danger-subtle: rgb(238 67 81 / 0.1);
+  --ds-danger-border: rgb(214 40 56 / 0.28);
+  --ds-danger-text: #b21c2b;
+
+  --ds-info: #1b62db;
+  --ds-info-hover: #164eb0;
+  --ds-info-fg: #ffffff;
+  --ds-info-subtle: rgb(46 125 246 / 0.1);
+  --ds-info-border: rgb(27 98 219 / 0.28);
+  --ds-info-text: #164eb0;
+
+  --ds-focus-ring: #6a55f2;
+  --ds-focus-ring-offset: #ffffff;
+
+  --ds-shadow-0: 0 0 #0000;
+  --ds-shadow-1: 0 1px 2px rgb(16 18 22 / 0.06), 0 1px 3px rgb(16 18 22 / 0.05);
+  --ds-shadow-2: 0 2px 4px -2px rgb(16 18 22 / 0.08), 0 4px 10px -2px rgb(16 18 22 / 0.07);
+  --ds-shadow-3: 0 4px 8px -4px rgb(16 18 22 / 0.09), 0 12px 24px -6px rgb(16 18 22 / 0.09);
+  --ds-shadow-4: 0 8px 16px -6px rgb(16 18 22 / 0.1), 0 24px 44px -12px rgb(16 18 22 / 0.12);
+  --ds-shadow-5: 0 16px 32px -8px rgb(16 18 22 / 0.12), 0 40px 80px -16px rgb(16 18 22 / 0.16);
+  --ds-shadow-accent: 0 0 0 1px rgb(106 85 242 / 0.28), 0 8px 24px -8px rgb(106 85 242 / 0.4);
+}
+
+/* ---------------------------------------------------------------------------
+   LAYOUT
+   The page frame, and the only copy of it. Theme-independent, so it sits
+   outside both semantic blocks: a container width does not change colour.
+
+   These belong to Grid & Layout, not to any component. The App Bar reads them
+   so its brand lines up with the first column of the content beneath it —
+   a bar carrying its own cap and its own gutter is a bar that agrees with the
+   page by coincidence, and stops agreeing the moment either number moves.
+   ------------------------------------------------------------------------ */
+:root {
+  --ds-layout-container: 76rem; /* 1216 — the content column cap */
+  --ds-layout-gutter: 1.5rem;   /* 24 — page padding below 640 */
+  --ds-layout-gutter-lg: 2.5rem;/* 40 — page padding at 640 and above */
+}
+
+/* ---------------------------------------------------------------------------
+   TAILWIND THEME BINDING
+   `inline` keeps the var() reference in the generated utility instead of
+   resolving it at build time. That is what lets `[data-theme]` re-theme any
+   subtree at runtime — including a light-mode island inside the dark app.
+   ------------------------------------------------------------------------ */
+@theme inline {
+  /* --- Surfaces ------------------------------------------------------- */
+  --color-canvas: var(--ds-canvas);
+  --color-sunken: var(--ds-sunken);
+  --color-surface: var(--ds-surface);
+  --color-raised: var(--ds-surface-raised);
+  --color-overlay: var(--ds-surface-overlay);
+  --color-inset: var(--ds-surface-inset);
+
+  --color-layer-hover: var(--ds-layer-hover);
+  --color-layer-active: var(--ds-layer-active);
+  --color-layer-selected: var(--ds-layer-selected);
+  --color-scrim: var(--ds-layer-scrim);
+
+  /* --- Foreground ----------------------------------------------------- */
+  --color-fg: var(--ds-fg);
+  --color-fg-secondary: var(--ds-fg-secondary);
+  --color-fg-muted: var(--ds-fg-muted);
+  --color-fg-disabled: var(--ds-fg-disabled);
+  --color-fg-inverse: var(--ds-fg-inverse);
+
+  /* --- Borders -------------------------------------------------------- */
+  --color-line-subtle: var(--ds-border-subtle);
+  --color-line: var(--ds-border);
+  --color-line-strong: var(--ds-border-strong);
+  --color-line-interactive: var(--ds-border-interactive);
+
+  /* --- Brand ---------------------------------------------------------- */
+  --color-accent: var(--ds-accent);
+  --color-accent-hover: var(--ds-accent-hover);
+  --color-accent-active: var(--ds-accent-active);
+  --color-accent-fg: var(--ds-accent-fg);
+  --color-accent-subtle: var(--ds-accent-subtle);
+  --color-accent-subtle-hover: var(--ds-accent-subtle-hover);
+  --color-accent-border: var(--ds-accent-border);
+  --color-accent-text: var(--ds-accent-text);
+
+  /* --- Status --------------------------------------------------------- */
+  --color-success: var(--ds-success);
+  --color-success-hover: var(--ds-success-hover);
+  --color-success-fg: var(--ds-success-fg);
+  --color-success-subtle: var(--ds-success-subtle);
+  --color-success-border: var(--ds-success-border);
+  --color-success-text: var(--ds-success-text);
+
+  --color-warning: var(--ds-warning);
+  --color-warning-hover: var(--ds-warning-hover);
+  --color-warning-fg: var(--ds-warning-fg);
+  --color-warning-subtle: var(--ds-warning-subtle);
+  --color-warning-border: var(--ds-warning-border);
+  --color-warning-text: var(--ds-warning-text);
+
+  --color-danger: var(--ds-danger);
+  --color-danger-hover: var(--ds-danger-hover);
+  --color-danger-active: var(--ds-danger-active);
+  --color-danger-fg: var(--ds-danger-fg);
+  --color-danger-subtle: var(--ds-danger-subtle);
+  --color-danger-border: var(--ds-danger-border);
+  --color-danger-text: var(--ds-danger-text);
+
+  --color-info: var(--ds-info);
+  --color-info-hover: var(--ds-info-hover);
+  --color-info-fg: var(--ds-info-fg);
+  --color-info-subtle: var(--ds-info-subtle);
+  --color-info-border: var(--ds-info-border);
+  --color-info-text: var(--ds-info-text);
+
+  --color-focus: var(--ds-focus-ring);
+
+  /* --- Data viz ------------------------------------------------------- */
+  --color-viz-1: var(--p-viz-1);
+  --color-viz-2: var(--p-viz-2);
+  --color-viz-3: var(--p-viz-3);
+  --color-viz-4: var(--p-viz-4);
+  --color-viz-5: var(--p-viz-5);
+  --color-viz-6: var(--p-viz-6);
+  --color-viz-7: var(--p-viz-7);
+  --color-viz-8: var(--p-viz-8);
+
+  /* --- Radius ---------------------------------------------------------
+     Nested radii must shrink inward or the corners visually "pinch".
+     Rule of thumb: inner = outer − padding.                             */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 28px;
+
+  /* --- Elevation ------------------------------------------------------ */
+  --shadow-e0: var(--ds-shadow-0);
+  --shadow-e1: var(--ds-shadow-1);
+  --shadow-e2: var(--ds-shadow-2);
+  --shadow-e3: var(--ds-shadow-3);
+  --shadow-e4: var(--ds-shadow-4);
+  --shadow-e5: var(--ds-shadow-5);
+  --shadow-glow: var(--ds-shadow-accent);
+
+  /* --- Typography ------------------------------------------------------ */
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SF Mono',
+    Menlo, Consolas, monospace;
+
+  --text-display: 2.75rem; /* 44 */
+  --text-display--line-height: 1.08;
+  --text-display--letter-spacing: -0.028em;
+  --text-display--font-weight: 620;
+
+  --text-h1: 2rem; /* 32 */
+  --text-h1--line-height: 1.16;
+  --text-h1--letter-spacing: -0.022em;
+  --text-h1--font-weight: 620;
+
+  --text-h2: 1.5rem; /* 24 */
+  --text-h2--line-height: 1.25;
+  --text-h2--letter-spacing: -0.017em;
+  --text-h2--font-weight: 600;
+
+  --text-h3: 1.1875rem; /* 19 */
+  --text-h3--line-height: 1.35;
+  --text-h3--letter-spacing: -0.012em;
+  --text-h3--font-weight: 600;
+
+  --text-h4: 1rem; /* 16 */
+  --text-h4--line-height: 1.45;
+  --text-h4--letter-spacing: -0.006em;
+  --text-h4--font-weight: 600;
+
+  --text-body-lg: 1.0625rem; /* 17 */
+  --text-body-lg--line-height: 1.62;
+  --text-body-lg--letter-spacing: -0.004em;
+
+  /* 16px, not 15. Primary reading text and anything typed into — a value the
+     user has to read back and check is a value they should not have to lean in
+     for, and 16px is also the size below which iOS zooms the page on focus. */
+  --text-body: 1rem; /* 16 */
+  --text-body--line-height: 1.6;
+  --text-body--letter-spacing: -0.002em;
+
+  /* Interface chrome: navigation rows, menu items, list rows — text you click
+     rather than read. One step under body because it is scanned, never below
+     15px because it is the text a product is actually operated through. The
+     line height is 21px, which is what keeps a 32px row from feeling packed. */
+  --text-ui: 0.9375rem; /* 15 */
+  --text-ui--line-height: 1.4; /* 21px */
+  --text-ui--letter-spacing: -0.001em;
+  --text-ui--font-weight: 470;
+
+  --text-body-sm: 0.8125rem; /* 13 */
+  --text-body-sm--line-height: 1.6;
+  --text-body-sm--letter-spacing: 0;
+
+  --text-label: 0.8125rem; /* 13 */
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.001em;
+  --text-label--font-weight: 540;
+
+  --text-label-sm: 0.75rem; /* 12 */
+  --text-label-sm--line-height: 1.2;
+  --text-label-sm--letter-spacing: 0.004em;
+  --text-label-sm--font-weight: 540;
+
+  --text-caption: 0.75rem; /* 12 */
+  --text-caption--line-height: 1.45;
+  --text-caption--letter-spacing: 0.002em;
+
+  /* 12px is the floor of the whole scale, and an eyebrow set in caps needs it
+     more than most: uppercase strips the ascenders and descenders the eye reads
+     word shapes by, so 11px caps are effectively smaller than 11px again. */
+  --text-overline: 0.75rem; /* 12 */
+  --text-overline--line-height: 1.2;
+  --text-overline--letter-spacing: 0.09em;
+  --text-overline--font-weight: 600;
+
+  --text-code: 0.8125rem; /* 13 */
+  --text-code--line-height: 1.65;
+  --text-code--letter-spacing: -0.005em;
+
+  /* --- Motion ---------------------------------------------------------
+     Durations are perceptual, not arbitrary. Under ~100ms a change reads as
+     instant; over ~400ms the UI feels like it is deciding whether to obey.  */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-fade-in: fade-in 160ms var(--ease-standard) both;
+  --animate-scale-in: scale-in 180ms var(--ease-emphasized) both;
+  --animate-slide-up: slide-up 220ms var(--ease-emphasized) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-spin-slow: spin 720ms linear infinite;
+  --animate-pulse-ring: pulse-ring 1.8s var(--ease-standard) infinite;
+  --animate-indeterminate: indeterminate 1.4s var(--ease-standard) infinite;
+}
+
+/* Duration tokens live outside @theme — Tailwind ships duration-* utilities
+   that take bare numbers, so these are for hand-written CSS and JS. */
+:root {
+  --duration-instant: 75ms;
+  --duration-fast: 120ms;
+  --duration-quick: 160ms;
+  --duration-normal: 220ms;
+  --duration-slow: 320ms;
+  --duration-slower: 480ms;
+  --duration-deliberate: 640ms;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -180% 0;
+  }
+  to {
+    background-position: 180% 0;
+  }
+}
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 var(--ds-accent-subtle);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgb(124 108 255 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(124 108 255 / 0);
+  }
+}
+/* One-shot emphasis pulse. Never looped — see the Animation page. */
+@keyframes attention {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-9deg);
+  }
+  75% {
+    transform: rotate(9deg);
+  }
+}
+/* Used by the easing specimens on the Motion page. */
+@keyframes slide-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(100cqw - 100%));
+  }
+}
+@keyframes drawer-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%) scaleX(0.35);
+  }
+  50% {
+    transform: translateX(20%) scaleX(0.6);
+  }
+  100% {
+    transform: translateX(150%) scaleX(0.35);
+  }
+}

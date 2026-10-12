@@ -280,7 +280,7 @@ export async function publicRoutes(base: FastifyInstance): Promise<void> {
     // The plain HTML embed: flat field names in, a page to land on out.
     const flat = (request.body ?? {}) as Record<string, string>
     const { email = '', consent, website, ...rest } = flat
-    const landing = `${publicUrl(ctx)}/forms/${request.params.id}`
+    const landing = `${publicUrl(ctx)}/subscribe/${request.params.id}`
     try {
       const result = submit(request, request.params.id, { email, fields: rest, consent: consent === 'on' || consent === 'true' || consent === '1', website })
       return reply.redirect(result.redirectUrl ?? `${landing}?done=${result.status}`, 303)
