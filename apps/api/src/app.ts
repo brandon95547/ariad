@@ -42,7 +42,10 @@ export interface BuildOptions {
   mailer?: Mailer
 }
 
-export async function buildApp(config: Config, options: BuildOptions = {}): Promise<FastifyInstance> {
+export async function buildApp(
+  config: Config,
+  options: BuildOptions = {},
+): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
       level: config.logLevel,
@@ -98,13 +101,19 @@ export async function buildApp(config: Config, options: BuildOptions = {}): Prom
     const status = error.statusCode ?? 500
     if (status >= 500) {
       request.log.error({ err: error }, 'unhandled error')
-      return reply.code(500).send({ error: { code: 'internal_error', message: 'Something went wrong.' } })
+      return reply
+        .code(500)
+        .send({ error: { code: 'internal_error', message: 'Something went wrong.' } })
     }
-    return reply.code(status).send({ error: { code: error.code ?? 'request_error', message: error.message } })
+    return reply
+      .code(status)
+      .send({ error: { code: error.code ?? 'request_error', message: error.message } })
   })
 
   app.addHook('onResponse', (request, reply, done) => {
-    request.log.info(`${request.method} ${request.url} ${reply.statusCode} ${Math.round(reply.elapsedTime)}ms`)
+    request.log.info(
+      `${request.method} ${request.url} ${reply.statusCode} ${Math.round(reply.elapsedTime)}ms`,
+    )
     done()
   })
 

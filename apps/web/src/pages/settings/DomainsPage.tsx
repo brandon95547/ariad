@@ -38,7 +38,8 @@ const CHECKS = [
 function checkBadge(check: DnsCheck) {
   if (check.status === 'pass') return <Badge tone="success">Passing</Badge>
   if (check.status === 'warn') return <Badge tone="warning">Needs attention</Badge>
-  if (check.status === 'fail') return <Badge tone="danger">{check.record ? 'Failing' : 'Missing'}</Badge>
+  if (check.status === 'fail')
+    return <Badge tone="danger">{check.record ? 'Failing' : 'Missing'}</Badge>
   return <Badge tone="neutral">Not checked</Badge>
 }
 
@@ -99,7 +100,10 @@ const bareDomain = (value: string) =>
 export function DomainsPage() {
   const client = useQueryClient()
   const canEdit = roleAtLeast(useAuthState().data?.user?.role ?? 'viewer', 'admin')
-  const domains = useQuery({ queryKey: domainsKey, queryFn: () => api.get<DomainsData>('/domains') })
+  const domains = useQuery({
+    queryKey: domainsKey,
+    queryFn: () => api.get<DomainsData>('/domains'),
+  })
 
   const [adding, setAdding] = useState<{ domain: string } | null>(null)
   const [selecting, setSelecting] = useState<SendingDomain | null>(null)
@@ -107,7 +111,12 @@ export function DomainsPage() {
 
   const put = (next: SendingDomain) =>
     client.setQueryData<DomainsData>(domainsKey, (current) =>
-      current ? { ...current, domains: current.domains.map((domain) => (domain.id === next.id ? next : domain)) } : current,
+      current
+        ? {
+            ...current,
+            domains: current.domains.map((domain) => (domain.id === next.id ? next : domain)),
+          }
+        : current,
     )
   const refresh = () => client.invalidateQueries({ queryKey: domainsKey })
 
@@ -149,8 +158,9 @@ export function DomainsPage() {
         <div className="flex max-w-[44rem] flex-col gap-1">
           <h2 className="text-h3 text-[var(--ds-fg)]">Domains</h2>
           <p className="text-body-sm text-[var(--ds-fg-muted)]">
-            SPF, DKIM and DMARC are DNS records that prove an email really comes from your domain: SPF lists the servers allowed to send for it,
-            DKIM signs each message, and DMARC tells receivers what to do when either check fails. Gmail and Yahoo require all three from
+            SPF, DKIM and DMARC are DNS records that prove an email really comes from your domain:
+            SPF lists the servers allowed to send for it, DKIM signs each message, and DMARC tells
+            receivers what to do when either check fails. Gmail and Yahoo require all three from
             anyone sending in bulk, and mail without them is turned away or lands in spam.
           </p>
         </div>
@@ -165,8 +175,9 @@ export function DomainsPage() {
 
       {freeMail.length > 0 && (
         <Banner tone="info" title={`Nothing to set up for ${freeMail.join(' or ')}`}>
-          You send from {freeMail.length === 1 ? 'a free address' : 'free addresses'}, and the provider publishes these records itself. Mail from a
-          free address to a large list is more likely to be filtered, though, so a domain of your own is worth having for real campaigns.
+          You send from {freeMail.length === 1 ? 'a free address' : 'free addresses'}, and the
+          provider publishes these records itself. Mail from a free address to a large list is more
+          likely to be filtered, though, so a domain of your own is worth having for real campaigns.
         </Banner>
       )}
 
@@ -190,10 +201,18 @@ export function DomainsPage() {
               canEdit ? (
                 firstSuggestion ? (
                   <>
-                    <Button startIcon={<Plus />} onClick={() => quickAdd.mutate(firstSuggestion)} loading={quickAdd.isPending}>
+                    <Button
+                      startIcon={<Plus />}
+                      onClick={() => quickAdd.mutate(firstSuggestion)}
+                      loading={quickAdd.isPending}
+                    >
                       Add {firstSuggestion}
                     </Button>
-                    <Button variant="text" onClick={() => setAdding({ domain: '' })} disabled={quickAdd.isPending}>
+                    <Button
+                      variant="text"
+                      onClick={() => setAdding({ domain: '' })}
+                      disabled={quickAdd.isPending}
+                    >
                       Add another domain
                     </Button>
                   </>
@@ -275,7 +294,10 @@ export function DomainsPage() {
         confirmLabel="Remove domain"
         loading={remove.isPending}
       >
-        <p>Ariad stops checking this domain. Nothing changes in its DNS, and mail from it keeps sending as before.</p>
+        <p>
+          Ariad stops checking this domain. Nothing changes in its DNS, and mail from it keeps
+          sending as before.
+        </p>
         {remove.isError && <Banner tone="danger">{errorMessage(remove.error)}</Banner>}
       </ConfirmDialog>
     </div>
@@ -301,12 +323,17 @@ function DomainCard({
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex items-start gap-3.5">
-        <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)]" aria-hidden>
+        <span
+          className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)]"
+          aria-hidden
+        >
           <Globe size={17} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <h3 className="min-w-0 text-h4 text-[var(--ds-fg)] [overflow-wrap:anywhere]">{domain.domain}</h3>
+            <h3 className="min-w-0 text-h4 text-[var(--ds-fg)] [overflow-wrap:anywhere]">
+              {domain.domain}
+            </h3>
             {overallBadge(domain)}
           </div>
           <p className="text-caption text-[var(--ds-fg-muted)]">
@@ -316,19 +343,44 @@ function DomainCard({
         </div>
         <div className="flex shrink-0 items-center gap-1.5 coarse:gap-3">
           {roomForLabel ? (
-            <Button variant="outlined" size="sm" startIcon={<RefreshCw />} onClick={onCheck} loading={checking}>
+            <Button
+              variant="outlined"
+              size="sm"
+              startIcon={<RefreshCw />}
+              onClick={onCheck}
+              loading={checking}
+            >
               Check again
             </Button>
           ) : (
-            <IconButton size="sm" variant="outlined" label={`Check ${domain.domain} again`} icon={<RefreshCw />} onClick={onCheck} loading={checking} />
+            <IconButton
+              size="sm"
+              variant="outlined"
+              label={`Check ${domain.domain} again`}
+              icon={<RefreshCw />}
+              onClick={onCheck}
+              loading={checking}
+            />
           )}
           {canEdit && (
             <ActionMenu
               label={`Actions for ${domain.domain}`}
               icon={<MoreHorizontal size={16} />}
               actions={[
-                { id: 'selector', label: 'Change DKIM selector', icon: <KeyRound size={14} />, onSelect: onSelector },
-                { id: 'remove', label: 'Remove', icon: <Trash2 size={14} />, onSelect: onRemove, danger: true, separated: true },
+                {
+                  id: 'selector',
+                  label: 'Change DKIM selector',
+                  icon: <KeyRound size={14} />,
+                  onSelect: onSelector,
+                },
+                {
+                  id: 'remove',
+                  label: 'Remove',
+                  icon: <Trash2 size={14} />,
+                  onSelect: onRemove,
+                  danger: true,
+                  separated: true,
+                },
               ]}
             />
           )}
@@ -340,7 +392,10 @@ function DomainCard({
           const result = domain[key]
           const advice = result.advice ? splitAdvice(result.advice) : null
           return (
-            <li key={key} className="grid grid-cols-1 gap-x-6 gap-y-2.5 py-4 last:pb-0 sm:grid-cols-[13rem_minmax(0,1fr)]">
+            <li
+              key={key}
+              className="grid grid-cols-1 gap-x-6 gap-y-2.5 py-4 last:pb-0 sm:grid-cols-[13rem_minmax(0,1fr)]"
+            >
               <div className="flex flex-col gap-0.5">
                 <h4 className="text-label text-[var(--ds-fg)]">{name}</h4>
                 <p className="text-caption text-[var(--ds-fg-muted)]">{what}</p>
@@ -348,7 +403,9 @@ function DomainCard({
               <div className="flex min-w-0 flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                   {checkBadge(result)}
-                  <p className="min-w-0 text-body-sm text-[var(--ds-fg-secondary)] [overflow-wrap:anywhere]">{result.summary}</p>
+                  <p className="min-w-0 text-body-sm text-[var(--ds-fg-secondary)] [overflow-wrap:anywhere]">
+                    {result.summary}
+                  </p>
                 </div>
                 {result.record && <CodeSnippet label="Published now" code={result.record} wrap />}
                 {advice && (
@@ -370,13 +427,25 @@ function DomainCard({
 }
 
 /** Adding a domain also checks it, so the dialog's wait is the DNS lookups. */
-function AddDomainDialog({ open, onClose, onAdded }: { open: boolean; onClose: () => void; onAdded: (domain: SendingDomain) => void }) {
+function AddDomainDialog({
+  open,
+  onClose,
+  onAdded,
+}: {
+  open: boolean
+  onClose: () => void
+  onAdded: (domain: SendingDomain) => void
+}) {
   const formId = useId()
   const [domain, setDomain] = useState('')
   const [selector, setSelector] = useState('')
 
   const add = useMutation({
-    mutationFn: () => api.post<SendingDomain>('/domains', { domain: bareDomain(domain), dkimSelector: selector.trim() || null }),
+    mutationFn: () =>
+      api.post<SendingDomain>('/domains', {
+        domain: bareDomain(domain),
+        dkimSelector: selector.trim() || null,
+      }),
     onSuccess: onAdded,
   })
 
@@ -389,7 +458,8 @@ function AddDomainDialog({ open, onClose, onAdded }: { open: boolean; onClose: (
   }, [open])
 
   const fields = add.error instanceof ApiError ? add.error.fields : {}
-  const general = add.isError && !fields.domain && !fields.dkimSelector ? errorMessage(add.error) : null
+  const general =
+    add.isError && !fields.domain && !fields.dkimSelector ? errorMessage(add.error) : null
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -431,21 +501,41 @@ function AddDomainDialog({ open, onClose, onAdded }: { open: boolean; onClose: (
           label="DKIM selector"
           optional
           hint="The name your mail provider gives its DKIM key. Google Workspace uses google. Leave it blank and Ariad tries the common ones."
-          error={fields.dkimSelector ? 'Use letters, numbers, dots, dashes and underscores only.' : undefined}
+          error={
+            fields.dkimSelector
+              ? 'Use letters, numbers, dots, dashes and underscores only.'
+              : undefined
+          }
         >
-          <TextInput value={selector} onChange={(event) => setSelector(event.target.value)} placeholder="google" autoComplete="off" autoCapitalize="none" spellCheck={false} />
+          <TextInput
+            value={selector}
+            onChange={(event) => setSelector(event.target.value)}
+            placeholder="google"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+          />
         </Field>
       </form>
     </Dialog>
   )
 }
 
-function SelectorDialog({ domain, onClose, onSaved }: { domain: SendingDomain | null; onClose: () => void; onSaved: (domain: SendingDomain) => void }) {
+function SelectorDialog({
+  domain,
+  onClose,
+  onSaved,
+}: {
+  domain: SendingDomain | null
+  onClose: () => void
+  onSaved: (domain: SendingDomain) => void
+}) {
   const formId = useId()
   const [selector, setSelector] = useState('')
 
   const save = useMutation({
-    mutationFn: () => api.patch<SendingDomain>(`/domains/${domain!.id}`, { dkimSelector: selector.trim() || null }),
+    mutationFn: () =>
+      api.patch<SendingDomain>(`/domains/${domain!.id}`, { dkimSelector: selector.trim() || null }),
     onSuccess: onSaved,
   })
 
@@ -495,9 +585,20 @@ function SelectorDialog({ domain, onClose, onSaved }: { domain: SendingDomain | 
               ? `Ariad looks for the key at ${selector.trim() || 'selector'}._domainkey.${domain.domain}. Google Workspace uses google. Leave it blank to try the common ones.`
               : undefined
           }
-          error={fields.dkimSelector ? 'Use letters, numbers, dots, dashes and underscores only.' : undefined}
+          error={
+            fields.dkimSelector
+              ? 'Use letters, numbers, dots, dashes and underscores only.'
+              : undefined
+          }
         >
-          <TextInput value={selector} onChange={(event) => setSelector(event.target.value)} placeholder="google" autoComplete="off" autoCapitalize="none" spellCheck={false} />
+          <TextInput
+            value={selector}
+            onChange={(event) => setSelector(event.target.value)}
+            placeholder="google"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+          />
         </Field>
       </form>
     </Dialog>

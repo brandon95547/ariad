@@ -15,11 +15,20 @@ const TABS = [
 export function AudienceLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const current = TABS.find((tab) => pathname.startsWith(`/audience/${tab.value}`))?.value ?? 'lists'
+  const current =
+    TABS.find((tab) => pathname.startsWith(`/audience/${tab.value}`))?.value ?? 'lists'
   return (
     <Page>
-      <PageHeader title="Lists and segments" description="How your contacts are grouped, and which addresses are never emailed.">
-        <Tabs aria-label="Audience sections" tabs={[...TABS]} value={current} onChange={(value) => navigate(`/audience/${value}`)} />
+      <PageHeader
+        title="Lists and segments"
+        description="How your contacts are grouped, and which addresses are never emailed."
+      >
+        <Tabs
+          aria-label="Audience sections"
+          tabs={[...TABS]}
+          value={current}
+          onChange={(value) => navigate(`/audience/${value}`)}
+        />
       </PageHeader>
       <Outlet />
     </Page>

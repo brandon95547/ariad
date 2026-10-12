@@ -17,13 +17,21 @@ import { ActionMenu } from '@/ui/Menu'
 import { Card } from '@/ui/Surface'
 import { toast } from '@/ui/Toast'
 
-const ROLE_TONE: Record<Role, 'neutral' | 'info' | 'accent' | 'warning'> = { viewer: 'neutral', editor: 'info', admin: 'accent', owner: 'warning' }
+const ROLE_TONE: Record<Role, 'neutral' | 'info' | 'accent' | 'warning'> = {
+  viewer: 'neutral',
+  editor: 'info',
+  admin: 'accent',
+  owner: 'warning',
+}
 
 /** Readable, and long enough: for a first password someone is about to be told. */
 function makePassword(): string {
   const letters = 'abcdefghjkmnpqrstuvwxyz23456789'
   const bytes = crypto.getRandomValues(new Uint8Array(14))
-  return Array.from(bytes, (byte, index) => (index > 0 && index % 5 === 0 ? '-' : '') + letters[byte % letters.length]).join('')
+  return Array.from(
+    bytes,
+    (byte, index) => (index > 0 && index % 5 === 0 ? '-' : '') + letters[byte % letters.length],
+  ).join('')
 }
 
 /**
@@ -46,14 +54,22 @@ export function TeamPage() {
   const iAmOwner = me?.role === 'owner'
 
   /** Why this person cannot be changed by the one looking, or null if they can. */
-  const locked = (user: User): string | null => (user.role === 'owner' && !iAmOwner ? 'Only an owner can change an owner.' : null)
+  const locked = (user: User): string | null =>
+    user.role === 'owner' && !iAmOwner ? 'Only an owner can change an owner.' : null
   const lastOwner = (user: User) => user.role === 'owner' && user.status === 'active' && owners <= 1
 
   const setStatus = useMutation({
-    mutationFn: (user: User) => api.patch<User>(`/users/${user.id}`, { status: user.status === 'active' ? 'disabled' : 'active' }),
+    mutationFn: (user: User) =>
+      api.patch<User>(`/users/${user.id}`, {
+        status: user.status === 'active' ? 'disabled' : 'active',
+      }),
     onSuccess: (updated) => {
       void refresh()
-      toast.success(updated.status === 'active' ? `${updated.name} can sign in again` : `${updated.name} can no longer sign in`)
+      toast.success(
+        updated.status === 'active'
+          ? `${updated.name} can sign in again`
+          : `${updated.name} can no longer sign in`,
+      )
     },
     onError: (error) => toast.error(errorMessage(error)),
   })
@@ -81,20 +97,34 @@ export function TeamPage() {
         </div>
       ),
     },
-    { key: 'role', header: 'Role', width: '7rem', cell: (row) => <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge> },
+    {
+      key: 'role',
+      header: 'Role',
+      width: '7rem',
+      cell: (row) => <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge>,
+    },
     {
       key: 'status',
       header: 'Status',
       width: '7rem',
       hideBelow: 'sm',
-      cell: (row) => (row.status === 'active' ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Disabled</Badge>),
+      cell: (row) =>
+        row.status === 'active' ? (
+          <Badge tone="success">Active</Badge>
+        ) : (
+          <Badge tone="neutral">Disabled</Badge>
+        ),
     },
     {
       key: 'seen',
       header: 'Last signed in',
       width: '10rem',
       hideBelow: 'md',
-      cell: (row) => <span className="text-[var(--ds-fg-muted)]">{row.lastLoginAt ? formatRelative(row.lastLoginAt) : 'Never'}</span>,
+      cell: (row) => (
+        <span className="text-[var(--ds-fg-muted)]">
+          {row.lastLoginAt ? formatRelative(row.lastLoginAt) : 'Never'}
+        </span>
+      ),
     },
     {
       key: 'actions',
@@ -109,7 +139,14 @@ export function TeamPage() {
             label={`Actions for ${row.name}`}
             icon={<MoreHorizontal size={16} />}
             actions={[
-              { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, onSelect: () => setEditing(row), disabled: Boolean(why), title: why ?? undefined },
+              {
+                id: 'edit',
+                label: 'Edit',
+                icon: <Pencil size={14} />,
+                onSelect: () => setEditing(row),
+                disabled: Boolean(why),
+                title: why ?? undefined,
+              },
               {
                 id: 'status',
                 label: row.status === 'active' ? 'Disable sign-in' : 'Enable sign-in',
@@ -117,7 +154,13 @@ export function TeamPage() {
                 separated: true,
                 onSelect: () => setStatus.mutate(row),
                 disabled: Boolean(why) || self || (row.status === 'active' && lastOwner(row)),
-                title: why ?? (self ? 'You cannot disable your own account.' : lastOwner(row) ? 'This is the only owner.' : undefined),
+                title:
+                  why ??
+                  (self
+                    ? 'You cannot disable your own account.'
+                    : lastOwner(row)
+                      ? 'This is the only owner.'
+                      : undefined),
               },
               {
                 id: 'remove',
@@ -129,7 +172,13 @@ export function TeamPage() {
                   setRemoving(row)
                 },
                 disabled: Boolean(why) || self || lastOwner(row),
-                title: why ?? (self ? 'You cannot remove your own account.' : lastOwner(row) ? 'This is the only owner. Make someone else an owner first.' : undefined),
+                title:
+                  why ??
+                  (self
+                    ? 'You cannot remove your own account.'
+                    : lastOwner(row)
+                      ? 'This is the only owner. Make someone else an owner first.'
+                      : undefined),
               },
             ]}
           />
@@ -143,7 +192,9 @@ export function TeamPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex max-w-[40rem] flex-col gap-1">
           <h2 className="text-h3 text-[var(--ds-fg)]">Team</h2>
-          <p className="text-body-sm text-[var(--ds-fg-muted)]">Everyone who can sign in to Ariad, and what their role lets them do.</p>
+          <p className="text-body-sm text-[var(--ds-fg-muted)]">
+            Everyone who can sign in to Ariad, and what their role lets them do.
+          </p>
         </div>
         <Button startIcon={<Plus />} onClick={() => setEditing('new')}>
           Add person
@@ -153,7 +204,14 @@ export function TeamPage() {
       {users.isError && <Banner tone="danger">{errorMessage(users.error)}</Banner>}
 
       <Card padding="none" className="overflow-hidden">
-        <DataTable aria-label="Team" columns={columns} rows={list} rowKey={(row) => row.id} loading={users.isPending} skeletonRows={3} />
+        <DataTable
+          aria-label="Team"
+          columns={columns}
+          rows={list}
+          rowKey={(row) => row.id}
+          loading={users.isPending}
+          skeletonRows={3}
+        />
       </Card>
 
       <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
@@ -184,7 +242,10 @@ export function TeamPage() {
         confirmLabel="Remove person"
         loading={remove.isPending}
       >
-        <p>They are signed out everywhere and can no longer sign in. What they made — campaigns, contacts, templates — stays.</p>
+        <p>
+          They are signed out everywhere and can no longer sign in. What they made — campaigns,
+          contacts, templates — stays.
+        </p>
         {remove.isError && <Banner tone="danger">{errorMessage(remove.error)}</Banner>}
       </ConfirmDialog>
     </div>
@@ -230,7 +291,9 @@ function PersonDialog({
     onSuccess: (saved) => {
       toast.success(
         user ? `${saved.name} updated` : `${saved.name} added`,
-        user ? undefined : { description: 'Pass the password on to them yourself. Ariad does not email it.' },
+        user
+          ? undefined
+          : { description: 'Pass the password on to them yourself. Ariad does not email it.' },
       )
       onSaved()
     },
@@ -244,7 +307,9 @@ function PersonDialog({
   }
 
   // Owner is offered only to owners, and the last owner's role cannot be changed.
-  const options = ROLES.filter((entry) => entry !== 'owner' || iAmOwner || user?.role === 'owner').map((entry) => ({
+  const options = ROLES.filter(
+    (entry) => entry !== 'owner' || iAmOwner || user?.role === 'owner',
+  ).map((entry) => ({
     value: entry,
     label: ROLE_LABELS[entry],
     description: ROLE_DESCRIPTIONS[entry],
@@ -269,10 +334,26 @@ function PersonDialog({
       <form id={formId} onSubmit={submit} className="flex flex-col gap-5" noValidate>
         {general && <Banner tone="danger">{general}</Banner>}
         <Field label="Name" error={fields.name}>
-          <TextInput value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" required />
+          <TextInput
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoComplete="off"
+            required
+          />
         </Field>
-        <Field label="Email" hint={user ? 'Their sign-in. It cannot be changed here.' : 'What they sign in with.'} error={fields.email}>
-          <TextInput type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="off" disabled={Boolean(user)} required />
+        <Field
+          label="Email"
+          hint={user ? 'Their sign-in. It cannot be changed here.' : 'What they sign in with.'}
+          error={fields.email}
+        >
+          <TextInput
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="off"
+            disabled={Boolean(user)}
+            required
+          />
         </Field>
         {isLastOwner ? (
           <Banner tone="info" title="This is the only owner">
@@ -291,7 +372,13 @@ function PersonDialog({
           }
           error={fields.password}
         >
-          <TextInput value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="off" spellCheck={false} className="font-mono" />
+          <TextInput
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            className="font-mono"
+          />
         </Field>
       </form>
     </Dialog>

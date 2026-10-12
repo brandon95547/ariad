@@ -88,7 +88,11 @@ export function PublicFrame({
       )}
     >
       <Column className="flex w-full max-w-[28rem] flex-col gap-4">
-        {mode !== 'embedded' && organization && <p className="px-1 text-h4 text-[var(--ds-fg)] [overflow-wrap:anywhere]">{organization}</p>}
+        {mode !== 'embedded' && organization && (
+          <p className="px-1 text-h4 text-[var(--ds-fg)] [overflow-wrap:anywhere]">
+            {organization}
+          </p>
+        )}
         <Card padding="none" className="p-6 sm:p-8">
           {children}
         </Card>
@@ -119,16 +123,30 @@ export function PublicHeading({
   }, [focusOnMount])
   return (
     <div className="flex flex-col gap-2">
-      <Heading ref={ref} tabIndex={-1} className="text-balance-ds text-h2 text-[var(--ds-fg)] outline-none [overflow-wrap:anywhere]">
+      <Heading
+        ref={ref}
+        tabIndex={-1}
+        className="text-balance-ds text-h2 text-[var(--ds-fg)] outline-none [overflow-wrap:anywhere]"
+      >
         {title}
       </Heading>
-      {children && <div className="flex flex-col gap-2 text-body text-[var(--ds-fg-secondary)] [overflow-wrap:anywhere]">{children}</div>}
+      {children && (
+        <div className="flex flex-col gap-2 text-body text-[var(--ds-fg-secondary)] [overflow-wrap:anywhere]">
+          {children}
+        </div>
+      )}
     </div>
   )
 }
 
 /** The mark over a result: done, sent, or could not be done. */
-export function ResultMark({ tone, children }: { tone: 'success' | 'info' | 'danger' | 'neutral'; children: ReactNode }) {
+export function ResultMark({
+  tone,
+  children,
+}: {
+  tone: 'success' | 'info' | 'danger' | 'neutral'
+  children: ReactNode
+}) {
   return (
     <span
       aria-hidden

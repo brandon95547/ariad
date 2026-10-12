@@ -100,11 +100,15 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
       params.push(query.status)
     }
     if (query.listId) {
-      where.push("EXISTS (SELECT 1 FROM list_members lm WHERE lm.contact_id = c.id AND lm.list_id = ? AND lm.status <> 'unsubscribed')")
+      where.push(
+        "EXISTS (SELECT 1 FROM list_members lm WHERE lm.contact_id = c.id AND lm.list_id = ? AND lm.status <> 'unsubscribed')",
+      )
       params.push(query.listId)
     }
     if (query.tagId) {
-      where.push('EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.contact_id = c.id AND ct.tag_id = ?)')
+      where.push(
+        'EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.contact_id = c.id AND ct.tag_id = ?)',
+      )
       params.push(query.tagId)
     }
     if (query.segmentId) {
@@ -123,9 +127,15 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     async (request): Promise<Paged<Contact>> => {
       const { page, pageSize, sort } = request.query
       const where = filterWhere(request.query)
-      const total = (db.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${where.sql}`).get(...where.params) as { n: number }).n
+      const total = (
+        db
+          .prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${where.sql}`)
+          .get(...where.params) as { n: number }
+      ).n
       const rows = db
-        .prepare(`SELECT c.* FROM contacts c WHERE ${where.sql} ORDER BY ${SORTS[sort]} LIMIT ? OFFSET ?`)
+        .prepare(
+          `SELECT c.* FROM contacts c WHERE ${where.sql} ORDER BY ${SORTS[sort]} LIMIT ? OFFSET ?`,
+        )
         .all(...where.params, pageSize, (page - 1) * pageSize) as ContactRow[]
       return { items: hydrateContacts(db, rows), total, page, pageSize }
     },
@@ -137,7 +147,9 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     { preHandler: viewer, schema: { querystring: contactQuerySchema } },
     async (request): Promise<{ ids: string[] }> => {
       const where = filterWhere(request.query)
-      const rows = db.prepare(`SELECT c.id FROM contacts c WHERE ${where.sql} LIMIT 5000`).all(...where.params) as { id: string }[]
+      const rows = db
+        .prepare(`SELECT c.id FROM contacts c WHERE ${where.sql} LIMIT 5000`)
+        .all(...where.params) as { id: string }[]
       return { ids: rows.map((row) => row.id) }
     },
   )
@@ -147,29 +159,67 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     { preHandler: viewer, schema: { querystring: contactQuerySchema } },
     async (request, reply) => {
       const where = filterWhere(request.query)
-      const rows = db.prepare(`SELECT c.* FROM contacts c WHERE ${where.sql} ORDER BY c.created_at ASC`).all(...where.params) as ContactRow[]
-      const fields = db.prepare('SELECT key FROM custom_fields ORDER BY created_at').all() as { key: string }[]
-      const tagsOf = db.prepare("SELECT group_concat(t.name, ', ') AS v FROM contact_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.contact_id = ?")
-      const listsOf = db.prepare("SELECT group_concat(l.name, ', ') AS v FROM list_members lm JOIN lists l ON l.id = lm.list_id WHERE lm.contact_id = ? AND lm.status = 'subscribed'")
+      const rows = db
+        .prepare(`SELECT c.* FROM contacts c WHERE ${where.sql} ORDER BY c.created_at ASC`)
+        .all(...where.params) as ContactRow[]
+      const fields = db.prepare('SELECT key FROM custom_fields ORDER BY created_at').all() as {
+        key: string
+      }[]
+      const tagsOf = db.prepare(
+        "SELECT group_concat(t.name, ', ') AS v FROM contact_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.contact_id = ?",
+      )
+      const listsOf = db.prepare(
+        "SELECT group_concat(l.name, ', ') AS v FROM list_members lm JOIN lists l ON l.id = lm.list_id WHERE lm.contact_id = ? AND lm.status = 'subscribed'",
+      )
       const headers = [
-        'email', 'first_name', 'last_name', 'company', 'phone', 'birthday', 'status', 'tags', 'lists',
+        'email',
+        'first_name',
+        'last_name',
+        'company',
+        'phone',
+        'birthday',
+        'status',
+        'tags',
+        'lists',
         ...fields.map((field) => field.key),
-        'source', 'consent_at', 'consent_source', 'created_at',
+        'source',
+        'consent_at',
+        'consent_source',
+        'created_at',
       ]
       const body = rows.map((row) => {
         const custom = parseJson<Record<string, string>>(row.custom, {})
         return [
-          row.email, row.first_name, row.last_name, row.company, row.phone, row.birthday, row.status,
+          row.email,
+          row.first_name,
+          row.last_name,
+          row.company,
+          row.phone,
+          row.birthday,
+          row.status,
           (tagsOf.get(row.id) as { v: string | null }).v,
           (listsOf.get(row.id) as { v: string | null }).v,
           ...fields.map((field) => custom[field.key] ?? ''),
-          row.source, row.consent_at, row.consent_source, row.created_at,
+          row.source,
+          row.consent_at,
+          row.consent_source,
+          row.created_at,
         ]
       })
-      writeLog(db, 'info', 'contacts', `Exported ${rows.length.toLocaleString('en-US')} contacts`, null, request.actor!.name)
+      writeLog(
+        db,
+        'info',
+        'contacts',
+        `Exported ${rows.length.toLocaleString('en-US')} contacts`,
+        null,
+        request.actor!.name,
+      )
       return reply
         .header('content-type', 'text/csv; charset=utf-8')
-        .header('content-disposition', `attachment; filename="contacts-${nowIso().slice(0, 10)}.csv"`)
+        .header(
+          'content-disposition',
+          `attachment; filename="contacts-${nowIso().slice(0, 10)}.csv"`,
+        )
         .send('﻿' + toCsv(headers, body))
     },
   )
@@ -182,13 +232,21 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
       const existing = findByEmail(db, input.email)
       if (existing) {
         // Not an error to explain away: tell them who it is, so they can go there.
-        throw new AppError(409, 'duplicate_contact', `${input.email} is already a contact.`, { id: existing.id })
+        throw new AppError(409, 'duplicate_contact', `${input.email} is already a contact.`, {
+          id: existing.id,
+        })
       }
       const contact = db.transaction(() => {
         const { row } = upsertContact(db, input, {
-          status: input.status === 'pending' || input.status === 'unsubscribed' ? input.status : 'subscribed',
+          status:
+            input.status === 'pending' || input.status === 'unsubscribed'
+              ? input.status
+              : 'subscribed',
           source: 'Added by hand',
-          consent: { source: input.consentSource ?? `Added by ${request.actor!.name}`, text: input.consentText ?? null },
+          consent: {
+            source: input.consentSource ?? `Added by ${request.actor!.name}`,
+            text: input.consentText ?? null,
+          },
         })
         setMemberships(ctx, row.id, { listIds: input.listIds ?? [], tagIds: input.tagIds ?? [] })
         return getContact(db, row.id)
@@ -198,8 +256,10 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     },
   )
 
-  app.get('/contacts/:id', { preHandler: viewer, schema: { params: idParams } }, async (request): Promise<Contact> =>
-    getContact(db, request.params.id),
+  app.get(
+    '/contacts/:id',
+    { preHandler: viewer, schema: { params: idParams } },
+    async (request): Promise<Contact> => getContact(db, request.params.id),
   )
 
   /**
@@ -223,7 +283,15 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
                      WHERE m.contact_id = ? AND m.kind IN ('campaign','automation') AND m.status IN ('sent','bounced','failed')
                      ORDER BY COALESCE(m.sent_at, m.queued_at) DESC LIMIT 200`,
         )
-        .all(id) as { id: string; status: string; sent_at: string | null; bounced_at: string | null; last_error: string | null; campaign_id: string | null; title: string }[]
+        .all(id) as {
+        id: string
+        status: string
+        sent_at: string | null
+        bounced_at: string | null
+        last_error: string | null
+        campaign_id: string | null
+        title: string
+      }[]
       const tracked = db
         .prepare(
           /* sql */ `SELECT e.id, e.type, e.url, e.created_at, e.campaign_id, ${subjectOf} AS title
@@ -231,7 +299,14 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
                      LEFT JOIN campaigns c ON c.id = m.campaign_id LEFT JOIN automations a ON a.id = m.automation_id
                      WHERE e.contact_id = ? AND e.type IN ('open','click') ORDER BY e.id DESC LIMIT 300`,
         )
-        .all(id) as { id: number; type: 'open' | 'click'; url: string | null; created_at: string; campaign_id: string | null; title: string }[]
+        .all(id) as {
+        id: number
+        type: 'open' | 'click'
+        url: string | null
+        created_at: string
+        campaign_id: string | null
+        title: string
+      }[]
 
       const mail: ContactEvent[] = [
         ...sent
@@ -255,7 +330,8 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
         ...tracked.map((row) => ({
           id: `track-${row.id}`,
           type: row.type === 'open' ? ('opened' as const) : ('clicked' as const),
-          summary: row.type === 'open' ? `Opened "${row.title}"` : `Clicked a link in "${row.title}"`,
+          summary:
+            row.type === 'open' ? `Opened "${row.title}"` : `Clicked a link in "${row.title}"`,
           detail: { campaignId: row.campaign_id, url: row.url },
           createdAt: row.created_at,
         })),
@@ -275,12 +351,18 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
       if (input.email && input.email !== normalizeEmail(row.email)) {
         const clash = findByEmail(db, input.email)
         if (clash && clash.id !== id) {
-          throw new AppError(409, 'duplicate_contact', `${input.email} is already another contact.`, { id: clash.id })
+          throw new AppError(
+            409,
+            'duplicate_contact',
+            `${input.email} is already another contact.`,
+            { id: clash.id },
+          )
         }
       }
 
       db.transaction(() => {
-        const pick = (next: string | null | undefined, current: string | null) => (next === undefined ? current : next)
+        const pick = (next: string | null | undefined, current: string | null) =>
+          next === undefined ? current : next
         db.prepare(
           /* sql */ `UPDATE contacts SET email = @email, first_name = @firstName, last_name = @lastName, company = @company,
                      phone = @phone, birthday = @birthday, custom = @custom, updated_at = @now WHERE id = @id`,
@@ -303,7 +385,12 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
             resubscribeContact(db, id, request.actor!.name)
           } else {
             db.prepare('UPDATE contacts SET status = ? WHERE id = ?').run(input.status, id)
-            recordEvent(db, id, 'updated', `Status set to ${input.status} by ${request.actor!.name}`)
+            recordEvent(
+              db,
+              id,
+              'updated',
+              `Status set to ${input.status} by ${request.actor!.name}`,
+            )
           }
         }
         setMemberships(ctx, id, { listIds: input.listIds, tagIds: input.tagIds })
@@ -312,12 +399,16 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     },
   )
 
-  app.delete('/contacts/:id', { preHandler: editor, schema: { params: idParams } }, async (request) => {
-    const row = getContactRow(db, request.params.id)
-    db.prepare('DELETE FROM contacts WHERE id = ?').run(row.id)
-    writeLog(db, 'info', 'contacts', `Contact deleted: ${row.email}`, null, request.actor!.name)
-    return { ok: true }
-  })
+  app.delete(
+    '/contacts/:id',
+    { preHandler: editor, schema: { params: idParams } },
+    async (request) => {
+      const row = getContactRow(db, request.params.id)
+      db.prepare('DELETE FROM contacts WHERE id = ?').run(row.id)
+      writeLog(db, 'info', 'contacts', `Contact deleted: ${row.email}`, null, request.actor!.name)
+      return { ok: true }
+    },
+  )
 
   app.post(
     '/contacts/bulk',
@@ -326,11 +417,15 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
       const { ids, action, tagId, listId } = request.body
       const needTag = action === 'add_tag' || action === 'remove_tag'
       const needList = action === 'add_to_list' || action === 'remove_from_list'
-      if (needTag && !(tagId && db.prepare('SELECT 1 FROM tags WHERE id = ?').get(tagId))) throw AppError.badRequest('Choose a tag.')
-      if (needList && !(listId && db.prepare('SELECT 1 FROM lists WHERE id = ?').get(listId))) throw AppError.badRequest('Choose a list.')
+      if (needTag && !(tagId && db.prepare('SELECT 1 FROM tags WHERE id = ?').get(tagId)))
+        throw AppError.badRequest('Choose a tag.')
+      if (needList && !(listId && db.prepare('SELECT 1 FROM lists WHERE id = ?').get(listId)))
+        throw AppError.badRequest('Choose a list.')
 
       const existing = (
-        db.prepare(`SELECT id FROM contacts WHERE id IN (${placeholders(ids.length)})`).all(...ids) as { id: string }[]
+        db
+          .prepare(`SELECT id FROM contacts WHERE id IN (${placeholders(ids.length)})`)
+          .all(...ids) as { id: string }[]
       ).map((row) => row.id)
 
       db.transaction(() => {
@@ -340,11 +435,19 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
           else if (action === 'remove_tag') removeTag(db, id, tagId!)
           else if (action === 'add_to_list') addToList(ctx, id, listId!)
           else if (action === 'remove_from_list') removeFromList(db, id, listId!, 'remove')
-          else if (action === 'unsubscribe') unsubscribeContact(db, id, { via: `by ${request.actor!.name}` })
+          else if (action === 'unsubscribe')
+            unsubscribeContact(db, id, { via: `by ${request.actor!.name}` })
           else if (action === 'resubscribe') resubscribeContact(db, id, request.actor!.name)
         }
       })()
-      writeLog(db, 'info', 'contacts', `Bulk ${action.replace(/_/g, ' ')}: ${existing.length.toLocaleString('en-US')} contacts`, null, request.actor!.name)
+      writeLog(
+        db,
+        'info',
+        'contacts',
+        `Bulk ${action.replace(/_/g, ' ')}: ${existing.length.toLocaleString('en-US')} contacts`,
+        null,
+        request.actor!.name,
+      )
       return { affected: existing.length }
     },
   )
@@ -352,7 +455,10 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
   /** Starts a contact on a manual automation, or on any automation by hand. */
   app.post(
     '/contacts/:id/automations',
-    { preHandler: editor, schema: { params: idParams, body: z.object({ automationId: z.string() }) } },
+    {
+      preHandler: editor,
+      schema: { params: idParams, body: z.object({ automationId: z.string() }) },
+    },
     async (request) => {
       getContactRow(db, request.params.id)
       const automation = getAutomationRow(db, request.body.automationId)
@@ -372,30 +478,60 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
       const { headers, rows } = parseCsv(input.csv)
       const targets = headers.map((header) => input.mapping[header] ?? 'skip')
       const emailColumn = targets.indexOf('email')
-      if (emailColumn === -1) throw AppError.badRequest('Choose which column holds the email address.')
+      if (emailColumn === -1)
+        throw AppError.badRequest('Choose which column holds the email address.')
 
-      const customKeys = new Set((db.prepare('SELECT key FROM custom_fields').all() as { key: string }[]).map((row) => row.key))
-      const tagIdByName = new Map(
-        (db.prepare('SELECT id, name FROM tags').all() as { id: string; name: string }[]).map((tag) => [tag.name.toLowerCase(), tag.id]),
+      const customKeys = new Set(
+        (db.prepare('SELECT key FROM custom_fields').all() as { key: string }[]).map(
+          (row) => row.key,
+        ),
       )
-      const summary: ImportSummary = { total: rows.length, created: 0, updated: 0, duplicatesInFile: 0, invalid: [], suppressed: 0 }
+      const tagIdByName = new Map(
+        (db.prepare('SELECT id, name FROM tags').all() as { id: string; name: string }[]).map(
+          (tag) => [tag.name.toLowerCase(), tag.id],
+        ),
+      )
+      const summary: ImportSummary = {
+        total: rows.length,
+        created: 0,
+        updated: 0,
+        duplicatesInFile: 0,
+        invalid: [],
+        suppressed: 0,
+      }
 
       // Fold the file onto itself first: the same address twice is one
       // contact. Where both rows have a value the later row wins, as the more
       // recent line of an export usually is; a blank never erases anything.
       interface Pending {
-        fields: { email: string; firstName?: string; lastName?: string; company?: string; phone?: string; birthday?: string; custom: Record<string, string> }
+        fields: {
+          email: string
+          firstName?: string
+          lastName?: string
+          company?: string
+          phone?: string
+          birthday?: string
+          custom: Record<string, string>
+        }
         tags: Set<string>
       }
       const pending = new Map<string, Pending>()
       rows.forEach((cells, index) => {
         const raw = (cells[emailColumn] ?? '').trim()
         if (!isEmail(raw)) {
-          if (summary.invalid.length < 200) summary.invalid.push({ row: index + 2, value: raw, reason: raw ? 'Not a valid email address' : 'No email address' })
+          if (summary.invalid.length < 200)
+            summary.invalid.push({
+              row: index + 2,
+              value: raw,
+              reason: raw ? 'Not a valid email address' : 'No email address',
+            })
           return
         }
         const email = normalizeEmail(raw)
-        const entry = pending.get(email) ?? { fields: { email, custom: {} }, tags: new Set<string>() }
+        const entry = pending.get(email) ?? {
+          fields: { email, custom: {} },
+          tags: new Set<string>(),
+        }
         if (pending.has(email)) summary.duplicatesInFile += 1
         cells.forEach((cell, column) => {
           const value = cell.trim()
@@ -410,7 +546,12 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
           } else if (target === 'birthday') {
             const birthday = parseBirthday(value)
             if (birthday) entry.fields.birthday = birthday
-          } else if (target === 'firstName' || target === 'lastName' || target === 'company' || target === 'phone') {
+          } else if (
+            target === 'firstName' ||
+            target === 'lastName' ||
+            target === 'company' ||
+            target === 'phone'
+          ) {
             entry.fields[target] = value
           } else if (target.startsWith('custom.') && customKeys.has(target.slice(7))) {
             entry.fields.custom[target.slice(7)] = value
@@ -425,7 +566,13 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
           const result = upsertContact(db, entry.fields, {
             status: input.status,
             source: 'CSV import',
-            consent: input.status === 'subscribed' ? { source: input.consentSource, text: `Imported by ${request.actor!.name}, who confirmed these contacts agreed to be emailed.` } : undefined,
+            consent:
+              input.status === 'subscribed'
+                ? {
+                    source: input.consentSource,
+                    text: `Imported by ${request.actor!.name}, who confirmed these contacts agreed to be emailed.`,
+                  }
+                : undefined,
             overwrite: input.updateExisting,
             event: 'imported',
           })
@@ -436,14 +583,26 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
           // An import is not a signup: nobody gets a welcome series for
           // turning up in a spreadsheet.
           if (!result.blocked && input.status !== 'unsubscribed') {
-            for (const listId of input.listIds) addToList(ctx, result.row.id, listId, input.status === 'pending' ? 'pending' : 'subscribed', { quiet: true })
+            for (const listId of input.listIds)
+              addToList(
+                ctx,
+                result.row.id,
+                listId,
+                input.status === 'pending' ? 'pending' : 'subscribed',
+                { quiet: true },
+              )
           }
           for (const tagId of input.tagIds) addTag(ctx, result.row.id, tagId, { quiet: true })
           for (const name of entry.tags) {
             let tagId = tagIdByName.get(name.toLowerCase())
             if (!tagId) {
               tagId = newId('tag')
-              db.prepare('INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)').run(tagId, name.slice(0, 60), '#706fd3', nowIso())
+              db.prepare('INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)').run(
+                tagId,
+                name.slice(0, 60),
+                '#706fd3',
+                nowIso(),
+              )
               tagIdByName.set(name.toLowerCase(), tagId)
             }
             addTag(ctx, result.row.id, tagId, { quiet: true })
@@ -466,9 +625,30 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
   /* ---- Duplicates ------------------------------------------------------- */
 
   app.get('/contacts-duplicates', { preHandler: viewer }, async (): Promise<DuplicateGroup[]> => {
-    type Slim = { id: string; email: string; first_name: string | null; last_name: string | null; company: string | null; phone: string | null; status: Contact['status']; created_at: string }
-    const all = db.prepare('SELECT id, email, first_name, last_name, company, phone, status, created_at FROM contacts ORDER BY created_at').all() as Slim[]
-    const slim = (row: Slim) => ({ id: row.id, email: row.email, firstName: row.first_name, lastName: row.last_name, company: row.company, status: row.status, createdAt: row.created_at })
+    type Slim = {
+      id: string
+      email: string
+      first_name: string | null
+      last_name: string | null
+      company: string | null
+      phone: string | null
+      status: Contact['status']
+      created_at: string
+    }
+    const all = db
+      .prepare(
+        'SELECT id, email, first_name, last_name, company, phone, status, created_at FROM contacts ORDER BY created_at',
+      )
+      .all() as Slim[]
+    const slim = (row: Slim) => ({
+      id: row.id,
+      email: row.email,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      company: row.company,
+      status: row.status,
+      createdAt: row.created_at,
+    })
     const groups: DuplicateGroup[] = []
     const claimed = new Set<string>()
 
@@ -485,12 +665,21 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
         groups.push({ reason, key, contacts: members.map(slim) })
       }
     }
-    const name = (row: Slim) => `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim().toLowerCase()
+    const name = (row: Slim) =>
+      `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim().toLowerCase()
     const digits = (value: string | null) => (value ?? '').replace(/\D/g, '')
 
     collect('same_mailbox', (row) => canonicalMailbox(row.email))
-    collect('same_name_and_phone', (row) => (name(row).includes(' ') && digits(row.phone).length >= 7 ? `${name(row)}|${digits(row.phone)}` : null))
-    collect('same_name_and_company', (row) => (name(row).includes(' ') && row.company ? `${name(row)}|${row.company.trim().toLowerCase()}` : null))
+    collect('same_name_and_phone', (row) =>
+      name(row).includes(' ') && digits(row.phone).length >= 7
+        ? `${name(row)}|${digits(row.phone)}`
+        : null,
+    )
+    collect('same_name_and_company', (row) =>
+      name(row).includes(' ') && row.company
+        ? `${name(row)}|${row.company.trim().toLowerCase()}`
+        : null,
+    )
     return groups.slice(0, 500)
   })
 
@@ -509,7 +698,17 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
       (SELECT COUNT(*) FROM list_members m WHERE m.list_id = l.id AND m.status = 'pending') AS pending,
       (SELECT COUNT(*) FROM list_members m WHERE m.list_id = l.id AND m.status = 'unsubscribed') AS unsubscribed
     FROM lists l`
-  interface ListRow { id: string; name: string; description: string | null; double_opt_in: number; is_public: number; created_at: string; subscribed: number; pending: number; unsubscribed: number }
+  interface ListRow {
+    id: string
+    name: string
+    description: string | null
+    double_opt_in: number
+    is_public: number
+    created_at: string
+    subscribed: number
+    pending: number
+    unsubscribed: number
+  }
   const toList = (row: ListRow): ContactList => ({
     id: row.id,
     name: row.name,
@@ -531,15 +730,19 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     (db.prepare(`${LISTS_SQL} ORDER BY l.name`).all() as ListRow[]).map(toList),
   )
 
-  app.post('/lists', { preHandler: editor, schema: { body: listInputSchema } }, async (request, reply): Promise<ContactList> => {
-    const id = newId('lst')
-    const { name, description, doubleOptIn, isPublic } = request.body
-    db.prepare('INSERT INTO lists (id, name, description, double_opt_in, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-      id, name, description, doubleOptIn ? 1 : 0, isPublic ? 1 : 0, nowIso(),
-    )
-    reply.code(201)
-    return getList(id)
-  })
+  app.post(
+    '/lists',
+    { preHandler: editor, schema: { body: listInputSchema } },
+    async (request, reply): Promise<ContactList> => {
+      const id = newId('lst')
+      const { name, description, doubleOptIn, isPublic } = request.body
+      db.prepare(
+        'INSERT INTO lists (id, name, description, double_opt_in, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run(id, name, description, doubleOptIn ? 1 : 0, isPublic ? 1 : 0, nowIso())
+      reply.code(201)
+      return getList(id)
+    },
+  )
 
   app.patch(
     '/lists/:id',
@@ -547,47 +750,76 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     async (request): Promise<ContactList> => {
       const current = getList(request.params.id)
       const next = { ...current, ...request.body }
-      db.prepare('UPDATE lists SET name = ?, description = ?, double_opt_in = ?, is_public = ? WHERE id = ?').run(
-        next.name, next.description ?? null, next.doubleOptIn ? 1 : 0, next.isPublic ? 1 : 0, current.id,
+      db.prepare(
+        'UPDATE lists SET name = ?, description = ?, double_opt_in = ?, is_public = ? WHERE id = ?',
+      ).run(
+        next.name,
+        next.description ?? null,
+        next.doubleOptIn ? 1 : 0,
+        next.isPublic ? 1 : 0,
+        current.id,
       )
       return getList(current.id)
     },
   )
 
-  app.delete('/lists/:id', { preHandler: editor, schema: { params: idParams } }, async (request) => {
-    const list = getList(request.params.id)
-    db.prepare('DELETE FROM lists WHERE id = ?').run(list.id)
-    writeLog(db, 'info', 'contacts', `List deleted: ${list.name}`, null, request.actor!.name)
-    return { ok: true }
-  })
+  app.delete(
+    '/lists/:id',
+    { preHandler: editor, schema: { params: idParams } },
+    async (request) => {
+      const list = getList(request.params.id)
+      db.prepare('DELETE FROM lists WHERE id = ?').run(list.id)
+      writeLog(db, 'info', 'contacts', `List deleted: ${list.name}`, null, request.actor!.name)
+      return { ok: true }
+    },
+  )
 
   /* ---- Tags ------------------------------------------------------------- */
 
-  const TAGS_SQL = 'SELECT t.id, t.name, t.color, (SELECT COUNT(*) FROM contact_tags ct WHERE ct.tag_id = t.id) AS contactCount FROM tags t'
+  const TAGS_SQL =
+    'SELECT t.id, t.name, t.color, (SELECT COUNT(*) FROM contact_tags ct WHERE ct.tag_id = t.id) AS contactCount FROM tags t'
 
-  app.get('/tags', { preHandler: viewer }, async (): Promise<Tag[]> => db.prepare(`${TAGS_SQL} ORDER BY t.name`).all() as Tag[])
+  app.get(
+    '/tags',
+    { preHandler: viewer },
+    async (): Promise<Tag[]> => db.prepare(`${TAGS_SQL} ORDER BY t.name`).all() as Tag[],
+  )
 
-  app.post('/tags', { preHandler: editor, schema: { body: tagInputSchema } }, async (request, reply): Promise<Tag> => {
-    if (db.prepare('SELECT 1 FROM tags WHERE name = ?').get(request.body.name)) {
-      throw AppError.conflict(`There is already a tag called "${request.body.name}".`)
-    }
-    const id = newId('tag')
-    db.prepare('INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)').run(id, request.body.name, request.body.color, nowIso())
-    reply.code(201)
-    return db.prepare(`${TAGS_SQL} WHERE t.id = ?`).get(id) as Tag
-  })
+  app.post(
+    '/tags',
+    { preHandler: editor, schema: { body: tagInputSchema } },
+    async (request, reply): Promise<Tag> => {
+      if (db.prepare('SELECT 1 FROM tags WHERE name = ?').get(request.body.name)) {
+        throw AppError.conflict(`There is already a tag called "${request.body.name}".`)
+      }
+      const id = newId('tag')
+      db.prepare('INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)').run(
+        id,
+        request.body.name,
+        request.body.color,
+        nowIso(),
+      )
+      reply.code(201)
+      return db.prepare(`${TAGS_SQL} WHERE t.id = ?`).get(id) as Tag
+    },
+  )
 
   app.patch(
     '/tags/:id',
     { preHandler: editor, schema: { params: idParams, body: tagUpdateSchema } },
     async (request): Promise<Tag> => {
-      const current = db.prepare(`${TAGS_SQL} WHERE t.id = ?`).get(request.params.id) as Tag | undefined
+      const current = db.prepare(`${TAGS_SQL} WHERE t.id = ?`).get(request.params.id) as
+        Tag | undefined
       if (!current) throw AppError.notFound('tag')
       const name = request.body.name ?? current.name
       if (db.prepare('SELECT 1 FROM tags WHERE name = ? AND id <> ?').get(name, current.id)) {
         throw AppError.conflict(`There is already a tag called "${name}".`)
       }
-      db.prepare('UPDATE tags SET name = ?, color = ? WHERE id = ?').run(name, request.body.color ?? current.color, current.id)
+      db.prepare('UPDATE tags SET name = ?, color = ? WHERE id = ?').run(
+        name,
+        request.body.color ?? current.color,
+        current.id,
+      )
       return db.prepare(`${TAGS_SQL} WHERE t.id = ?`).get(current.id) as Tag
     },
   )
@@ -599,7 +831,14 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
 
   /* ---- Custom fields ---------------------------------------------------- */
 
-  interface FieldRow { id: string; key: string; label: string; type: CustomField['type']; options: string; created_at: string }
+  interface FieldRow {
+    id: string
+    key: string
+    label: string
+    type: CustomField['type']
+    options: string
+    created_at: string
+  }
   const toField = (row: FieldRow): CustomField => ({
     id: row.id,
     key: row.key,
@@ -610,28 +849,35 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
   })
 
   app.get('/fields', { preHandler: viewer }, async (): Promise<CustomField[]> =>
-    (db.prepare('SELECT * FROM custom_fields ORDER BY created_at').all() as FieldRow[]).map(toField),
+    (db.prepare('SELECT * FROM custom_fields ORDER BY created_at').all() as FieldRow[]).map(
+      toField,
+    ),
   )
 
-  app.post('/fields', { preHandler: editor, schema: { body: customFieldInputSchema } }, async (request, reply): Promise<CustomField> => {
-    const { key, label, type, options } = request.body
-    if (db.prepare('SELECT 1 FROM custom_fields WHERE key = ?').get(key)) {
-      throw AppError.conflict(`There is already a field with the key "${key}".`)
-    }
-    const id = newId('fld')
-    db.prepare('INSERT INTO custom_fields (id, key, label, type, options, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-      id, key, label, type, JSON.stringify(options), nowIso(),
-    )
-    reply.code(201)
-    return toField(db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(id) as FieldRow)
-  })
+  app.post(
+    '/fields',
+    { preHandler: editor, schema: { body: customFieldInputSchema } },
+    async (request, reply): Promise<CustomField> => {
+      const { key, label, type, options } = request.body
+      if (db.prepare('SELECT 1 FROM custom_fields WHERE key = ?').get(key)) {
+        throw AppError.conflict(`There is already a field with the key "${key}".`)
+      }
+      const id = newId('fld')
+      db.prepare(
+        'INSERT INTO custom_fields (id, key, label, type, options, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run(id, key, label, type, JSON.stringify(options), nowIso())
+      reply.code(201)
+      return toField(db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(id) as FieldRow)
+    },
+  )
 
   /** The key is the field's identity in merge tags and segments, so it does not change. */
   app.patch(
     '/fields/:id',
     { preHandler: editor, schema: { params: idParams, body: customFieldUpdateSchema } },
     async (request): Promise<CustomField> => {
-      const row = db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(request.params.id) as FieldRow | undefined
+      const row = db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(request.params.id) as
+        FieldRow | undefined
       if (!row) throw AppError.notFound('field')
       db.prepare('UPDATE custom_fields SET label = ?, type = ?, options = ? WHERE id = ?').run(
         request.body.label ?? row.label,
@@ -643,14 +889,26 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     },
   )
 
-  app.delete('/fields/:id', { preHandler: editor, schema: { params: idParams } }, async (request) => {
-    db.prepare('DELETE FROM custom_fields WHERE id = ?').run(request.params.id)
-    return { ok: true }
-  })
+  app.delete(
+    '/fields/:id',
+    { preHandler: editor, schema: { params: idParams } },
+    async (request) => {
+      db.prepare('DELETE FROM custom_fields WHERE id = ?').run(request.params.id)
+      return { ok: true }
+    },
+  )
 
   /* ---- Segments --------------------------------------------------------- */
 
-  interface SegmentRow { id: string; name: string; description: string | null; match: 'all' | 'any'; rules: string; created_at: string; updated_at: string }
+  interface SegmentRow {
+    id: string
+    name: string
+    description: string | null
+    match: 'all' | 'any'
+    rules: string
+    created_at: string
+    updated_at: string
+  }
   const toSegment = (row: SegmentRow): Segment => {
     const definition = { match: row.match, rules: parseJson<SegmentRule[]>(row.rules, []) }
     let contactCount = 0
@@ -660,7 +918,15 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
       // A rule that names a tag or field since deleted. The segment still
       // lists, with nobody in it, so it can be opened and repaired.
     }
-    return { id: row.id, name: row.name, description: row.description, ...definition, contactCount, createdAt: row.created_at, updatedAt: row.updated_at }
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      ...definition,
+      contactCount,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }
   }
   const getSegment = (id: string): Segment => {
     const row = db.prepare('SELECT * FROM segments WHERE id = ?').get(id) as SegmentRow | undefined
@@ -678,23 +944,33 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     { preHandler: viewer, schema: { body: segmentDefinitionSchema } },
     async (request): Promise<{ count: number; sample: Contact[] }> => {
       const where = compileSegment(db, request.body)
-      const count = (db.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${where.sql}`).get(...where.params) as { n: number }).n
-      const rows = db.prepare(`SELECT c.* FROM contacts c WHERE ${where.sql} ORDER BY c.created_at DESC LIMIT 5`).all(...where.params) as ContactRow[]
+      const count = (
+        db
+          .prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${where.sql}`)
+          .get(...where.params) as { n: number }
+      ).n
+      const rows = db
+        .prepare(`SELECT c.* FROM contacts c WHERE ${where.sql} ORDER BY c.created_at DESC LIMIT 5`)
+        .all(...where.params) as ContactRow[]
       return { count, sample: hydrateContacts(db, rows) }
     },
   )
 
-  app.post('/segments', { preHandler: editor, schema: { body: segmentInputSchema } }, async (request, reply): Promise<Segment> => {
-    const { name, description, match, rules } = request.body
-    compileSegment(db, { match, rules })
-    const id = newId('seg')
-    const now = nowIso()
-    db.prepare('INSERT INTO segments (id, name, description, match, rules, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-      id, name, description, match, JSON.stringify(rules), now, now,
-    )
-    reply.code(201)
-    return getSegment(id)
-  })
+  app.post(
+    '/segments',
+    { preHandler: editor, schema: { body: segmentInputSchema } },
+    async (request, reply): Promise<Segment> => {
+      const { name, description, match, rules } = request.body
+      compileSegment(db, { match, rules })
+      const id = newId('seg')
+      const now = nowIso()
+      db.prepare(
+        'INSERT INTO segments (id, name, description, match, rules, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      ).run(id, name, description, match, JSON.stringify(rules), now, now)
+      reply.code(201)
+      return getSegment(id)
+    },
+  )
 
   app.patch(
     '/segments/:id',
@@ -703,30 +979,43 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
       getSegment(request.params.id)
       const { name, description, match, rules } = request.body
       compileSegment(db, { match, rules })
-      db.prepare('UPDATE segments SET name = ?, description = ?, match = ?, rules = ?, updated_at = ? WHERE id = ?').run(
-        name, description, match, JSON.stringify(rules), nowIso(), request.params.id,
-      )
+      db.prepare(
+        'UPDATE segments SET name = ?, description = ?, match = ?, rules = ?, updated_at = ? WHERE id = ?',
+      ).run(name, description, match, JSON.stringify(rules), nowIso(), request.params.id)
       return getSegment(request.params.id)
     },
   )
 
-  app.delete('/segments/:id', { preHandler: editor, schema: { params: idParams } }, async (request) => {
-    db.prepare('DELETE FROM segments WHERE id = ?').run(request.params.id)
-    return { ok: true }
-  })
+  app.delete(
+    '/segments/:id',
+    { preHandler: editor, schema: { params: idParams } },
+    async (request) => {
+      db.prepare('DELETE FROM segments WHERE id = ?').run(request.params.id)
+      return { ok: true }
+    },
+  )
 
   /* ---- Suppression list ------------------------------------------------- */
 
   app.get(
     '/suppressions',
-    { preHandler: viewer, schema: { querystring: pageQuerySchema.extend({ q: z.string().trim().max(200).optional() }) } },
+    {
+      preHandler: viewer,
+      schema: { querystring: pageQuerySchema.extend({ q: z.string().trim().max(200).optional() }) },
+    },
     async (request): Promise<Paged<Suppression>> => {
       const { page, pageSize, q } = request.query
       const where = q ? "WHERE email LIKE ? ESCAPE '\\'" : ''
       const params = q ? [`%${likeTerm(q)}%`] : []
-      const total = (db.prepare(`SELECT COUNT(*) AS n FROM suppressions ${where}`).get(...params) as { n: number }).n
+      const total = (
+        db.prepare(`SELECT COUNT(*) AS n FROM suppressions ${where}`).get(...params) as {
+          n: number
+        }
+      ).n
       const items = db
-        .prepare(`SELECT email, reason, note, created_at AS createdAt FROM suppressions ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+        .prepare(
+          `SELECT email, reason, note, created_at AS createdAt FROM suppressions ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        )
         .all(...params, pageSize, (page - 1) * pageSize) as Suppression[]
       return { items, total, page, pageSize }
     },
@@ -737,7 +1026,10 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     { preHandler: editor, schema: { body: suppressionInputSchema } },
     async (request): Promise<{ added: number; invalid: number }> => {
       const { emails, reason, note } = request.body
-      const candidates = emails.split(/[\s,;]+/).map((value) => value.trim()).filter(Boolean)
+      const candidates = emails
+        .split(/[\s,;]+/)
+        .map((value) => value.trim())
+        .filter(Boolean)
       let added = 0
       let invalid = 0
       db.transaction(() => {
@@ -750,11 +1042,19 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
           suppress(db, email, reason, note ?? `Added by ${request.actor!.name}`)
           // An existing contact at that address stops being mailable too.
           const contact = findByEmail(db, email)
-          if (contact && contact.status === 'subscribed') unsubscribeContact(db, contact.id, { via: 'suppression list' })
+          if (contact && contact.status === 'subscribed')
+            unsubscribeContact(db, contact.id, { via: 'suppression list' })
           added += 1
         }
       })()
-      writeLog(db, 'info', 'contacts', `${added} ${added === 1 ? 'address' : 'addresses'} added to the suppression list`, null, request.actor!.name)
+      writeLog(
+        db,
+        'info',
+        'contacts',
+        `${added} ${added === 1 ? 'address' : 'addresses'} added to the suppression list`,
+        null,
+        request.actor!.name,
+      )
       return { added, invalid }
     },
   )
@@ -764,7 +1064,14 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
     { preHandler: app.requireRole('admin'), schema: { params: z.object({ email: z.string() }) } },
     async (request) => {
       db.prepare('DELETE FROM suppressions WHERE email = ?').run(request.params.email)
-      writeLog(db, 'warn', 'contacts', `${request.params.email} removed from the suppression list`, null, request.actor!.name)
+      writeLog(
+        db,
+        'warn',
+        'contacts',
+        `${request.params.email} removed from the suppression list`,
+        null,
+        request.actor!.name,
+      )
       return { ok: true }
     },
   )

@@ -33,10 +33,21 @@ export function LoginPage() {
       <form onSubmit={submit} className="flex flex-col gap-5" noValidate>
         {login.isError && <Banner tone="danger">{errorMessage(login.error)}</Banner>}
         <Field label="Email">
-          <TextInput type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} autoFocus required />
+          <TextInput
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoFocus
+            required
+          />
         </Field>
         <Field label="Password">
-          <PasswordInput value={password} onChange={(event) => setPassword(event.target.value)} required />
+          <PasswordInput
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
         </Field>
         <Button type="submit" loading={login.isPending} fullWidth>
           Sign in

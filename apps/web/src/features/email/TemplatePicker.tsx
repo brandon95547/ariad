@@ -23,7 +23,11 @@ export function TemplatePicker({
   title?: string
   description?: string
 }) {
-  const templates = useQuery({ queryKey: ['templates'], queryFn: () => api.get<TemplateSummary[]>('/templates'), enabled: open })
+  const templates = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => api.get<TemplateSummary[]>('/templates'),
+    enabled: open,
+  })
 
   const pick = async (id: string) => {
     onPick(await api.get<Template>(`/templates/${id}`))
@@ -39,7 +43,12 @@ export function TemplatePicker({
           ))}
         </div>
       ) : templates.data && templates.data.length === 0 ? (
-        <EmptyState compact icon={<FileText />} title="No templates yet" description="Save an email as a template and it will be here." />
+        <EmptyState
+          compact
+          icon={<FileText />}
+          title="No templates yet"
+          description="Save an email as a template and it will be here."
+        />
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(templates.data ?? []).map((template) => (
@@ -53,7 +62,11 @@ export function TemplatePicker({
                   <span className="text-label text-[var(--ds-fg)]">{template.name}</span>
                   {template.builtin && <Badge tone="neutral">Starter</Badge>}
                 </span>
-                {template.description && <span className="text-caption text-[var(--ds-fg-muted)]">{template.description}</span>}
+                {template.description && (
+                  <span className="text-caption text-[var(--ds-fg-muted)]">
+                    {template.description}
+                  </span>
+                )}
               </button>
             </li>
           ))}

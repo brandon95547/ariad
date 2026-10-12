@@ -44,7 +44,8 @@ function tooManyFailures(key: string): boolean {
 
 function recordFailure(key: string): void {
   const entry = failures.get(key)
-  if (!entry || entry.resetAt < Date.now()) failures.set(key, { count: 1, resetAt: Date.now() + WINDOW_MS })
+  if (!entry || entry.resetAt < Date.now())
+    failures.set(key, { count: 1, resetAt: Date.now() + WINDOW_MS })
   else entry.count += 1
 }
 
@@ -53,9 +54,14 @@ export async function authRoutes(base: FastifyInstance): Promise<void> {
   const { db } = app.ctx
 
   const userCount = () => (db.prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number }).n
-  const userById = (id: string) => db.prepare('SELECT * FROM users WHERE id = ?').get(id) as UserRow | undefined
+  const userById = (id: string) =>
+    db.prepare('SELECT * FROM users WHERE id = ?').get(id) as UserRow | undefined
   const ownerCount = () =>
-    (db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'owner' AND status = 'active'").get() as { n: number }).n
+    (
+      db
+        .prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'owner' AND status = 'active'")
+        .get() as { n: number }
+    ).n
 
   app.get('/auth/state', async (request): Promise<AuthState> => {
     const user = request.actor?.kind === 'user' ? userById(request.actor.id) : undefined
@@ -63,36 +69,49 @@ export async function authRoutes(base: FastifyInstance): Promise<void> {
   })
 
   /** Creates the first account. Closed for good the moment one exists. */
-  app.post('/auth/setup', { schema: { body: setupSchema } }, async (request, reply): Promise<AuthState> => {
-    if (userCount() > 0) throw AppError.conflict('Ariad is already set up. Sign in instead.')
-    const { name, email, password, organization } = request.body
-    const id = newId('usr')
-    db.prepare(
-      "INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'owner', ?)",
-    ).run(id, email, name, hashPassword(password), nowIso())
-    updateSettings(db, { organization: { name: organization } })
-    writeLog(db, 'info', 'auth', `Ariad was set up by ${name}`, null, name)
-    startSession(app, request, reply, id)
-    return { needsSetup: false, user: toUser(userById(id)!) }
-  })
+  app.post(
+    '/auth/setup',
+    { schema: { body: setupSchema } },
+    async (request, reply): Promise<AuthState> => {
+      if (userCount() > 0) throw AppError.conflict('Ariad is already set up. Sign in instead.')
+      const { name, email, password, organization } = request.body
+      const id = newId('usr')
+      db.prepare(
+        "INSERT INTO users (id, email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, 'owner', ?)",
+      ).run(id, email, name, hashPassword(password), nowIso())
+      updateSettings(db, { organization: { name: organization } })
+      writeLog(db, 'info', 'auth', `Ariad was set up by ${name}`, null, name)
+      startSession(app, request, reply, id)
+      return { needsSetup: false, user: toUser(userById(id)!) }
+    },
+  )
 
-  app.post('/auth/login', { schema: { body: loginSchema } }, async (request, reply): Promise<AuthState> => {
-    const { email, password } = request.body
-    const throttleKey = `${request.ip}|${email}`
-    if (tooManyFailures(throttleKey)) {
-      throw new AppError(429, 'too_many_attempts', 'Too many attempts. Wait fifteen minutes and try again.')
-    }
-    const row = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as UserRow | undefined
-    // The same answer for a wrong password and an unknown address: which
-    // addresses have accounts is not something to tell a stranger.
-    if (!row || row.status !== 'active' || !verifyPassword(password, row.password_hash)) {
-      recordFailure(throttleKey)
-      throw AppError.unauthorized('That email and password do not match.')
-    }
-    failures.delete(throttleKey)
-    startSession(app, request, reply, row.id)
-    return { needsSetup: false, user: toUser(userById(row.id)!) }
-  })
+  app.post(
+    '/auth/login',
+    { schema: { body: loginSchema } },
+    async (request, reply): Promise<AuthState> => {
+      const { email, password } = request.body
+      const throttleKey = `${request.ip}|${email}`
+      if (tooManyFailures(throttleKey)) {
+        throw new AppError(
+          429,
+          'too_many_attempts',
+          'Too many attempts. Wait fifteen minutes and try again.',
+        )
+      }
+      const row = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as
+        UserRow | undefined
+      // The same answer for a wrong password and an unknown address: which
+      // addresses have accounts is not something to tell a stranger.
+      if (!row || row.status !== 'active' || !verifyPassword(password, row.password_hash)) {
+        recordFailure(throttleKey)
+        throw AppError.unauthorized('That email and password do not match.')
+      }
+      failures.delete(throttleKey)
+      startSession(app, request, reply, row.id)
+      return { needsSetup: false, user: toUser(userById(row.id)!) }
+    },
+  )
 
   app.post('/auth/logout', async (request, reply) => {
     endSession(app, request, reply)
@@ -110,7 +129,10 @@ export async function authRoutes(base: FastifyInstance): Promise<void> {
         if (!currentPassword || !verifyPassword(currentPassword, row.password_hash)) {
           throw AppError.badRequest('Your current password is not right.')
         }
-        db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), row.id)
+        db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(
+          hashPassword(newPassword),
+          row.id,
+        )
       }
       if (name) db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, row.id)
       return toUser(userById(row.id)!)
@@ -158,7 +180,8 @@ export async function authRoutes(base: FastifyInstance): Promise<void> {
       const { name, role, status, password } = request.body
       guardOwner(request.actor!.role, row.role, role)
 
-      const losesOwner = row.role === 'owner' && ((role && role !== 'owner') || status === 'disabled')
+      const losesOwner =
+        row.role === 'owner' && ((role && role !== 'owner') || status === 'disabled')
       if (losesOwner && ownerCount() <= 1) {
         throw AppError.conflict('This is the only owner. Make someone else an owner first.')
       }
@@ -176,8 +199,16 @@ export async function authRoutes(base: FastifyInstance): Promise<void> {
         row.id,
       )
       // A disabled account or a new password ends every session it had open.
-      if (status === 'disabled' || password) db.prepare('DELETE FROM sessions WHERE user_id = ?').run(row.id)
-      writeLog(db, 'info', 'users', `User updated: ${row.email}`, { role, status }, request.actor!.name)
+      if (status === 'disabled' || password)
+        db.prepare('DELETE FROM sessions WHERE user_id = ?').run(row.id)
+      writeLog(
+        db,
+        'info',
+        'users',
+        `User updated: ${row.email}`,
+        { role, status },
+        request.actor!.name,
+      )
       return toUser(userById(row.id)!)
     },
   )
@@ -189,7 +220,8 @@ export async function authRoutes(base: FastifyInstance): Promise<void> {
       const row = userById(request.params.id)
       if (!row) throw AppError.notFound('user')
       guardOwner(request.actor!.role, row.role)
-      if (row.id === request.actor!.id) throw AppError.conflict('You cannot delete your own account.')
+      if (row.id === request.actor!.id)
+        throw AppError.conflict('You cannot delete your own account.')
       if (row.role === 'owner' && ownerCount() <= 1) {
         throw AppError.conflict('This is the only owner. Make someone else an owner first.')
       }
@@ -246,8 +278,18 @@ export async function authRoutes(base: FastifyInstance): Promise<void> {
         request.actor!.kind === 'user' ? request.actor!.id : null,
         nowIso(),
       )
-      writeLog(db, 'info', 'api-keys', `API key created: ${request.body.name}`, null, request.actor!.name)
-      return { key: toKey(db.prepare('SELECT * FROM api_keys WHERE id = ?').get(id) as KeyRow), secret }
+      writeLog(
+        db,
+        'info',
+        'api-keys',
+        `API key created: ${request.body.name}`,
+        null,
+        request.actor!.name,
+      )
+      return {
+        key: toKey(db.prepare('SELECT * FROM api_keys WHERE id = ?').get(id) as KeyRow),
+        secret,
+      }
     },
   )
 
@@ -255,7 +297,8 @@ export async function authRoutes(base: FastifyInstance): Promise<void> {
     '/api-keys/:id',
     { preHandler: app.requireRole('admin'), schema: { params: idParams } },
     async (request) => {
-      const row = db.prepare('SELECT * FROM api_keys WHERE id = ?').get(request.params.id) as KeyRow | undefined
+      const row = db.prepare('SELECT * FROM api_keys WHERE id = ?').get(request.params.id) as
+        KeyRow | undefined
       if (!row) throw AppError.notFound('API key')
       db.prepare('UPDATE api_keys SET revoked_at = ? WHERE id = ?').run(nowIso(), row.id)
       writeLog(db, 'warn', 'api-keys', `API key revoked: ${row.name}`, null, request.actor!.name)

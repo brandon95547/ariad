@@ -29,7 +29,15 @@ function AlignControl({ value, onChange }: { value: Align; onChange: (align: Ali
   )
 }
 
-function Panel({ title, children, onDone }: { title: string; children: React.ReactNode; onDone?: () => void }) {
+function Panel({
+  title,
+  children,
+  onDone,
+}: {
+  title: string
+  children: React.ReactNode
+  onDone?: () => void
+}) {
   return (
     <Card padding="sm" className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
@@ -67,9 +75,14 @@ export function BlockInspector({
   const file = React.useRef<HTMLInputElement>(null)
 
   const upload = useMutation({
-    mutationFn: async (chosen: File) => api.post<{ url: string }>('/uploads', { filename: chosen.name, data: await readAsDataUrl(chosen) }),
+    mutationFn: async (chosen: File) =>
+      api.post<{ url: string }>('/uploads', {
+        filename: chosen.name,
+        data: await readAsDataUrl(chosen),
+      }),
     onSuccess: ({ url }) => onChange({ src: url }),
-    onError: (error) => toast.error('The image was not uploaded', { description: errorMessage(error) }),
+    onError: (error) =>
+      toast.error('The image was not uploaded', { description: errorMessage(error) }),
   })
 
   return (
@@ -90,7 +103,9 @@ export function BlockInspector({
             />
           </div>
           <AlignControl value={block.align} onChange={(align) => onChange({ align })} />
-          <p className="text-caption text-[var(--ds-fg-muted)]">Type the heading on the email itself.</p>
+          <p className="text-caption text-[var(--ds-fg-muted)]">
+            Type the heading on the email itself.
+          </p>
         </>
       )}
 
@@ -98,21 +113,29 @@ export function BlockInspector({
         <>
           <AlignControl value={block.align} onChange={(align) => onChange({ align })} />
           <p className="text-caption text-[var(--ds-fg-muted)]">
-            Type on the email itself. Select words to make them bold, italic or a link, from the bar above the block.
+            Type on the email itself. Select words to make them bold, italic or a link, from the bar
+            above the block.
           </p>
         </>
       )}
 
       {block.type === 'columns' && (
         <p className="text-caption text-[var(--ds-fg-muted)]">
-          Type in either column on the email itself. On a phone the right column drops under the left.
+          Type in either column on the email itself. On a phone the right column drops under the
+          left.
         </p>
       )}
 
       {block.type === 'image' && (
         <>
           <Field label="Image address" hint="A link to an image on the web, or upload one.">
-            <TextInput value={block.src} onChange={(event) => onChange({ src: event.target.value })} placeholder="https://" inputMode="url" spellCheck={false} />
+            <TextInput
+              value={block.src}
+              onChange={(event) => onChange({ src: event.target.value })}
+              placeholder="https://"
+              inputMode="url"
+              spellCheck={false}
+            />
           </Field>
           <input
             ref={file}
@@ -125,14 +148,33 @@ export function BlockInspector({
               event.target.value = ''
             }}
           />
-          <Button variant="outlined" size="sm" startIcon={<Upload />} loading={upload.isPending} onClick={() => file.current?.click()} className="self-start">
+          <Button
+            variant="outlined"
+            size="sm"
+            startIcon={<Upload />}
+            loading={upload.isPending}
+            onClick={() => file.current?.click()}
+            className="self-start"
+          >
             Upload an image
           </Button>
-          <Field label="Description" hint="Read aloud by screen readers, and shown when images are blocked.">
-            <TextInput value={block.alt} onChange={(event) => onChange({ alt: event.target.value })} />
+          <Field
+            label="Description"
+            hint="Read aloud by screen readers, and shown when images are blocked."
+          >
+            <TextInput
+              value={block.alt}
+              onChange={(event) => onChange({ alt: event.target.value })}
+            />
           </Field>
           <Field label="Link" optional hint="Where a click on the image goes.">
-            <TextInput value={block.href} onChange={(event) => onChange({ href: event.target.value })} placeholder="https://" inputMode="url" spellCheck={false} />
+            <TextInput
+              value={block.href}
+              onChange={(event) => onChange({ href: event.target.value })}
+              placeholder="https://"
+              inputMode="url"
+              spellCheck={false}
+            />
           </Field>
           <div className="flex flex-col gap-1.5">
             <span className="block text-label text-[var(--ds-fg-secondary)]">Width</span>
@@ -155,13 +197,26 @@ export function BlockInspector({
       {block.type === 'button' && (
         <>
           <Field label="Label">
-            <TextInput value={block.label} onChange={(event) => onChange({ label: event.target.value })} />
+            <TextInput
+              value={block.label}
+              onChange={(event) => onChange({ label: event.target.value })}
+            />
           </Field>
           <Field label="Link">
-            <TextInput value={block.href} onChange={(event) => onChange({ href: event.target.value })} placeholder="https://" inputMode="url" spellCheck={false} />
+            <TextInput
+              value={block.href}
+              onChange={(event) => onChange({ href: event.target.value })}
+              placeholder="https://"
+              inputMode="url"
+              spellCheck={false}
+            />
           </Field>
           <AlignControl value={block.align} onChange={(align) => onChange({ align })} />
-          <Switch label="Full width" checked={block.fullWidth} onChange={(fullWidth) => onChange({ fullWidth })} />
+          <Switch
+            label="Full width"
+            checked={block.fullWidth}
+            onChange={(fullWidth) => onChange({ fullWidth })}
+          />
         </>
       )}
 
@@ -170,23 +225,51 @@ export function BlockInspector({
           <TextInput
             value={String(block.height)}
             inputMode="numeric"
-            onChange={(event) => onChange({ height: Math.max(4, Math.min(200, Number(event.target.value.replace(/\D/g, '')) || 4)) })}
+            onChange={(event) =>
+              onChange({
+                height: Math.max(
+                  4,
+                  Math.min(200, Number(event.target.value.replace(/\D/g, '')) || 4),
+                ),
+              })
+            }
           />
         </Field>
       )}
 
-      {block.type === 'divider' && <p className="text-caption text-[var(--ds-fg-muted)]">A thin rule. There is nothing to set.</p>}
+      {block.type === 'divider' && (
+        <p className="text-caption text-[var(--ds-fg-muted)]">
+          A thin rule. There is nothing to set.
+        </p>
+      )}
 
       {block.type === 'html' && (
-        <Field label="HTML" hint="Put in as written. Use inline styles: mail apps ignore stylesheets.">
-          <Textarea mono rows={12} spellCheck={false} value={block.html} onChange={(event) => onChange({ html: event.target.value })} />
+        <Field
+          label="HTML"
+          hint="Put in as written. Use inline styles: mail apps ignore stylesheets."
+        >
+          <Textarea
+            mono
+            rows={12}
+            spellCheck={false}
+            value={block.html}
+            onChange={(event) => onChange({ html: event.target.value })}
+          />
         </Field>
       )}
     </Panel>
   )
 }
 
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}) {
   const id = React.useId()
   return (
     <div className="flex flex-col gap-1.5">
@@ -202,13 +285,25 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
           onChange={(event) => onChange(event.target.value)}
           className="h-9 w-10 shrink-0 cursor-pointer rounded-[var(--radius-md)] border border-[var(--ds-border-interactive)] bg-[var(--ds-field)] p-1"
         />
-        <TextInput id={id} value={value} onChange={(event) => onChange(event.target.value)} spellCheck={false} className="font-mono" />
+        <TextInput
+          id={id}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          spellCheck={false}
+          className="font-mono"
+        />
       </div>
     </div>
   )
 }
 
-export function ThemeInspector({ theme, onChange }: { theme: DesignTheme; onChange: (patch: Partial<DesignTheme>) => void }) {
+export function ThemeInspector({
+  theme,
+  onChange,
+}: {
+  theme: DesignTheme
+  onChange: (patch: Partial<DesignTheme>) => void
+}) {
   return (
     <Panel title="Email style">
       <Field label="Font" htmlFor="email-theme-font">
@@ -219,10 +314,22 @@ export function ThemeInspector({ theme, onChange }: { theme: DesignTheme; onChan
           options={EMAIL_FONTS.map((font) => ({ value: font.value, label: font.label }))}
         />
       </Field>
-      <ColorField label="Buttons and links" value={theme.accent} onChange={(accent) => onChange({ accent })} />
+      <ColorField
+        label="Buttons and links"
+        value={theme.accent}
+        onChange={(accent) => onChange({ accent })}
+      />
       <ColorField label="Text" value={theme.text} onChange={(text) => onChange({ text })} />
-      <ColorField label="Email background" value={theme.surface} onChange={(surface) => onChange({ surface })} />
-      <ColorField label="Page background" value={theme.background} onChange={(background) => onChange({ background })} />
+      <ColorField
+        label="Email background"
+        value={theme.surface}
+        onChange={(surface) => onChange({ surface })}
+      />
+      <ColorField
+        label="Page background"
+        value={theme.background}
+        onChange={(background) => onChange({ background })}
+      />
       <div className="flex flex-col gap-1.5">
         <span className="block text-label text-[var(--ds-fg-secondary)]">Corners</span>
         <SegmentedControl
@@ -236,7 +343,9 @@ export function ThemeInspector({ theme, onChange }: { theme: DesignTheme; onChan
           ]}
         />
       </div>
-      <p className="text-caption text-[var(--ds-fg-muted)]">Select a block on the email to change it.</p>
+      <p className="text-caption text-[var(--ds-fg-muted)]">
+        Select a block on the email to change it.
+      </p>
     </Panel>
   )
 }

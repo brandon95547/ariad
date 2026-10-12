@@ -25,11 +25,21 @@ function dailySeries(db: Db, days: number): DailyPoint[] {
   const byDay = new Map<string, DailyPoint>()
   for (let i = days - 1; i >= 0; i -= 1) {
     const day = daysAgo(i).slice(0, 10)
-    byDay.set(day, { day, sent: 0, opens: 0, clicks: 0, bounces: 0, unsubscribes: 0, newContacts: 0 })
+    byDay.set(day, {
+      day,
+      sent: 0,
+      opens: 0,
+      clicks: 0,
+      bounces: 0,
+      unsubscribes: 0,
+      newContacts: 0,
+    })
   }
 
   const sent = db
-    .prepare("SELECT substr(sent_at, 1, 10) AS day, COUNT(*) AS n FROM messages WHERE sent_at >= ? AND kind IN ('campaign','automation') GROUP BY 1")
+    .prepare(
+      "SELECT substr(sent_at, 1, 10) AS day, COUNT(*) AS n FROM messages WHERE sent_at >= ? AND kind IN ('campaign','automation') GROUP BY 1",
+    )
     .all(since) as { day: string; n: number }[]
   for (const row of sent) {
     const point = byDay.get(row.day)
@@ -37,7 +47,9 @@ function dailySeries(db: Db, days: number): DailyPoint[] {
   }
 
   const events = db
-    .prepare('SELECT substr(created_at, 1, 10) AS day, type, COUNT(*) AS n FROM message_events WHERE created_at >= ? GROUP BY 1, 2')
+    .prepare(
+      'SELECT substr(created_at, 1, 10) AS day, type, COUNT(*) AS n FROM message_events WHERE created_at >= ? GROUP BY 1, 2',
+    )
     .all(since) as { day: string; type: string; n: number }[]
   for (const row of events) {
     const point = byDay.get(row.day)
@@ -49,7 +61,9 @@ function dailySeries(db: Db, days: number): DailyPoint[] {
   }
 
   const added = db
-    .prepare('SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS n FROM contacts WHERE created_at >= ? GROUP BY 1')
+    .prepare(
+      'SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS n FROM contacts WHERE created_at >= ? GROUP BY 1',
+    )
     .all(since) as { day: string; n: number }[]
   for (const row of added) {
     const point = byDay.get(row.day)
@@ -64,7 +78,8 @@ export async function reportRoutes(base: FastifyInstance): Promise<void> {
   const { db } = ctx
   const viewer = app.requireRole('viewer')
 
-  const count = (sql: string, ...params: unknown[]) => (db.prepare(sql).get(...params) as { n: number }).n
+  const count = (sql: string, ...params: unknown[]) =>
+    (db.prepare(sql).get(...params) as { n: number }).n
 
   app.get('/dashboard', { preHandler: viewer }, async (): Promise<DashboardData> => {
     const settings = getSettings(db)
@@ -72,20 +87,57 @@ export async function reportRoutes(base: FastifyInstance): Promise<void> {
     const totals = statsSince(db, since)
 
     const recent = db
-      .prepare("SELECT * FROM campaigns ORDER BY COALESCE(started_at, scheduled_at, updated_at) DESC LIMIT 6")
+      .prepare(
+        'SELECT * FROM campaigns ORDER BY COALESCE(started_at, scheduled_at, updated_at) DESC LIMIT 6',
+      )
       .all() as CampaignRow[]
-    const stats = statsFor(db, recent.map((row) => row.id))
+    const stats = statsFor(
+      db,
+      recent.map((row) => row.id),
+    )
 
     const hasAccount = count('SELECT COUNT(*) AS n FROM sending_accounts WHERE enabled = 1') > 0
-    const hasAddress = settings.organization.name !== '' && formatAddress(settings.organization) !== ''
+    const hasAddress =
+      settings.organization.name !== '' && formatAddress(settings.organization) !== ''
     const hasContacts = count('SELECT COUNT(*) AS n FROM contacts') > 0
-    const hasSent = count("SELECT COUNT(*) AS n FROM campaigns WHERE status IN ('sending','sent')") > 0
+    const hasSent =
+      count("SELECT COUNT(*) AS n FROM campaigns WHERE status IN ('sending','sent')") > 0
     const setup: SetupStep[] = [
-      { key: 'account', done: hasAccount, title: 'Connect a sending account', description: 'Add the Gmail or SMTP account your email will go out through.', to: '/settings/sending' },
-      { key: 'organization', done: hasAddress, title: 'Add your mailing address', description: 'Every marketing email must carry a physical postal address.', to: '/settings/organization' },
-      { key: 'public_url', done: !isLocalUrl(publicUrl(ctx)), title: 'Set your public URL', description: 'So unsubscribe links and tracking work for people outside this computer.', to: '/settings/organization' },
-      { key: 'contacts', done: hasContacts, title: 'Add your contacts', description: 'Import a CSV, or add people one at a time.', to: '/contacts' },
-      { key: 'campaign', done: hasSent, title: 'Send your first campaign', description: 'Write an email, pick who gets it, and send.', to: '/campaigns' },
+      {
+        key: 'account',
+        done: hasAccount,
+        title: 'Connect a sending account',
+        description: 'Add the Gmail or SMTP account your email will go out through.',
+        to: '/settings/sending',
+      },
+      {
+        key: 'organization',
+        done: hasAddress,
+        title: 'Add your mailing address',
+        description: 'Every marketing email must carry a physical postal address.',
+        to: '/settings/organization',
+      },
+      {
+        key: 'public_url',
+        done: !isLocalUrl(publicUrl(ctx)),
+        title: 'Set your public URL',
+        description: 'So unsubscribe links and tracking work for people outside this computer.',
+        to: '/settings/organization',
+      },
+      {
+        key: 'contacts',
+        done: hasContacts,
+        title: 'Add your contacts',
+        description: 'Import a CSV, or add people one at a time.',
+        to: '/contacts',
+      },
+      {
+        key: 'campaign',
+        done: hasSent,
+        title: 'Send your first campaign',
+        description: 'Write an email, pick who gets it, and send.',
+        to: '/campaigns',
+      },
     ]
 
     return {
@@ -93,7 +145,10 @@ export async function reportRoutes(base: FastifyInstance): Promise<void> {
         total: count('SELECT COUNT(*) AS n FROM contacts'),
         subscribed: count("SELECT COUNT(*) AS n FROM contacts WHERE status = 'subscribed'"),
         newLast30Days: count('SELECT COUNT(*) AS n FROM contacts WHERE created_at >= ?', since),
-        unsubscribedLast30Days: count('SELECT COUNT(*) AS n FROM contacts WHERE unsubscribed_at >= ?', since),
+        unsubscribedLast30Days: count(
+          'SELECT COUNT(*) AS n FROM contacts WHERE unsubscribed_at >= ?',
+          since,
+        ),
       },
       totals,
       rates: ratesFrom(totals),
@@ -106,15 +161,25 @@ export async function reportRoutes(base: FastifyInstance): Promise<void> {
 
   app.get(
     '/reports',
-    { preHandler: viewer, schema: { querystring: z.object({ days: z.coerce.number().int().min(7).max(365).default(30) }) } },
+    {
+      preHandler: viewer,
+      schema: {
+        querystring: z.object({ days: z.coerce.number().int().min(7).max(365).default(30) }),
+      },
+    },
     async (request): Promise<ReportsData> => {
       const { days } = request.query
       const since = daysAgo(days)
       const totals = statsSince(db, since)
       const rows = db
-        .prepare("SELECT * FROM campaigns WHERE status IN ('sending','paused','sent','canceled') AND started_at >= ? ORDER BY started_at DESC LIMIT 200")
+        .prepare(
+          "SELECT * FROM campaigns WHERE status IN ('sending','paused','sent','canceled') AND started_at >= ? ORDER BY started_at DESC LIMIT 200",
+        )
         .all(since) as CampaignRow[]
-      const stats = statsFor(db, rows.map((row) => row.id))
+      const stats = statsFor(
+        db,
+        rows.map((row) => row.id),
+      )
       return {
         days,
         totals,

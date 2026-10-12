@@ -43,22 +43,47 @@ export function emailStep(subject: string, heading: string, body: string): Autom
     { id: 't', type: 'text', html: body, align: 'left' },
   ]
   const design: EmailDesign = { version: 1, theme: { ...DEFAULT_THEME }, blocks }
-  return { id: stepId(), type: 'email', subject, preheader: null, design, html: renderDesign(design, { title: subject }) }
+  return {
+    id: stepId(),
+    type: 'email',
+    subject,
+    preheader: null,
+    design,
+    html: renderDesign(design, { title: subject }),
+  }
 }
 
-export const delayStep = (amount: number, unit: 'minutes' | 'hours' | 'days'): AutomationStep => ({ id: stepId(), type: 'delay', amount, unit })
+export const delayStep = (amount: number, unit: 'minutes' | 'hours' | 'days'): AutomationStep => ({
+  id: stepId(),
+  type: 'delay',
+  amount,
+  unit,
+})
 
 const hi = '<p>Hi {{first_name|there}},</p>'
 
 /** Ready-made starting points. Each is a trigger and the steps most people want after it. */
-const RECIPES: { key: string; label: string; description: string; name: string; trigger: AutomationTrigger; steps: () => AutomationStep[] }[] = [
+const RECIPES: {
+  key: string
+  label: string
+  description: string
+  name: string
+  trigger: AutomationTrigger
+  steps: () => AutomationStep[]
+}[] = [
   {
     key: 'welcome',
     label: 'Welcome new subscribers',
     description: 'One email, sent as soon as someone joins a list.',
     name: 'Welcome email',
     trigger: { type: 'list_subscribed', listId: null },
-    steps: () => [emailStep('Welcome to {{organization}}', 'Welcome', `${hi}<p>Thanks for subscribing. Here is what you can expect from us, and how often.</p>`)],
+    steps: () => [
+      emailStep(
+        'Welcome to {{organization}}',
+        'Welcome',
+        `${hi}<p>Thanks for subscribing. Here is what you can expect from us, and how often.</p>`,
+      ),
+    ],
   },
   {
     key: 'series',
@@ -67,11 +92,23 @@ const RECIPES: { key: string; label: string; description: string; name: string; 
     name: 'Welcome series',
     trigger: { type: 'list_subscribed', listId: null },
     steps: () => [
-      emailStep('Welcome to {{organization}}', 'Welcome', `${hi}<p>Thanks for subscribing. Here is what you can expect from us.</p>`),
+      emailStep(
+        'Welcome to {{organization}}',
+        'Welcome',
+        `${hi}<p>Thanks for subscribing. Here is what you can expect from us.</p>`,
+      ),
       delayStep(2, 'days'),
-      emailStep('The one thing to read first', 'Start here', `${hi}<p>If you only read one thing from us, make it this.</p>`),
+      emailStep(
+        'The one thing to read first',
+        'Start here',
+        `${hi}<p>If you only read one thing from us, make it this.</p>`,
+      ),
       delayStep(5, 'days'),
-      emailStep('How can we help?', 'A quick question', `${hi}<p>What made you sign up? Reply to this email. A person reads every one.</p>`),
+      emailStep(
+        'How can we help?',
+        'A quick question',
+        `${hi}<p>What made you sign up? Reply to this email. A person reads every one.</p>`,
+      ),
     ],
   },
   {
@@ -80,7 +117,13 @@ const RECIPES: { key: string; label: string; description: string; name: string; 
     description: 'Sent each year on the morning of a contact’s birthday.',
     name: 'Birthday greeting',
     trigger: { type: 'date', field: 'birthday', offsetDays: 0, hour: 9 },
-    steps: () => [emailStep('Happy birthday, {{first_name|friend}}', 'Happy birthday', `${hi}<p>All of us at {{organization}} hope it is a good one.</p>`)],
+    steps: () => [
+      emailStep(
+        'Happy birthday, {{first_name|friend}}',
+        'Happy birthday',
+        `${hi}<p>All of us at {{organization}} hope it is a good one.</p>`,
+      ),
+    ],
   },
   {
     key: 'anniversary',
@@ -88,7 +131,13 @@ const RECIPES: { key: string; label: string; description: string; name: string; 
     description: 'Sent each year on the day someone joined.',
     name: 'Signup anniversary',
     trigger: { type: 'date', field: 'created_at', offsetDays: 0, hour: 9 },
-    steps: () => [emailStep('It has been a year', 'Thank you for a year', `${hi}<p>You joined us a year ago today. Thank you for sticking around.</p>`)],
+    steps: () => [
+      emailStep(
+        'It has been a year',
+        'Thank you for a year',
+        `${hi}<p>You joined us a year ago today. Thank you for sticking around.</p>`,
+      ),
+    ],
   },
   {
     key: 'followup',
@@ -96,7 +145,13 @@ const RECIPES: { key: string; label: string; description: string; name: string; 
     description: 'A second note, three days later, to people who did not open the first.',
     name: 'Campaign follow-up',
     trigger: { type: 'campaign_followup', campaignId: null, condition: 'not_opened', afterDays: 3 },
-    steps: () => [emailStep('In case you missed it', 'In case you missed it', `${hi}<p>We sent this a few days ago and thought it was worth a second look.</p>`)],
+    steps: () => [
+      emailStep(
+        'In case you missed it',
+        'In case you missed it',
+        `${hi}<p>We sent this a few days ago and thought it was worth a second look.</p>`,
+      ),
+    ],
   },
   {
     key: 'blank',
@@ -109,21 +164,42 @@ const RECIPES: { key: string; label: string; description: string; name: string; 
 ]
 
 /** What starts an automation, as a sentence. */
-export function describeTrigger(trigger: AutomationTrigger, names: { list: (id: string) => string; tag: (id: string) => string }): string {
+export function describeTrigger(
+  trigger: AutomationTrigger,
+  names: { list: (id: string) => string; tag: (id: string) => string },
+): string {
   switch (trigger.type) {
     case 'list_subscribed':
-      return trigger.listId ? `When someone subscribes to ${names.list(trigger.listId)}` : 'When someone subscribes to any list'
+      return trigger.listId
+        ? `When someone subscribes to ${names.list(trigger.listId)}`
+        : 'When someone subscribes to any list'
     case 'tag_added':
       return `When a contact is tagged ${names.tag(trigger.tagId)}`
     case 'form_submitted':
-      return trigger.formId ? 'When a specific signup form is submitted' : 'When any signup form is submitted'
+      return trigger.formId
+        ? 'When a specific signup form is submitted'
+        : 'When any signup form is submitted'
     case 'date': {
-      const what = trigger.field === 'birthday' ? 'birthday' : trigger.field === 'created_at' ? 'signup anniversary' : `${trigger.field.replace('custom.', '')} date`
-      const offset = trigger.offsetDays === 0 ? 'On' : `${Math.abs(trigger.offsetDays)} ${Math.abs(trigger.offsetDays) === 1 ? 'day' : 'days'} ${trigger.offsetDays < 0 ? 'before' : 'after'}`
+      const what =
+        trigger.field === 'birthday'
+          ? 'birthday'
+          : trigger.field === 'created_at'
+            ? 'signup anniversary'
+            : `${trigger.field.replace('custom.', '')} date`
+      const offset =
+        trigger.offsetDays === 0
+          ? 'On'
+          : `${Math.abs(trigger.offsetDays)} ${Math.abs(trigger.offsetDays) === 1 ? 'day' : 'days'} ${trigger.offsetDays < 0 ? 'before' : 'after'}`
       return `${offset} each contact's ${what}`
     }
     case 'campaign_followup': {
-      const who = { sent: 'everyone it was sent to', opened: 'people who opened it', not_opened: 'people who did not open it', clicked: 'people who clicked', not_clicked: 'people who did not click' }[trigger.condition]
+      const who = {
+        sent: 'everyone it was sent to',
+        opened: 'people who opened it',
+        not_opened: 'people who did not open it',
+        clicked: 'people who clicked',
+        not_clicked: 'people who did not click',
+      }[trigger.condition]
       return `${trigger.afterDays} ${trigger.afterDays === 1 ? 'day' : 'days'} after a campaign, to ${who}`
     }
     case 'manual':
@@ -136,7 +212,10 @@ export function AutomationsPage() {
   const client = useQueryClient()
   const navigate = useNavigate()
   const canEdit = roleAtLeast(useAuthState().data?.user?.role ?? 'viewer', 'editor')
-  const automations = useQuery({ queryKey: ['automations'], queryFn: () => api.get<Automation[]>('/automations') })
+  const automations = useQuery({
+    queryKey: ['automations'],
+    queryFn: () => api.get<Automation[]>('/automations'),
+  })
   const lists = useLists()
   const tags = useTags()
   const [creating, setCreating] = useState(false)
@@ -149,12 +228,21 @@ export function AutomationsPage() {
   }
 
   const toggle = useMutation({
-    mutationFn: (automation: Automation) => api.post<Automation>(`/automations/${automation.id}/${automation.status === 'active' ? 'pause' : 'activate'}`),
+    mutationFn: (automation: Automation) =>
+      api.post<Automation>(
+        `/automations/${automation.id}/${automation.status === 'active' ? 'pause' : 'activate'}`,
+      ),
     onSuccess: (updated) => {
       void refresh()
-      toast.success(updated.status === 'active' ? `${updated.name} is on` : `${updated.name} is paused`, {
-        description: updated.status === 'active' ? undefined : 'Everyone partway through stays where they are until it is turned back on.',
-      })
+      toast.success(
+        updated.status === 'active' ? `${updated.name} is on` : `${updated.name} is paused`,
+        {
+          description:
+            updated.status === 'active'
+              ? undefined
+              : 'Everyone partway through stays where they are until it is turned back on.',
+        },
+      )
     },
     onError: (error) => toast.error(errorMessage(error)),
   })
@@ -217,14 +305,19 @@ export function AutomationsPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex min-w-0 flex-col gap-1">
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                        <Link to={`/automations/${automation.id}`} className="truncate text-h4 text-[var(--ds-fg)] underline-offset-2 hover:underline">
+                        <Link
+                          to={`/automations/${automation.id}`}
+                          className="truncate text-h4 text-[var(--ds-fg)] underline-offset-2 hover:underline"
+                        >
                           {automation.name}
                         </Link>
                         <Badge tone={badge.tone} dot={automation.status === 'active'}>
                           {badge.label}
                         </Badge>
                       </div>
-                      <p className="text-body-sm text-[var(--ds-fg-secondary)]">{describeTrigger(automation.trigger, names)}</p>
+                      <p className="text-body-sm text-[var(--ds-fg-secondary)]">
+                        {describeTrigger(automation.trigger, names)}
+                      </p>
                       <p className="text-caption text-[var(--ds-fg-muted)]">
                         {plural(automation.steps.length, 'step')} · {plural(emails, 'email')}
                       </p>
@@ -244,7 +337,12 @@ export function AutomationsPage() {
                           label={`Actions for ${automation.name}`}
                           icon={<MoreHorizontal size={16} />}
                           actions={[
-                            { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, onSelect: () => navigate(`/automations/${automation.id}`) },
+                            {
+                              id: 'edit',
+                              label: 'Edit',
+                              icon: <Pencil size={14} />,
+                              onSelect: () => navigate(`/automations/${automation.id}`),
+                            },
                             {
                               id: 'delete',
                               label: 'Delete',
@@ -266,7 +364,10 @@ export function AutomationsPage() {
                       ['In progress', formatNumber(automation.stats.active)],
                       ['Finished', formatNumber(automation.stats.completed)],
                       ['Emails sent', formatNumber(automation.stats.emailsSent)],
-                      ['Opened', formatRate(rate(automation.stats.opened, automation.stats.emailsSent))],
+                      [
+                        'Opened',
+                        formatRate(rate(automation.stats.opened, automation.stats.emailsSent)),
+                      ],
                     ].map(([label, value]) => (
                       <div key={label} className="flex flex-col gap-1.5">
                         <dt className="text-caption text-[var(--ds-fg-muted)]">{label}</dt>
@@ -314,7 +415,11 @@ function NewAutomationDialog({ open, onClose }: { open: boolean; onClose: () => 
 
   const create = useMutation({
     mutationFn: () => {
-      const body: AutomationInput = { name: name.trim() || chosen.name, trigger: chosen.trigger, steps: chosen.steps() }
+      const body: AutomationInput = {
+        name: name.trim() || chosen.name,
+        trigger: chosen.trigger,
+        steps: chosen.steps(),
+      }
       return api.post<Automation>('/automations', body)
     },
     onSuccess: (automation) => {
@@ -353,10 +458,18 @@ function NewAutomationDialog({ open, onClose }: { open: boolean; onClose: () => 
           label="Start with"
           value={recipe}
           onChange={setRecipe}
-          options={RECIPES.map((entry) => ({ value: entry.key, label: entry.label, description: entry.description }))}
+          options={RECIPES.map((entry) => ({
+            value: entry.key,
+            label: entry.label,
+            description: entry.description,
+          }))}
         />
         <Field label="Name" optional hint="For your own reference.">
-          <TextInput value={name} onChange={(event) => setName(event.target.value)} placeholder={chosen.name} />
+          <TextInput
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder={chosen.name}
+          />
         </Field>
       </form>
     </Dialog>

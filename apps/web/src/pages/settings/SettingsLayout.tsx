@@ -20,12 +20,21 @@ export function SettingsLayout() {
   const { pathname } = useLocation()
   const role = useAuthState().data?.user?.role ?? 'viewer'
   const tabs = TABS.filter((tab) => !tab.admin || roleAtLeast(role, 'admin'))
-  const current = tabs.find((tab) => pathname.startsWith(`/settings/${tab.value}`))?.value ?? 'sending'
+  const current =
+    tabs.find((tab) => pathname.startsWith(`/settings/${tab.value}`))?.value ?? 'sending'
 
   return (
     <Page>
-      <PageHeader title="Settings" description="Sending accounts, your organization's details, and who can sign in.">
-        <Tabs aria-label="Settings sections" tabs={tabs.map(({ value, label }) => ({ value, label }))} value={current} onChange={(value) => navigate(`/settings/${value}`)} />
+      <PageHeader
+        title="Settings"
+        description="Sending accounts, your organization's details, and who can sign in."
+      >
+        <Tabs
+          aria-label="Settings sections"
+          tabs={tabs.map(({ value, label }) => ({ value, label }))}
+          value={current}
+          onChange={(value) => navigate(`/settings/${value}`)}
+        />
       </PageHeader>
       <Outlet />
     </Page>

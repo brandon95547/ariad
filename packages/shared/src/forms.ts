@@ -94,7 +94,9 @@ export function publicFieldsOf(
   custom: readonly Pick<CustomField, 'key' | 'type' | 'options'>[],
 ): PublicFormField[] {
   return fields.map((field) => {
-    const definition = field.key.startsWith('custom.') ? custom.find((entry) => entry.key === field.key.slice(7)) : undefined
+    const definition = field.key.startsWith('custom.')
+      ? custom.find((entry) => entry.key === field.key.slice(7))
+      : undefined
     return {
       ...field,
       type: definition?.type ?? (field.key === 'birthday' ? 'date' : 'text'),

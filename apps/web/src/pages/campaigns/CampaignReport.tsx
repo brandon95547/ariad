@@ -13,7 +13,14 @@ import {
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmailPreview } from '@/features/email/EmailPreview'
 import { api, errorMessage, qs } from '@/lib/api'
-import { formatDateTime, formatNumber, formatRate, formatRelative, plural, rate } from '@/lib/format'
+import {
+  formatDateTime,
+  formatNumber,
+  formatRate,
+  formatRelative,
+  plural,
+  rate,
+} from '@/lib/format'
 import { useAuthState } from '@/lib/queries'
 import { Badge } from '@/ui/Badge'
 import { Button } from '@/ui/Button'
@@ -29,9 +36,13 @@ import { Card } from '@/ui/Surface'
 import { toast } from '@/ui/Toast'
 import { CampaignStatusBadge } from './CampaignsPage'
 
-type RecipientFilter = 'all' | 'opened' | 'clicked' | 'not_opened' | 'bounced' | 'failed' | 'unsubscribed' | 'queued'
+type RecipientFilter =
+  'all' | 'opened' | 'clicked' | 'not_opened' | 'bounced' | 'failed' | 'unsubscribed' | 'queued'
 
-const MESSAGE_BADGE: Record<MessageStatus, { tone: 'neutral' | 'success' | 'danger' | 'warning' | 'accent'; label: string }> = {
+const MESSAGE_BADGE: Record<
+  MessageStatus,
+  { tone: 'neutral' | 'success' | 'danger' | 'warning' | 'accent'; label: string }
+> = {
   queued: { tone: 'neutral', label: 'Waiting' },
   sending: { tone: 'accent', label: 'Sending' },
   sent: { tone: 'success', label: 'Delivered' },
@@ -40,7 +51,11 @@ const MESSAGE_BADGE: Record<MessageStatus, { tone: 'neutral' | 'success' | 'dang
   canceled: { tone: 'neutral', label: 'Not sent' },
 }
 
-const hourLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric' })
+const hourLabel = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+})
 
 /**
  * A campaign after it has gone: how many got it, what they did with it, and
@@ -66,25 +81,32 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
 
   const recipients = useQuery({
     queryKey: ['campaign-recipients', campaign.id, filter, page],
-    queryFn: () => api.get<Paged<CampaignRecipient>>(`/campaigns/${campaign.id}/recipients${qs({ filter, page, pageSize: 25 })}`),
+    queryFn: () =>
+      api.get<Paged<CampaignRecipient>>(
+        `/campaigns/${campaign.id}/recipients${qs({ filter, page, pageSize: 25 })}`,
+      ),
     placeholderData: (previous) => previous,
     refetchInterval: live ? 8000 : false,
   })
 
   const act = useMutation({
-    mutationFn: (action: 'pause' | 'resume' | 'cancel') => api.post<Campaign>(`/campaigns/${campaign.id}/${action}`),
+    mutationFn: (action: 'pause' | 'resume' | 'cancel') =>
+      api.post<Campaign>(`/campaigns/${campaign.id}/${action}`),
     onSuccess: (updated, action) => {
       setCanceling(false)
       client.setQueryData(['campaign', campaign.id], updated)
       void client.invalidateQueries({ queryKey: ['campaigns'] })
-      toast.success(action === 'pause' ? 'Paused' : action === 'resume' ? 'Sending again' : 'Canceled', {
-        description:
-          action === 'pause'
-            ? 'Nothing more goes out until you resume it.'
-            : action === 'cancel'
-              ? 'What was already sent stays sent. The rest will not go out.'
-              : undefined,
-      })
+      toast.success(
+        action === 'pause' ? 'Paused' : action === 'resume' ? 'Sending again' : 'Canceled',
+        {
+          description:
+            action === 'pause'
+              ? 'Nothing more goes out until you resume it.'
+              : action === 'cancel'
+                ? 'What was already sent stays sent. The rest will not go out.'
+                : undefined,
+        },
+      )
     },
     onError: (error) => toast.error(errorMessage(error)),
   })
@@ -107,7 +129,10 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
       header: 'Recipient',
       cell: (row) =>
         row.contactId ? (
-          <Link to={`/contacts/${row.contactId}`} className="text-[var(--ds-fg)] underline-offset-2 hover:underline">
+          <Link
+            to={`/contacts/${row.contactId}`}
+            className="text-[var(--ds-fg)] underline-offset-2 hover:underline"
+          >
             {row.email}
           </Link>
         ) : (
@@ -126,14 +151,31 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
         </span>
       ),
     },
-    { key: 'opens', header: 'Opens', align: 'right', width: '5rem', cell: (row) => (row.openCount ? formatNumber(row.openCount) : '—') },
-    { key: 'clicks', header: 'Clicks', align: 'right', width: '5rem', hideBelow: 'sm', cell: (row) => (row.clickCount ? formatNumber(row.clickCount) : '—') },
+    {
+      key: 'opens',
+      header: 'Opens',
+      align: 'right',
+      width: '5rem',
+      cell: (row) => (row.openCount ? formatNumber(row.openCount) : '—'),
+    },
+    {
+      key: 'clicks',
+      header: 'Clicks',
+      align: 'right',
+      width: '5rem',
+      hideBelow: 'sm',
+      cell: (row) => (row.clickCount ? formatNumber(row.clickCount) : '—'),
+    },
     {
       key: 'when',
       header: 'Sent',
       width: '13rem',
       hideBelow: 'md',
-      cell: (row) => <span className="whitespace-nowrap text-[var(--ds-fg-muted)]">{row.sentAt ? formatDateTime(row.sentAt) : (row.error ?? '—')}</span>,
+      cell: (row) => (
+        <span className="whitespace-nowrap text-[var(--ds-fg-muted)]">
+          {row.sentAt ? formatDateTime(row.sentAt) : (row.error ?? '—')}
+        </span>
+      ),
     },
   ]
 
@@ -141,11 +183,17 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
     { value: 'all', label: 'Everyone', count: stats.recipients },
     { value: 'opened', label: 'Opened', count: stats.opened },
     { value: 'clicked', label: 'Clicked', count: stats.clicked },
-    { value: 'not_opened', label: 'Did not open', count: Math.max(0, stats.delivered - stats.opened) },
+    {
+      value: 'not_opened',
+      label: 'Did not open',
+      count: Math.max(0, stats.delivered - stats.opened),
+    },
     { value: 'bounced', label: 'Bounced', count: stats.bounced },
     { value: 'failed', label: 'Failed', count: stats.failed },
     { value: 'unsubscribed', label: 'Unsubscribed', count: stats.unsubscribed },
-    ...(stats.queued > 0 ? [{ value: 'queued' as const, label: 'Waiting', count: stats.queued }] : []),
+    ...(stats.queued > 0
+      ? [{ value: 'queued' as const, label: 'Waiting', count: stats.queued }]
+      : []),
   ]
 
   const timeline = report.data?.timeline ?? []
@@ -170,7 +218,12 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
               View email
             </Button>
             {canEdit && (
-              <Button variant="outlined" startIcon={<Copy />} onClick={() => duplicate.mutate()} loading={duplicate.isPending}>
+              <Button
+                variant="outlined"
+                startIcon={<Copy />}
+                onClick={() => duplicate.mutate()}
+                loading={duplicate.isPending}
+              >
                 Duplicate
               </Button>
             )}
@@ -200,15 +253,32 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
             {canEdit && (
               <div className="flex items-center gap-2 coarse:gap-3">
                 {live ? (
-                  <Button size="sm" variant="outlined" startIcon={<Pause />} onClick={() => act.mutate('pause')} loading={act.isPending && act.variables === 'pause'}>
+                  <Button
+                    size="sm"
+                    variant="outlined"
+                    startIcon={<Pause />}
+                    onClick={() => act.mutate('pause')}
+                    loading={act.isPending && act.variables === 'pause'}
+                  >
                     Pause
                   </Button>
                 ) : (
-                  <Button size="sm" variant="outlined" startIcon={<Play />} onClick={() => act.mutate('resume')} loading={act.isPending && act.variables === 'resume'}>
+                  <Button
+                    size="sm"
+                    variant="outlined"
+                    startIcon={<Play />}
+                    onClick={() => act.mutate('resume')}
+                    loading={act.isPending && act.variables === 'resume'}
+                  >
                     Resume
                   </Button>
                 )}
-                <Button size="sm" variant="danger-outline" startIcon={<XCircle />} onClick={() => setCanceling(true)}>
+                <Button
+                  size="sm"
+                  variant="danger-outline"
+                  startIcon={<XCircle />}
+                  onClick={() => setCanceling(true)}
+                >
                   Cancel the rest
                 </Button>
               </div>
@@ -219,17 +289,42 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
 
       {campaign.status === 'canceled' && (
         <Banner tone="warning" title="This campaign was canceled before it finished">
-          {formatNumber(stats.sent)} of {formatNumber(stats.recipients)} were sent. The rest were not, and will not be.
+          {formatNumber(stats.sent)} of {formatNumber(stats.recipients)} were sent. The rest were
+          not, and will not be.
         </Banner>
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <StatTile label="Recipients" value={formatNumber(stats.recipients)} hint={stats.failed ? `${formatNumber(stats.failed)} failed` : undefined} />
-        <StatTile label="Delivered" value={formatNumber(stats.delivered)} hint={formatRate(rate(stats.delivered, attempted))} />
-        <StatTile label="Opened" value={formatRate(rate(stats.opened, stats.delivered))} hint={`${plural(stats.opened, 'person', 'people')}, ${plural(stats.opens, 'open')}`} />
-        <StatTile label="Clicked" value={formatRate(rate(stats.clicked, stats.delivered))} hint={`${plural(stats.clicked, 'person', 'people')}, ${plural(stats.clicks, 'click')}`} />
-        <StatTile label="Bounced" value={formatRate(rate(stats.bounced, attempted))} hint={plural(stats.bounced, 'address', 'addresses')} />
-        <StatTile label="Unsubscribed" value={formatRate(rate(stats.unsubscribed, stats.delivered))} hint={plural(stats.unsubscribed, 'person', 'people')} />
+        <StatTile
+          label="Recipients"
+          value={formatNumber(stats.recipients)}
+          hint={stats.failed ? `${formatNumber(stats.failed)} failed` : undefined}
+        />
+        <StatTile
+          label="Delivered"
+          value={formatNumber(stats.delivered)}
+          hint={formatRate(rate(stats.delivered, attempted))}
+        />
+        <StatTile
+          label="Opened"
+          value={formatRate(rate(stats.opened, stats.delivered))}
+          hint={`${plural(stats.opened, 'person', 'people')}, ${plural(stats.opens, 'open')}`}
+        />
+        <StatTile
+          label="Clicked"
+          value={formatRate(rate(stats.clicked, stats.delivered))}
+          hint={`${plural(stats.clicked, 'person', 'people')}, ${plural(stats.clicks, 'click')}`}
+        />
+        <StatTile
+          label="Bounced"
+          value={formatRate(rate(stats.bounced, attempted))}
+          hint={plural(stats.bounced, 'address', 'addresses')}
+        />
+        <StatTile
+          label="Unsubscribed"
+          value={formatRate(rate(stats.unsubscribed, stats.delivered))}
+          hint={plural(stats.unsubscribed, 'person', 'people')}
+        />
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -242,7 +337,11 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
           ) : timeline.length < 2 ? (
             <EmptyState
               compact
-              title={campaign.trackOpens || campaign.trackClicks ? 'Nothing to chart yet' : 'Tracking was off for this campaign'}
+              title={
+                campaign.trackOpens || campaign.trackClicks
+                  ? 'Nothing to chart yet'
+                  : 'Tracking was off for this campaign'
+              }
               description={
                 campaign.trackOpens || campaign.trackClicks
                   ? 'Opens and clicks appear here as they come in, usually within the first few hours.'
@@ -253,8 +352,20 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
             <LineChart
               aria-label="Opens and clicks per hour"
               series={[
-                { name: 'Opens', points: timeline.map((point) => ({ x: hourLabel.format(new Date(point.at)), y: point.opens })) },
-                { name: 'Clicks', points: timeline.map((point) => ({ x: hourLabel.format(new Date(point.at)), y: point.clicks })) },
+                {
+                  name: 'Opens',
+                  points: timeline.map((point) => ({
+                    x: hourLabel.format(new Date(point.at)),
+                    y: point.opens,
+                  })),
+                },
+                {
+                  name: 'Clicks',
+                  points: timeline.map((point) => ({
+                    x: hourLabel.format(new Date(point.at)),
+                    y: point.clicks,
+                  })),
+                },
               ]}
             />
           )}
@@ -265,7 +376,11 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
           {report.isPending ? (
             <Skeleton className="h-40" />
           ) : (report.data?.links.length ?? 0) === 0 ? (
-            <EmptyState compact title="No clicks yet" description="Each link in the email is listed here once someone clicks it." />
+            <EmptyState
+              compact
+              title="No clicks yet"
+              description="Each link in the email is listed here once someone clicks it."
+            />
           ) : (
             <BarList
               items={report.data!.links.map((link) => ({
@@ -304,21 +419,38 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
             rows={recipients.data?.items ?? []}
             rowKey={(row) => row.id}
             loading={recipients.isPending}
-            empty={<EmptyState compact title="Nobody here" description="No recipient matches this filter." />}
+            empty={
+              <EmptyState
+                compact
+                title="Nobody here"
+                description="No recipient matches this filter."
+              />
+            }
           />
         </Card>
         {recipients.data && recipients.data.total > recipients.data.pageSize && (
-          <Pagination page={recipients.data.page} pageSize={recipients.data.pageSize} total={recipients.data.total} onPageChange={setPage} />
+          <Pagination
+            page={recipients.data.page}
+            pageSize={recipients.data.pageSize}
+            total={recipients.data.total}
+            onPageChange={setPage}
+          />
         )}
         {campaign.finishedAt && (
           <p className="text-caption text-[var(--ds-fg-muted)]">
-            Finished {formatRelative(campaign.finishedAt)}. Open rate is people who opened ÷ delivered; it is an estimate, because mail apps
-            block or pre-load images.
+            Finished {formatRelative(campaign.finishedAt)}. Open rate is people who opened ÷
+            delivered; it is an estimate, because mail apps block or pre-load images.
           </p>
         )}
       </div>
 
-      <Dialog open={viewing} onClose={() => setViewing(false)} title={campaign.subject || campaign.name} description="As it was sent, with sample details in place of each person's own." size="lg">
+      <Dialog
+        open={viewing}
+        onClose={() => setViewing(false)}
+        title={campaign.subject || campaign.name}
+        description="As it was sent, with sample details in place of each person's own."
+        size="lg"
+      >
         <ViewEmail id={campaign.id} />
       </Dialog>
 
@@ -331,8 +463,9 @@ export function CampaignReport({ campaign }: { campaign: Campaign }) {
         loading={act.isPending && act.variables === 'cancel'}
       >
         <p>
-          {plural(stats.queued, 'person', 'people')} who have not been sent it yet will not get it. The {formatNumber(done)} already sent cannot
-          be taken back. A canceled campaign cannot be resumed.
+          {plural(stats.queued, 'person', 'people')} who have not been sent it yet will not get it.
+          The {formatNumber(done)} already sent cannot be taken back. A canceled campaign cannot be
+          resumed.
         </p>
       </ConfirmDialog>
     </Page>

@@ -49,7 +49,9 @@ export function listLogs(
     params.push(`%${likeTerm(query.q)}%`)
   }
   const clause = where.length ? `WHERE ${where.join(' AND ')}` : ''
-  const total = (db.prepare(`SELECT COUNT(*) AS n FROM logs ${clause}`).get(...params) as { n: number }).n
+  const total = (
+    db.prepare(`SELECT COUNT(*) AS n FROM logs ${clause}`).get(...params) as { n: number }
+  ).n
   const rows = db
     .prepare(`SELECT * FROM logs ${clause} ORDER BY id DESC LIMIT ? OFFSET ?`)
     .all(...params, query.pageSize, (query.page - 1) * query.pageSize) as LogRow[]

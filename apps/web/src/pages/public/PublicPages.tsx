@@ -10,7 +10,11 @@ import { UnsubscribePage } from './UnsubscribePage'
  * loaded apart from the admin app, look like the organization's own rather
  * than like Ariad, and are light whatever the admin's theme is.
  */
-export default function PublicPages({ page }: { page: 'unsubscribe' | 'preferences' | 'confirm' | 'subscribe' }) {
+export default function PublicPages({
+  page,
+}: {
+  page: 'unsubscribe' | 'preferences' | 'confirm' | 'subscribe'
+}) {
   // Only the signup form is ever put inside another site's page.
   const embedded = page === 'subscribe' && isEmbedded
   useLightTheme(embedded)

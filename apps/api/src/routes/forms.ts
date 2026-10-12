@@ -65,7 +65,12 @@ export async function formRoutes(base: FastifyInstance): Promise<void> {
   const viewer = app.requireRole('viewer')
   const editor = app.requireRole('editor')
 
-  const write = (id: string, input: z.output<typeof formInputSchema>, now: string, isNew: boolean) => {
+  const write = (
+    id: string,
+    input: z.output<typeof formInputSchema>,
+    now: string,
+    isNew: boolean,
+  ) => {
     const values = {
       id,
       name: input.name,
@@ -106,27 +111,41 @@ export async function formRoutes(base: FastifyInstance): Promise<void> {
     (db.prepare('SELECT * FROM forms ORDER BY created_at DESC').all() as FormRow[]).map(toForm),
   )
 
-  app.post('/forms', { preHandler: editor, schema: { body: formInputSchema } }, async (request, reply): Promise<SignupForm> => {
-    const id = newId('frm')
-    write(id, request.body, nowIso(), true)
-    reply.code(201)
-    return toForm(getFormRow(db, id))
-  })
-
-  app.get('/forms/:id', { preHandler: viewer, schema: { params: idParams } }, async (request): Promise<SignupForm> =>
-    toForm(getFormRow(db, request.params.id)),
+  app.post(
+    '/forms',
+    { preHandler: editor, schema: { body: formInputSchema } },
+    async (request, reply): Promise<SignupForm> => {
+      const id = newId('frm')
+      write(id, request.body, nowIso(), true)
+      reply.code(201)
+      return toForm(getFormRow(db, id))
+    },
   )
 
-  app.patch('/forms/:id', { preHandler: editor, schema: { params: idParams, body: formInputSchema } }, async (request): Promise<SignupForm> => {
-    getFormRow(db, request.params.id)
-    write(request.params.id, request.body, nowIso(), false)
-    return toForm(getFormRow(db, request.params.id))
-  })
+  app.get(
+    '/forms/:id',
+    { preHandler: viewer, schema: { params: idParams } },
+    async (request): Promise<SignupForm> => toForm(getFormRow(db, request.params.id)),
+  )
 
-  app.delete('/forms/:id', { preHandler: editor, schema: { params: idParams } }, async (request) => {
-    const row = getFormRow(db, request.params.id)
-    db.prepare('DELETE FROM forms WHERE id = ?').run(row.id)
-    writeLog(db, 'info', 'forms', `Form deleted: ${row.name}`, null, request.actor!.name)
-    return { ok: true }
-  })
+  app.patch(
+    '/forms/:id',
+    { preHandler: editor, schema: { params: idParams, body: formInputSchema } },
+    async (request): Promise<SignupForm> => {
+      getFormRow(db, request.params.id)
+      write(request.params.id, request.body, nowIso(), false)
+      return toForm(getFormRow(db, request.params.id))
+    },
+  )
+
+  app.delete(
+    '/forms/:id',
+    { preHandler: editor, schema: { params: idParams } },
+    async (request) => {
+      const row = getFormRow(db, request.params.id)
+      db.prepare('DELETE FROM forms WHERE id = ?').run(row.id)
+      writeLog(db, 'info', 'forms', `Form deleted: ${row.name}`, null, request.actor!.name)
+      return { ok: true }
+    },
+  )
 }

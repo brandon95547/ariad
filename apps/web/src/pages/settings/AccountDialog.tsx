@@ -34,7 +34,11 @@ interface FormState {
   perMinute: string
 }
 
-function initialState(kind: SendingAccountKind, account: SendingAccount | null, organization: string): FormState {
+function initialState(
+  kind: SendingAccountKind,
+  account: SendingAccount | null,
+  organization: string,
+): FormState {
   if (account) {
     return {
       preset: SMTP_PRESETS.find((preset) => preset.host === account.host)?.id ?? 'custom',
@@ -136,7 +140,10 @@ export function AccountDialog({
 
   const save = useMutation({
     mutationFn: (): Promise<Saved> => {
-      const limits = { dailyLimit: Number(form.dailyLimit) || undefined, perMinute: Number(form.perMinute) || undefined }
+      const limits = {
+        dailyLimit: Number(form.dailyLimit) || undefined,
+        perMinute: Number(form.perMinute) || undefined,
+      }
       if (editing) {
         return api.patch<Saved>(`/sending-accounts/${editing.id}`, {
           label: form.label || undefined,
@@ -146,14 +153,27 @@ export function AccountDialog({
           password: form.password || undefined,
           ...(isGmail
             ? { fromEmail: form.email }
-            : { fromEmail: form.fromEmail, host: form.host, port: Number(form.port), security: form.security, username: form.username }),
+            : {
+                fromEmail: form.fromEmail,
+                host: form.host,
+                port: Number(form.port),
+                security: form.security,
+                username: form.username,
+              }),
           ...limits,
         })
       }
       return api.post<Saved>(
         '/sending-accounts',
         isGmail
-          ? { kind: 'gmail', email: form.email, appPassword: form.password, fromName: form.fromName, replyTo: form.replyTo, ...limits }
+          ? {
+              kind: 'gmail',
+              email: form.email,
+              appPassword: form.password,
+              fromName: form.fromName,
+              replyTo: form.replyTo,
+              ...limits,
+            }
           : {
               kind: 'smtp',
               label: form.label,
@@ -189,7 +209,11 @@ export function AccountDialog({
     save.mutate()
   }
 
-  const title = editing ? `Edit ${editing.label}` : isGmail ? 'Add a Gmail account' : 'Add an SMTP account'
+  const title = editing
+    ? `Edit ${editing.label}`
+    : isGmail
+      ? 'Add a Gmail account'
+      : 'Add an SMTP account'
 
   return (
     <Dialog
@@ -224,7 +248,9 @@ export function AccountDialog({
           <>
             {!editing && (
               <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-body-sm text-[var(--ds-fg-secondary)]">
-                <li>Turn on 2-Step Verification for the Google account, if it is not on already.</li>
+                <li>
+                  Turn on 2-Step Verification for the Google account, if it is not on already.
+                </li>
                 <li>
                   Open{' '}
                   <a
@@ -241,14 +267,31 @@ export function AccountDialog({
               </ol>
             )}
             <Field label="Gmail address" error={fields.email ?? fields.fromEmail}>
-              <TextInput type="email" value={form.email} onChange={set('email')} autoComplete="off" placeholder="you@gmail.com" required />
+              <TextInput
+                type="email"
+                value={form.email}
+                onChange={set('email')}
+                autoComplete="off"
+                placeholder="you@gmail.com"
+                required
+              />
             </Field>
             <Field
               label="App password"
-              hint={editing ? 'Leave blank to keep the one already saved.' : 'Not the password you sign in to Google with. Spaces are fine.'}
+              hint={
+                editing
+                  ? 'Leave blank to keep the one already saved.'
+                  : 'Not the password you sign in to Google with. Spaces are fine.'
+              }
               error={fields.appPassword ?? fields.password}
             >
-              <PasswordInput value={form.password} onChange={set('password')} autoComplete="off" placeholder="abcd efgh ijkl mnop" className="font-mono" />
+              <PasswordInput
+                value={form.password}
+                onChange={set('password')}
+                autoComplete="off"
+                placeholder="abcd efgh ijkl mnop"
+                className="font-mono"
+              />
             </Field>
           </>
         ) : (
@@ -263,12 +306,28 @@ export function AccountDialog({
                 />
               </Field>
             )}
-            <Field label="Account name" hint="Only you see this. It tells accounts apart in menus." error={fields.label}>
-              <TextInput value={form.label} onChange={set('label')} placeholder="Company mail server" required />
+            <Field
+              label="Account name"
+              hint="Only you see this. It tells accounts apart in menus."
+              error={fields.label}
+            >
+              <TextInput
+                value={form.label}
+                onChange={set('label')}
+                placeholder="Company mail server"
+                required
+              />
             </Field>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-[1fr_7rem]">
               <Field label="Host" error={fields.host}>
-                <TextInput value={form.host} onChange={set('host')} placeholder="smtp.example.com" autoComplete="off" spellCheck={false} required />
+                <TextInput
+                  value={form.host}
+                  onChange={set('host')}
+                  placeholder="smtp.example.com"
+                  autoComplete="off"
+                  spellCheck={false}
+                  required
+                />
               </Field>
               <Field label="Port" error={fields.port}>
                 <TextInput value={form.port} onChange={set('port')} inputMode="numeric" required />
@@ -284,15 +343,27 @@ export function AccountDialog({
                     ...current,
                     security,
                     // The two usual pairings, so choosing one sets the other.
-                    port: security === 'ssl' && current.port === '587' ? '465' : security === 'starttls' && current.port === '465' ? '587' : current.port,
+                    port:
+                      security === 'ssl' && current.port === '587'
+                        ? '465'
+                        : security === 'starttls' && current.port === '465'
+                          ? '587'
+                          : current.port,
                   }))
                 }
                 options={SECURITY_OPTIONS}
               />
-              <p className="text-caption text-[var(--ds-fg-muted)]">Port 465 uses SSL/TLS. Ports 587 and 25 use STARTTLS.</p>
+              <p className="text-caption text-[var(--ds-fg-muted)]">
+                Port 465 uses SSL/TLS. Ports 587 and 25 use STARTTLS.
+              </p>
             </div>
             <Field label="Username" hint={preset.usernameHint} error={fields.username}>
-              <TextInput value={form.username} onChange={set('username')} autoComplete="off" spellCheck={false} />
+              <TextInput
+                value={form.username}
+                onChange={set('username')}
+                autoComplete="off"
+                spellCheck={false}
+              />
             </Field>
             <Field
               label="Password"
@@ -305,17 +376,41 @@ export function AccountDialog({
         )}
 
         <div className="flex flex-col gap-4 border-t border-[var(--ds-border-subtle)] pt-5">
-          <h3 className="text-overline text-[var(--ds-fg-muted)] uppercase">How it appears to recipients</h3>
+          <h3 className="text-overline text-[var(--ds-fg-muted)] uppercase">
+            How it appears to recipients
+          </h3>
           <Field label="From name" error={fields.fromName}>
-            <TextInput value={form.fromName} onChange={set('fromName')} placeholder="Your organization" required />
+            <TextInput
+              value={form.fromName}
+              onChange={set('fromName')}
+              placeholder="Your organization"
+              required
+            />
           </Field>
           {!isGmail && (
             <Field label="From email" error={fields.fromEmail}>
-              <TextInput type="email" value={form.fromEmail} onChange={set('fromEmail')} placeholder="news@example.com" autoComplete="off" required />
+              <TextInput
+                type="email"
+                value={form.fromEmail}
+                onChange={set('fromEmail')}
+                placeholder="news@example.com"
+                autoComplete="off"
+                required
+              />
             </Field>
           )}
-          <Field label="Reply-to" optional hint="Where replies go, when that is not the From address." error={fields.replyTo}>
-            <TextInput type="email" value={form.replyTo} onChange={set('replyTo')} autoComplete="off" />
+          <Field
+            label="Reply-to"
+            optional
+            hint="Where replies go, when that is not the From address."
+            error={fields.replyTo}
+          >
+            <TextInput
+              type="email"
+              value={form.replyTo}
+              onChange={set('replyTo')}
+              autoComplete="off"
+            />
           </Field>
         </div>
 

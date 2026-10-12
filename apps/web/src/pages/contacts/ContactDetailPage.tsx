@@ -25,7 +25,13 @@ import {
   UserPlus,
   Workflow,
 } from 'lucide-react'
-import type { Automation, Contact, ContactEvent, ContactEventType, ContactStatus } from '@ariad/shared'
+import type {
+  Automation,
+  Contact,
+  ContactEvent,
+  ContactEventType,
+  ContactStatus,
+} from '@ariad/shared'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ApiError, api, errorMessage } from '@/lib/api'
 import { cn } from '@/lib/cn'
@@ -67,9 +73,12 @@ type MarkerTone = 'neutral' | 'success' | 'danger' | 'accent'
 
 const MARKER_TONE: Record<MarkerTone, string> = {
   neutral: 'border-[var(--ds-border)] bg-[var(--ds-surface)] text-[var(--ds-fg-muted)]',
-  success: 'border-[var(--ds-success-border)] bg-[var(--ds-success-subtle)] text-[var(--ds-success-text)]',
-  danger: 'border-[var(--ds-danger-border)] bg-[var(--ds-danger-subtle)] text-[var(--ds-danger-text)]',
-  accent: 'border-[var(--ds-accent-border)] bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)]',
+  success:
+    'border-[var(--ds-success-border)] bg-[var(--ds-success-subtle)] text-[var(--ds-success-text)]',
+  danger:
+    'border-[var(--ds-danger-border)] bg-[var(--ds-danger-subtle)] text-[var(--ds-danger-text)]',
+  accent:
+    'border-[var(--ds-accent-border)] bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)]',
 }
 
 const EVENT_MARK: Record<ContactEventType, { icon: LucideIcon; tone: MarkerTone }> = {
@@ -133,11 +142,19 @@ function ContactDetail({ id }: { id: string }) {
   const tags = useTags()
   const fields = useFields()
 
-  const contact = useQuery({ queryKey: contactKeys.detail(id), queryFn: () => api.get<Contact>(`/contacts/${id}`) })
-  const activity = useQuery({ queryKey: contactKeys.activity(id), queryFn: () => api.get<ContactEvent[]>(`/contacts/${id}/activity`) })
+  const contact = useQuery({
+    queryKey: contactKeys.detail(id),
+    queryFn: () => api.get<Contact>(`/contacts/${id}`),
+  })
+  const activity = useQuery({
+    queryKey: contactKeys.activity(id),
+    queryFn: () => api.get<ContactEvent[]>(`/contacts/${id}/activity`),
+  })
 
   const [draft, setDraft] = useState<ContactDraft | null>(null)
-  const [confirming, setConfirming] = useState<'unsubscribe' | 'resubscribe' | 'delete' | null>(null)
+  const [confirming, setConfirming] = useState<'unsubscribe' | 'resubscribe' | 'delete' | null>(
+    null,
+  )
   const [enrolling, setEnrolling] = useState(false)
   const [shown, setShown] = useState(TIMELINE_STEP)
 
@@ -160,14 +177,21 @@ function ContactDetail({ id }: { id: string }) {
   })
 
   const setStatus = useMutation({
-    mutationFn: (status: 'subscribed' | 'unsubscribed') => api.patch<Contact>(`/contacts/${id}`, { status }),
+    mutationFn: (status: 'subscribed' | 'unsubscribed') =>
+      api.patch<Contact>(`/contacts/${id}`, { status }),
     onSuccess: (saved, status) => {
       landed(saved)
       // Unsubscribing takes them off every list, so the lists being edited are no longer the lists they are on.
       const fresh = draftOf(saved)
-      setDraft((current) => (current ? { ...current, listIds: fresh.listIds, tagIds: fresh.tagIds } : fresh))
+      setDraft((current) =>
+        current ? { ...current, listIds: fresh.listIds, tagIds: fresh.tagIds } : fresh,
+      )
       setConfirming(null)
-      toast.success(status === 'unsubscribed' ? `${contactName(saved)} was unsubscribed` : `${contactName(saved)} can be emailed again`)
+      toast.success(
+        status === 'unsubscribed'
+          ? `${contactName(saved)} was unsubscribed`
+          : `${contactName(saved)} can be emailed again`,
+      )
     },
   })
 
@@ -221,11 +245,18 @@ function ContactDetail({ id }: { id: string }) {
   const mailable = person.status === 'subscribed' || person.status === 'pending'
   const fieldErrors = save.error instanceof ApiError ? save.error.fields : {}
   const clashId =
-    save.error instanceof ApiError && save.error.code === 'duplicate_contact' ? (save.error.details as { id?: string } | null)?.id : undefined
-  const saveError = save.isError && Object.keys(fieldErrors).length === 0 ? errorMessage(save.error) : null
+    save.error instanceof ApiError && save.error.code === 'duplicate_contact'
+      ? (save.error.details as { id?: string } | null)?.id
+      : undefined
+  const saveError =
+    save.isError && Object.keys(fieldErrors).length === 0 ? errorMessage(save.error) : null
 
-  const pendingOn = person.lists.filter((membership) => membership.status === 'pending').map((membership) => membership.name)
-  const leftLists = person.lists.filter((membership) => membership.status === 'unsubscribed').map((membership) => membership.name)
+  const pendingOn = person.lists
+    .filter((membership) => membership.status === 'pending')
+    .map((membership) => membership.name)
+  const leftLists = person.lists
+    .filter((membership) => membership.status === 'unsubscribed')
+    .map((membership) => membership.name)
   const self = leftThemselves(activity.data)
   const events = activity.data ?? []
 
@@ -254,15 +285,30 @@ function ContactDetail({ id }: { id: string }) {
         actions={
           canEdit ? (
             <>
-              <Button variant="outlined" onClick={() => ask(mailable ? 'unsubscribe' : 'resubscribe')}>
+              <Button
+                variant="outlined"
+                onClick={() => ask(mailable ? 'unsubscribe' : 'resubscribe')}
+              >
                 {mailable ? 'Unsubscribe' : 'Re-subscribe'}
               </Button>
               <ActionMenu
                 label={`More actions for ${name}`}
                 icon={<MoreHorizontal size={16} />}
                 actions={[
-                  { id: 'automation', label: 'Start an automation', icon: <Workflow size={14} />, onSelect: () => setEnrolling(true) },
-                  { id: 'delete', label: 'Delete contact', icon: <Trash2 size={14} />, onSelect: () => ask('delete'), danger: true, separated: true },
+                  {
+                    id: 'automation',
+                    label: 'Start an automation',
+                    icon: <Workflow size={14} />,
+                    onSelect: () => setEnrolling(true),
+                  },
+                  {
+                    id: 'delete',
+                    label: 'Delete contact',
+                    icon: <Trash2 size={14} />,
+                    onSelect: () => ask('delete'),
+                    danger: true,
+                    separated: true,
+                  },
                 ]}
               />
             </>
@@ -274,67 +320,84 @@ function ContactDetail({ id }: { id: string }) {
         <div className="flex min-w-0 flex-col gap-6">
           <Card>
             <form onSubmit={submit} noValidate className="flex flex-col gap-5">
-            <div className="flex flex-col gap-4">
-              <h2 className="text-h4 text-[var(--ds-fg)]">Profile</h2>
-              {saveError && (
-                <Banner tone={clashId ? 'warning' : 'danger'}>
-                  {saveError}{' '}
-                  {clashId && (
-                    <Link to={`/contacts/${clashId}`} className={inlineLink}>
-                      Open that contact
-                    </Link>
-                  )}
-                </Banner>
-              )}
-              <div className="flex flex-col gap-5">
-                <ProfileFields draft={draft} onChange={setDraft} fields={fields.data ?? []} errors={fieldErrors} readOnly={!canEdit} />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-4 border-t border-[var(--ds-border-subtle)] pt-5">
-              <h3 className="text-overline text-[var(--ds-fg-muted)] uppercase">Lists and tags</h3>
-              <MembershipFields
-                draft={draft}
-                onChange={setDraft}
-                lists={lists.data ?? []}
-                tags={tags.data ?? []}
-                readOnly={!canEdit}
-                listHint={
-                  <>
-                    {canEdit && 'Adding a list subscribes them to it right away, and starts any automation that runs when someone joins it.'}
-                    {pendingOn.length > 0 && <span className="block">Waiting for them to confirm: {pendingOn.join(', ')}.</span>}
-                    {leftLists.length > 0 && <span className="block">Unsubscribed from: {leftLists.join(', ')}.</span>}
-                  </>
-                }
-              />
-            </div>
-
-            {canEdit && (
-              <div className="flex items-center gap-3 border-t border-[var(--ds-border-subtle)] pt-5">
-                <Button type="submit" loading={save.isPending} disabled={!dirty}>
-                  Save changes
-                </Button>
-                {dirty && (
-                  <Button
-                    variant="text"
-                    onClick={() => {
-                      save.reset()
-                      setDraft(draftOf(person))
-                    }}
-                    disabled={save.isPending}
-                  >
-                    Discard
-                  </Button>
+              <div className="flex flex-col gap-4">
+                <h2 className="text-h4 text-[var(--ds-fg)]">Profile</h2>
+                {saveError && (
+                  <Banner tone={clashId ? 'warning' : 'danger'}>
+                    {saveError}{' '}
+                    {clashId && (
+                      <Link to={`/contacts/${clashId}`} className={inlineLink}>
+                        Open that contact
+                      </Link>
+                    )}
+                  </Banner>
                 )}
+                <div className="flex flex-col gap-5">
+                  <ProfileFields
+                    draft={draft}
+                    onChange={setDraft}
+                    fields={fields.data ?? []}
+                    errors={fieldErrors}
+                    readOnly={!canEdit}
+                  />
+                </div>
               </div>
-            )}
+
+              <div className="flex flex-col gap-4 border-t border-[var(--ds-border-subtle)] pt-5">
+                <h3 className="text-overline text-[var(--ds-fg-muted)] uppercase">
+                  Lists and tags
+                </h3>
+                <MembershipFields
+                  draft={draft}
+                  onChange={setDraft}
+                  lists={lists.data ?? []}
+                  tags={tags.data ?? []}
+                  readOnly={!canEdit}
+                  listHint={
+                    <>
+                      {canEdit &&
+                        'Adding a list subscribes them to it right away, and starts any automation that runs when someone joins it.'}
+                      {pendingOn.length > 0 && (
+                        <span className="block">
+                          Waiting for them to confirm: {pendingOn.join(', ')}.
+                        </span>
+                      )}
+                      {leftLists.length > 0 && (
+                        <span className="block">Unsubscribed from: {leftLists.join(', ')}.</span>
+                      )}
+                    </>
+                  }
+                />
+              </div>
+
+              {canEdit && (
+                <div className="flex items-center gap-3 border-t border-[var(--ds-border-subtle)] pt-5">
+                  <Button type="submit" loading={save.isPending} disabled={!dirty}>
+                    Save changes
+                  </Button>
+                  {dirty && (
+                    <Button
+                      variant="text"
+                      onClick={() => {
+                        save.reset()
+                        setDraft(draftOf(person))
+                      }}
+                      disabled={save.isPending}
+                    >
+                      Discard
+                    </Button>
+                  )}
+                </div>
+              )}
             </form>
           </Card>
 
           <Card className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <h2 className="text-h4 text-[var(--ds-fg)]">Consent</h2>
-              <p className="text-body-sm text-[var(--ds-fg-muted)]">The record of what this person agreed to. It cannot be edited.</p>
+              <p className="text-body-sm text-[var(--ds-fg-muted)]">
+                The record of what this person agreed to. It cannot be edited.
+              </p>
             </div>
             <dl className="flex flex-col gap-4 sm:gap-3">
               <ConsentRow term="Status">
@@ -358,7 +421,9 @@ function ContactDetail({ id }: { id: string }) {
               </ConsentRow>
               {person.unsubscribedAt && (
                 <>
-                  <ConsentRow term="Unsubscribed on">{formatDateTime(person.unsubscribedAt)}</ConsentRow>
+                  <ConsentRow term="Unsubscribed on">
+                    {formatDateTime(person.unsubscribedAt)}
+                  </ConsentRow>
                   <ConsentRow term="Reason given" missing="None given">
                     {person.unsubscribeReason}
                   </ConsentRow>
@@ -385,7 +450,11 @@ function ContactDetail({ id }: { id: string }) {
               ))}
             </div>
           ) : events.length === 0 ? (
-            <EmptyState compact title="Nothing has happened yet" description="Emails sent to them, and what they do with them, appear here." />
+            <EmptyState
+              compact
+              title="Nothing has happened yet"
+              description="Emails sent to them, and what they do with them, appear here."
+            />
           ) : (
             <>
               <ol className="w-full">
@@ -394,7 +463,12 @@ function ContactDetail({ id }: { id: string }) {
                 ))}
               </ol>
               {events.length > shown && (
-                <Button variant="text" size="sm" className="self-start" onClick={() => setShown((count) => count + TIMELINE_STEP)}>
+                <Button
+                  variant="text"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => setShown((count) => count + TIMELINE_STEP)}
+                >
                   Show earlier activity
                 </Button>
               )}
@@ -412,8 +486,9 @@ function ContactDetail({ id }: { id: string }) {
         loading={setStatus.isPending}
       >
         <p>
-          They stop getting all email from you. Anything waiting to send to them is canceled, any automation they are in ends, and their address
-          goes on the suppression list so an import cannot add them back by mistake.
+          They stop getting all email from you. Anything waiting to send to them is canceled, any
+          automation they are in ends, and their address goes on the suppression list so an import
+          cannot add them back by mistake.
         </p>
         {setStatus.isError && <Banner tone="danger">{errorMessage(setStatus.error)}</Banner>}
       </ConfirmDialog>
@@ -428,20 +503,37 @@ function ContactDetail({ id }: { id: string }) {
         loading={setStatus.isPending}
       >
         {person.status === 'bounced' ? (
-          <p>Mail to this address bounced. Re-subscribe them only if you know the address works again: repeated bounces hurt your sending reputation.</p>
+          <p>
+            Mail to this address bounced. Re-subscribe them only if you know the address works
+            again: repeated bounces hurt your sending reputation.
+          </p>
         ) : person.status === 'complained' ? (
-          <p>They marked one of your emails as spam. Re-subscribe them only if they have asked you to, in writing if you can get it.</p>
+          <p>
+            They marked one of your emails as spam. Re-subscribe them only if they have asked you
+            to, in writing if you can get it.
+          </p>
         ) : self ? (
           <p>
-            {name} unsubscribed themselves{person.unsubscribedAt ? ` on ${formatDateTime(person.unsubscribedAt)}` : ''}, using the link in one of your
-            emails. Re-subscribe them only if they have since asked you to. Emailing someone who opted out can break anti-spam law.
+            {name} unsubscribed themselves
+            {person.unsubscribedAt ? ` on ${formatDateTime(person.unsubscribedAt)}` : ''}, using the
+            link in one of your emails. Re-subscribe them only if they have since asked you to.
+            Emailing someone who opted out can break anti-spam law.
           </p>
         ) : self === false ? (
-          <p>They were unsubscribed by someone on your team, not by their own choice. Re-subscribe them if that was a mistake.</p>
+          <p>
+            They were unsubscribed by someone on your team, not by their own choice. Re-subscribe
+            them if that was a mistake.
+          </p>
         ) : (
-          <p>If they unsubscribed themselves, re-subscribe them only because they have since asked you to. Emailing someone who opted out can break anti-spam law.</p>
+          <p>
+            If they unsubscribed themselves, re-subscribe them only because they have since asked
+            you to. Emailing someone who opted out can break anti-spam law.
+          </p>
         )}
-        <p>Their address comes off the suppression list and they can be emailed again. They are not put back on any list: add those under Lists.</p>
+        <p>
+          Their address comes off the suppression list and they can be emailed again. They are not
+          put back on any list: add those under Lists.
+        </p>
         {setStatus.isError && <Banner tone="danger">{errorMessage(setStatus.error)}</Banner>}
       </ConfirmDialog>
 
@@ -454,8 +546,9 @@ function ContactDetail({ id }: { id: string }) {
         loading={remove.isPending}
       >
         <p>
-          This removes them, their tags and lists, and their history for good. If they had unsubscribed, their address stays on the suppression list,
-          so they still will not be emailed.
+          This removes them, their tags and lists, and their history for good. If they had
+          unsubscribed, their address stays on the suppression list, so they still will not be
+          emailed.
         </p>
         {remove.isError && <Banner tone="danger">{errorMessage(remove.error)}</Banner>}
       </ConfirmDialog>
@@ -476,12 +569,25 @@ function ContactDetail({ id }: { id: string }) {
 }
 
 /** A line of the consent record. What is not on record says so, in place of an empty space. */
-function ConsentRow({ term, missing = 'Not recorded', children }: { term: string; missing?: string; children: ReactNode }) {
+function ConsentRow({
+  term,
+  missing = 'Not recorded',
+  children,
+}: {
+  term: string
+  missing?: string
+  children: ReactNode
+}) {
   const empty = children === null || children === undefined || children === false || children === ''
   return (
     <div className="flex flex-col gap-1.5 sm:grid sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-4">
       <dt className="text-label text-[var(--ds-fg-muted)]">{term}</dt>
-      <dd className={cn('text-body-sm [overflow-wrap:anywhere]', empty ? 'text-[var(--ds-fg-muted)]' : 'text-[var(--ds-fg)]')}>
+      <dd
+        className={cn(
+          'text-body-sm [overflow-wrap:anywhere]',
+          empty ? 'text-[var(--ds-fg-muted)]' : 'text-[var(--ds-fg)]',
+        )}
+      >
         {empty ? missing : children}
       </dd>
     </div>
@@ -492,16 +598,37 @@ function TimelineEvent({ event, last }: { event: ContactEvent; last: boolean }) 
   const mark = EVENT_MARK[event.type] ?? EVENT_MARK.updated
   const Icon = mark.icon
   const campaignId = detailText(event, 'campaignId')
-  const note = detailText(event, 'url') ?? detailText(event, 'error') ?? detailText(event, 'reason') ?? detailText(event, 'detail')
+  const note =
+    detailText(event, 'url') ??
+    detailText(event, 'error') ??
+    detailText(event, 'reason') ??
+    detailText(event, 'detail')
   return (
     <li className="relative flex gap-3">
-      {!last && <span aria-hidden className="absolute top-6 bottom-0 left-[11px] w-px bg-[var(--ds-border-subtle)]" />}
-      <span aria-hidden className={cn('relative z-10 grid h-[23px] w-[23px] shrink-0 place-items-center rounded-full border', MARKER_TONE[mark.tone])}>
+      {!last && (
+        <span
+          aria-hidden
+          className="absolute top-6 bottom-0 left-[11px] w-px bg-[var(--ds-border-subtle)]"
+        />
+      )}
+      <span
+        aria-hidden
+        className={cn(
+          'relative z-10 grid h-[23px] w-[23px] shrink-0 place-items-center rounded-full border',
+          MARKER_TONE[mark.tone],
+        )}
+      >
         <Icon size={13} />
       </span>
       <div className={cn('flex min-w-0 flex-1 flex-col gap-0.5', !last && 'pb-5')}>
         {campaignId ? (
-          <Link to={`/campaigns/${campaignId}`} className={cn(inlineLink, 'self-start text-label text-[var(--ds-fg)] no-underline hover:underline')}>
+          <Link
+            to={`/campaigns/${campaignId}`}
+            className={cn(
+              inlineLink,
+              'self-start text-label text-[var(--ds-fg)] no-underline hover:underline',
+            )}
+          >
             {event.summary}
           </Link>
         ) : (
@@ -537,11 +664,18 @@ function AutomationDialog({
   const selectId = useId()
   const [chosen, setChosen] = useState('')
   const [missing, setMissing] = useState(false)
-  const automations = useQuery({ queryKey: ['automations'], queryFn: () => api.get<Automation[]>('/automations'), enabled: open })
+  const automations = useQuery({
+    queryKey: ['automations'],
+    queryFn: () => api.get<Automation[]>('/automations'),
+    enabled: open,
+  })
   const active = (automations.data ?? []).filter((automation) => automation.status === 'active')
 
   const start = useMutation({
-    mutationFn: (automation: Automation) => api.post<{ started: boolean }>(`/contacts/${contactId}/automations`, { automationId: automation.id }),
+    mutationFn: (automation: Automation) =>
+      api.post<{ started: boolean }>(`/contacts/${contactId}/automations`, {
+        automationId: automation.id,
+      }),
     onSuccess: (_result, automation) => onStarted(automation),
   })
 
@@ -569,7 +703,10 @@ function AutomationDialog({
             {none ? 'Close' : 'Cancel'}
           </Button>
           {!none && (
-            <Button onClick={() => (picked ? start.mutate(picked) : setMissing(true))} loading={start.isPending}>
+            <Button
+              onClick={() => (picked ? start.mutate(picked) : setMissing(true))}
+              loading={start.isPending}
+            >
               Start automation
             </Button>
           )}
@@ -588,7 +725,11 @@ function AutomationDialog({
             , then come back.
           </p>
         ) : (
-          <Field label="Automation" htmlFor={selectId} error={missing && !picked ? 'Choose an automation.' : undefined}>
+          <Field
+            label="Automation"
+            htmlFor={selectId}
+            error={missing && !picked ? 'Choose an automation.' : undefined}
+          >
             <Select
               id={selectId}
               value={chosen}

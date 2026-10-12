@@ -34,8 +34,10 @@ export async function accountRoutes(base: FastifyInstance): Promise<void> {
   const app = base.withTypeProvider<ZodTypeProvider>()
   const { ctx, mailer } = app
 
-  app.get('/sending-accounts', { preHandler: app.requireRole('viewer') }, async (): Promise<SendingAccount[]> =>
-    listAccounts(ctx),
+  app.get(
+    '/sending-accounts',
+    { preHandler: app.requireRole('viewer') },
+    async (): Promise<SendingAccount[]> => listAccounts(ctx),
   )
 
   app.post(
@@ -49,7 +51,10 @@ export async function accountRoutes(base: FastifyInstance): Promise<void> {
 
   app.patch(
     '/sending-accounts/:id',
-    { preHandler: app.requireRole('admin'), schema: { params: idParams, body: updateSendingAccountSchema } },
+    {
+      preHandler: app.requireRole('admin'),
+      schema: { params: idParams, body: updateSendingAccountSchema },
+    },
     async (request): Promise<{ account: SendingAccount; verify: VerifyResult | null }> =>
       updateAccount(ctx, mailer, request.params.id, request.body, request.actor!.name),
   )
@@ -99,14 +104,38 @@ export async function accountRoutes(base: FastifyInstance): Promise<void> {
           text: `This is a test from Ariad.\n\nIt was sent through ${row.label} (${row.host}), so that account is ready to send.`,
         })
         ctx.db
-          .prepare("UPDATE sending_accounts SET status = 'ok', last_error = NULL, last_verified_at = ? WHERE id = ?")
+          .prepare(
+            "UPDATE sending_accounts SET status = 'ok', last_error = NULL, last_verified_at = ? WHERE id = ?",
+          )
           .run(new Date().toISOString(), row.id)
-        writeLog(ctx.db, 'info', 'accounts', `Test email sent through ${row.from_email} to ${request.body.to}`, null, request.actor!.name)
-        return { ok: true, message: `Sent to ${request.body.to}. Check the inbox, and the spam folder.`, detail: result.response }
+        writeLog(
+          ctx.db,
+          'info',
+          'accounts',
+          `Test email sent through ${row.from_email} to ${request.body.to}`,
+          null,
+          request.actor!.name,
+        )
+        return {
+          ok: true,
+          message: `Sent to ${request.body.to}. Check the inbox, and the spam folder.`,
+          detail: result.response,
+        }
       } catch (error) {
         const message = explainSmtpError(error, row)
-        writeLog(ctx.db, 'error', 'accounts', `Test email through ${row.from_email} failed: ${message}`, null, request.actor!.name)
-        return { ok: false, message, detail: String((error as Error).message ?? error).slice(0, 500) }
+        writeLog(
+          ctx.db,
+          'error',
+          'accounts',
+          `Test email through ${row.from_email} failed: ${message}`,
+          null,
+          request.actor!.name,
+        )
+        return {
+          ok: false,
+          message,
+          detail: String((error as Error).message ?? error).slice(0, 500),
+        }
       }
     },
   )

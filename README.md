@@ -39,7 +39,7 @@ confirmations are then printed in that terminal instead of going out.
 ## Connecting Gmail
 
 Settings › Sending accounts › **Add Gmail**. Ariad signs in to Gmail with an
-*app password*, a 16-letter password Google makes for one app:
+_app password_, a 16-letter password Google makes for one app:
 
 1. Turn on 2-Step Verification for the Google account.
 2. Create an app password at <https://myaccount.google.com/apppasswords>.
@@ -76,16 +76,16 @@ Three things the dashboard's checklist walks you through:
 
 ## What is in it
 
-| Area | What it does |
-| --- | --- |
-| **Contacts** | Add, edit, delete; CSV import with column mapping and export; lists, tags and custom fields; segments built from rules; duplicate detection and merge; a suppression list. |
-| **Campaigns** | A block builder with drag and drop, or hand-written HTML; reusable templates; merge tags with fallbacks (`{{first_name\|there}}`); desktop and phone preview; test sends; send now or schedule; pause, resume and cancel. |
-| **Automations** | A trigger and a line of steps. Welcome emails and series, birthdays and anniversaries, follow-ups to people who did or did not open a campaign, tag and form triggers; emails, waits and tag changes as steps. |
-| **Signup forms** | A hosted page, an iframe embed and a plain HTML form; double opt-in; choose-your-lists; a preferences page and an unsubscribe page for subscribers. |
-| **Reports** | Sent, delivered, opened, clicked, bounced, unsubscribed, per campaign and over time; which links were clicked; each contact's own history. |
-| **Delivery** | A queue with per-account per-minute and per-day limits, retries with backoff, and bounces and provider throttling told apart. |
-| **Compliance** | The CAN-SPAM footer, one-click unsubscribe (RFC 8058), consent recorded with its source, time and wording, SPF/DKIM/DMARC checks. |
-| **Administration** | Four roles (viewer, editor, admin, owner), API keys, system logs, settings. |
+| Area               | What it does                                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contacts**       | Add, edit, delete; CSV import with column mapping and export; lists, tags and custom fields; segments built from rules; duplicate detection and merge; a suppression list.                                                |
+| **Campaigns**      | A block builder with drag and drop, or hand-written HTML; reusable templates; merge tags with fallbacks (`{{first_name\|there}}`); desktop and phone preview; test sends; send now or schedule; pause, resume and cancel. |
+| **Automations**    | A trigger and a line of steps. Welcome emails and series, birthdays and anniversaries, follow-ups to people who did or did not open a campaign, tag and form triggers; emails, waits and tag changes as steps.            |
+| **Signup forms**   | A hosted page, an iframe embed and a plain HTML form; double opt-in; choose-your-lists; a preferences page and an unsubscribe page for subscribers.                                                                       |
+| **Reports**        | Sent, delivered, opened, clicked, bounced, unsubscribed, per campaign and over time; which links were clicked; each contact's own history.                                                                                |
+| **Delivery**       | A queue with per-account per-minute and per-day limits, retries with backoff, and bounces and provider throttling told apart.                                                                                             |
+| **Compliance**     | The CAN-SPAM footer, one-click unsubscribe (RFC 8058), consent recorded with its source, time and wording, SPF/DKIM/DMARC checks.                                                                                         |
+| **Administration** | Four roles (viewer, editor, admin, owner), API keys, system logs, settings.                                                                                                                                               |
 
 ### Not built
 
@@ -139,13 +139,13 @@ Ariad's own CSS is in `ariad.css`.
 `apps/api/.env.example` lists every variable with its default. The ones that
 matter outside development:
 
-| Variable | What it is |
-| --- | --- |
-| `PORT`, `HOST` | Where the server listens. |
-| `DATABASE_PATH` | The SQLite file. Uploads and the secret key live beside it. |
-| `APP_URL` | The address used in links until a public URL is saved in Settings. |
-| `ARIAD_SECRET` | 64 hex characters. Optional; see *Connecting Gmail*. |
-| `WORKER` | `0` runs the API without the background sender. |
+| Variable        | What it is                                                         |
+| --------------- | ------------------------------------------------------------------ |
+| `PORT`, `HOST`  | Where the server listens.                                          |
+| `DATABASE_PATH` | The SQLite file. Uploads and the secret key live beside it.        |
+| `APP_URL`       | The address used in links until a public URL is saved in Settings. |
+| `ARIAD_SECRET`  | 64 hex characters. Optional; see _Connecting Gmail_.               |
+| `WORKER`        | `0` runs the API without the background sender.                    |
 
 ### Backups
 

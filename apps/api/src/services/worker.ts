@@ -3,7 +3,12 @@ import type { Ctx } from '../context.js'
 import { nowIso } from '../lib/crypto.js'
 import { credentialsOf, defaultAccountRow, type AccountRow } from './accounts.js'
 import { advanceDueRuns, scanScheduledTriggers } from './automations.js'
-import { finishCampaigns, getCampaignRow, startDueCampaigns, type CampaignRow } from './campaigns.js'
+import {
+  finishCampaigns,
+  getCampaignRow,
+  startDueCampaigns,
+  type CampaignRow,
+} from './campaigns.js'
 import { markUndeliverable, suppressionOf, type ContactRow } from './contacts.js'
 import { pruneLogs, writeLog } from './logs.js'
 import { classifySendError, type Mailer } from './mailer.js'
@@ -113,17 +118,21 @@ export class Worker {
     const { db } = this.ctx
     const now = nowIso()
 
-    db.prepare("UPDATE messages SET status = 'queued' WHERE status = 'sending' AND next_attempt_at < ?").run(
-      new Date(Date.now() - STUCK_AFTER_MS).toISOString(),
-    )
+    db.prepare(
+      "UPDATE messages SET status = 'queued' WHERE status = 'sending' AND next_attempt_at < ?",
+    ).run(new Date(Date.now() - STUCK_AFTER_MS).toISOString())
     // Mail queued before any account existed, or whose account was deleted.
     const fallback = defaultAccountRow(this.ctx)
     if (fallback) {
-      db.prepare("UPDATE messages SET account_id = ? WHERE status = 'queued' AND account_id IS NULL").run(fallback.id)
+      db.prepare(
+        "UPDATE messages SET account_id = ? WHERE status = 'queued' AND account_id IS NULL",
+      ).run(fallback.id)
     }
 
     const accounts = db
-      .prepare('SELECT * FROM sending_accounts WHERE enabled = 1 AND (paused_until IS NULL OR paused_until <= ?)')
+      .prepare(
+        'SELECT * FROM sending_accounts WHERE enabled = 1 AND (paused_until IS NULL OR paused_until <= ?)',
+      )
       .all(now) as AccountRow[]
     // Accounts are independent mailboxes with independent limits, so they
     // send side by side; within one account, mail goes one at a time.
@@ -142,7 +151,11 @@ export class Worker {
     const perPass = Math.max(1, Math.ceil((account.per_minute * TICK_MS) / 60_000))
     return Math.max(
       0,
-      Math.min(perPass, account.per_minute - count(60_000), account.daily_limit - count(86_400_000)),
+      Math.min(
+        perPass,
+        account.per_minute - count(60_000),
+        account.daily_limit - count(86_400_000),
+      ),
     )
   }
 
@@ -173,7 +186,8 @@ export class Worker {
     const now = nowIso()
 
     const contact = message.contact_id
-      ? (db.prepare('SELECT * FROM contacts WHERE id = ?').get(message.contact_id) as ContactRow | undefined)
+      ? (db.prepare('SELECT * FROM contacts WHERE id = ?').get(message.contact_id) as
+          ContactRow | undefined)
       : undefined
     const marketing = message.kind === 'campaign' || message.kind === 'automation'
 
@@ -188,7 +202,10 @@ export class Worker {
             ? 'Address is suppressed'
             : null
       if (blocked) {
-        db.prepare("UPDATE messages SET status = 'canceled', last_error = ? WHERE id = ?").run(blocked, message.id)
+        db.prepare("UPDATE messages SET status = 'canceled', last_error = ? WHERE id = ?").run(
+          blocked,
+          message.id,
+        )
         return true
       }
     }
@@ -197,11 +214,17 @@ export class Worker {
     try {
       source = this.sourceFor(message)
     } catch (error) {
-      db.prepare("UPDATE messages SET status = 'failed', last_error = ? WHERE id = ?").run(String((error as Error).message), message.id)
+      db.prepare("UPDATE messages SET status = 'failed', last_error = ? WHERE id = ?").run(
+        String((error as Error).message),
+        message.id,
+      )
       return true
     }
 
-    db.prepare("UPDATE messages SET status = 'sending', next_attempt_at = ? WHERE id = ?").run(now, message.id)
+    db.prepare("UPDATE messages SET status = 'sending', next_attempt_at = ? WHERE id = ?").run(
+      now,
+      message.id,
+    )
     const mail = renderEmail(ctx, {
       source,
       account,
@@ -219,9 +242,12 @@ export class Worker {
       db.prepare(
         "UPDATE messages SET status = 'sent', sent_at = ?, smtp_id = ?, attempts = attempts + 1, last_error = NULL, subject = COALESCE(subject, ?) WHERE id = ?",
       ).run(sentAt, result.messageId, mail.subject, message.id)
-      if (contact && marketing) db.prepare('UPDATE contacts SET last_sent_at = ? WHERE id = ?').run(sentAt, contact.id)
+      if (contact && marketing)
+        db.prepare('UPDATE contacts SET last_sent_at = ? WHERE id = ?').run(sentAt, contact.id)
       if (account.status !== 'ok') {
-        db.prepare("UPDATE sending_accounts SET status = 'ok', last_error = NULL WHERE id = ?").run(account.id)
+        db.prepare("UPDATE sending_accounts SET status = 'ok', last_error = NULL WHERE id = ?").run(
+          account.id,
+        )
       }
       return true
     } catch (error) {
@@ -229,23 +255,31 @@ export class Worker {
     }
   }
 
-  private handleFailure(account: AccountRow, message: MessageRow, contact: ContactRow | undefined, error: unknown): boolean {
+  private handleFailure(
+    account: AccountRow,
+    message: MessageRow,
+    contact: ContactRow | undefined,
+    error: unknown,
+  ): boolean {
     const { db } = this.ctx
     const failure = classifySendError(error, account)
-    const requeue = () => db.prepare("UPDATE messages SET status = 'queued', last_error = ? WHERE id = ?").run(failure.message, message.id)
+    const requeue = () =>
+      db
+        .prepare("UPDATE messages SET status = 'queued', last_error = ? WHERE id = ?")
+        .run(failure.message, message.id)
 
     switch (failure.kind) {
       case 'account': {
         // The message is fine; the mailbox is not. Leave the mail where it is
         // and look again in ten minutes, in case it was a passing outage.
         requeue()
-        db.prepare("UPDATE sending_accounts SET status = 'error', last_error = ?, paused_until = ? WHERE id = ?").run(
-          failure.message,
-          new Date(Date.now() + 10 * 60_000).toISOString(),
-          account.id,
-        )
+        db.prepare(
+          "UPDATE sending_accounts SET status = 'error', last_error = ?, paused_until = ? WHERE id = ?",
+        ).run(failure.message, new Date(Date.now() + 10 * 60_000).toISOString(), account.id)
         this.mailer.forget(account.id)
-        writeLog(db, 'error', 'smtp', `${account.from_email} cannot send: ${failure.message}`, { accountId: account.id })
+        writeLog(db, 'error', 'smtp', `${account.from_email} cannot send: ${failure.message}`, {
+          accountId: account.id,
+        })
         return false
       }
       case 'throttle': {
@@ -255,41 +289,64 @@ export class Worker {
           failure.message,
           account.id,
         )
-        writeLog(db, 'warn', 'smtp', `${account.from_email} was told to slow down; pausing for ${Math.round(failure.pauseMs / 60_000)} minutes`, {
-          accountId: account.id,
-          response: failure.message,
-        })
+        writeLog(
+          db,
+          'warn',
+          'smtp',
+          `${account.from_email} was told to slow down; pausing for ${Math.round(failure.pauseMs / 60_000)} minutes`,
+          {
+            accountId: account.id,
+            response: failure.message,
+          },
+        )
         return false
       }
       case 'retry': {
         const attempts = message.attempts + 1
         const maxAttempts = getSettings(db).sending.maxAttempts
         if (attempts >= maxAttempts) {
-          db.prepare("UPDATE messages SET status = 'failed', attempts = ?, last_error = ? WHERE id = ?").run(attempts, failure.message, message.id)
-          writeLog(db, 'warn', 'queue', `Gave up on ${message.to_email} after ${attempts} attempts`, { error: failure.message })
+          db.prepare(
+            "UPDATE messages SET status = 'failed', attempts = ?, last_error = ? WHERE id = ?",
+          ).run(attempts, failure.message, message.id)
+          writeLog(
+            db,
+            'warn',
+            'queue',
+            `Gave up on ${message.to_email} after ${attempts} attempts`,
+            { error: failure.message },
+          )
         } else {
           const wait = BACKOFF_MINUTES[Math.min(attempts - 1, BACKOFF_MINUTES.length - 1)]! * 60_000
-          db.prepare("UPDATE messages SET status = 'queued', attempts = ?, last_error = ?, next_attempt_at = ? WHERE id = ?").run(
-            attempts,
-            failure.message,
-            new Date(Date.now() + wait).toISOString(),
-            message.id,
-          )
+          db.prepare(
+            "UPDATE messages SET status = 'queued', attempts = ?, last_error = ?, next_attempt_at = ? WHERE id = ?",
+          ).run(attempts, failure.message, new Date(Date.now() + wait).toISOString(), message.id)
         }
         return true
       }
       case 'bounce': {
         const now = nowIso()
-        db.prepare("UPDATE messages SET status = 'bounced', bounced_at = ?, attempts = attempts + 1, last_error = ? WHERE id = ?").run(now, failure.message, message.id)
+        db.prepare(
+          "UPDATE messages SET status = 'bounced', bounced_at = ?, attempts = attempts + 1, last_error = ? WHERE id = ?",
+        ).run(now, failure.message, message.id)
         db.prepare(
           "INSERT INTO message_events (message_id, campaign_id, contact_id, type, url, created_at) VALUES (?, ?, ?, 'bounce', ?, ?)",
-        ).run(message.id, message.campaign_id, message.contact_id, failure.message.slice(0, 500), now)
+        ).run(
+          message.id,
+          message.campaign_id,
+          message.contact_id,
+          failure.message.slice(0, 500),
+          now,
+        )
         if (contact) markUndeliverable(db, contact.id, 'bounced', failure.message)
         return true
       }
       case 'fail': {
-        db.prepare("UPDATE messages SET status = 'failed', attempts = attempts + 1, last_error = ? WHERE id = ?").run(failure.message, message.id)
-        writeLog(db, 'warn', 'queue', `${message.to_email} was refused: ${failure.message}`, { messageId: message.id })
+        db.prepare(
+          "UPDATE messages SET status = 'failed', attempts = attempts + 1, last_error = ? WHERE id = ?",
+        ).run(failure.message, message.id)
+        writeLog(db, 'warn', 'queue', `${message.to_email} was refused: ${failure.message}`, {
+          messageId: message.id,
+        })
         return true
       }
     }

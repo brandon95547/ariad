@@ -40,7 +40,10 @@ export function CampaignPage() {
       <Page>
         <PageHeader title="Campaign" back={{ to: '/campaigns', label: 'Campaigns' }} />
         {missing ? (
-          <EmptyState title="This campaign no longer exists" description="It may have been deleted." />
+          <EmptyState
+            title="This campaign no longer exists"
+            description="It may have been deleted."
+          />
         ) : (
           <Banner
             tone="danger"
@@ -59,5 +62,9 @@ export function CampaignPage() {
 
   const editable = campaign.data.status === 'draft' || campaign.data.status === 'scheduled'
   // Keyed by id so moving to a duplicate starts the editor from that campaign, not this one's state.
-  return editable ? <CampaignEditor key={campaign.data.id} campaign={campaign.data} /> : <CampaignReport campaign={campaign.data} />
+  return editable ? (
+    <CampaignEditor key={campaign.data.id} campaign={campaign.data} />
+  ) : (
+    <CampaignReport campaign={campaign.data} />
+  )
 }

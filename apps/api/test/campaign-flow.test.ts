@@ -40,26 +40,56 @@ describe('a campaign, end to end', () => {
     ].join('\r\n')
     const summary = await api.post('/contacts/import', {
       csv,
-      mapping: { Email: 'email', 'First Name': 'firstName', 'Last Name': 'lastName', Company: 'company', Tags: 'tags' },
+      mapping: {
+        Email: 'email',
+        'First Name': 'firstName',
+        'Last Name': 'lastName',
+        Company: 'company',
+        Tags: 'tags',
+      },
       listIds: [listId],
       consentConfirmed: true,
     })
     expect(summary.status).toBe(200)
     expect(summary.body).toMatchObject({ total: 6, created: 4, updated: 0, duplicatesInFile: 1 })
-    expect(summary.body.invalid).toEqual([{ row: 7, value: 'not-an-email', reason: 'Not a valid email address' }])
+    expect(summary.body.invalid).toEqual([
+      { row: 7, value: 'not-an-email', reason: 'Not a valid email address' },
+    ])
 
     const page = (await api.get('/contacts?sort=email_asc')).body
     expect(page.total).toBe(4)
     const ada = page.items.find((c: { email: string }) => c.email === 'ada@example.test')
     // The second row for the same address had no name but a newer company.
-    expect(ada).toMatchObject({ firstName: 'Ada', company: 'Engines Ltd', status: 'subscribed', consentSource: 'Imported from CSV' })
+    expect(ada).toMatchObject({
+      firstName: 'Ada',
+      company: 'Engines Ltd',
+      status: 'subscribed',
+      consentSource: 'Imported from CSV',
+    })
     expect(ada.tags.map((t: { name: string }) => t.name).sort()).toEqual(['early', 'vip'])
     expect(ada.lists).toMatchObject([{ name: 'Newsletter', status: 'subscribed' }])
   })
 
   it('refuses an import without the consent confirmation', async () => {
-    const response = await api.post('/contacts/import', { csv: 'email\nx@example.test', mapping: { email: 'email' }, consentConfirmed: false })
+    const response = await api.post('/contacts/import', {
+      csv: 'email\nx@example.test',
+      mapping: { email: 'email' },
+      consentConfirmed: false,
+    })
     expect(response.status).toBe(400)
+  })
+
+  it('does not ask for consent when the list is of people who opted out', async () => {
+    const response = await api.post('/contacts/import', {
+      csv: 'email\noptedout@example.test',
+      mapping: { email: 'email' },
+      status: 'unsubscribed',
+    })
+    expect(response.status).toBe(200)
+    const contact = (await api.get('/contacts?q=optedout@')).body.items[0]
+    expect(contact).toMatchObject({ status: 'unsubscribed', consentAt: null })
+    // Cleared away, so the counts the rest of this file checks stay as they were.
+    await api.delete(`/contacts/${contact.id}`)
   })
 
   it('will not create the same address twice, and says who it is', async () => {
@@ -71,14 +101,20 @@ describe('a campaign, end to end', () => {
   it('answers a segment from its rules', async () => {
     const preview = await api.post('/segments/preview', {
       match: 'all',
-      rules: [{ field: 'company', op: 'contains', value: 'nav' }, { field: 'status', op: 'is', value: 'subscribed' }],
+      rules: [
+        { field: 'company', op: 'contains', value: 'nav' },
+        { field: 'status', op: 'is', value: 'subscribed' },
+      ],
     })
     expect(preview.body.count).toBe(1)
     expect(preview.body.sample[0].email).toBe('grace@example.test')
 
     const tags = (await api.get('/tags')).body as { id: string; name: string }[]
     const vip = tags.find((tag) => tag.name === 'vip')!
-    const byTag = await api.post('/segments/preview', { match: 'any', rules: [{ field: 'tag', op: 'has', value: vip.id }] })
+    const byTag = await api.post('/segments/preview', {
+      match: 'any',
+      rules: [{ field: 'tag', op: 'has', value: vip.id }],
+    })
     expect(byTag.body.count).toBe(2)
   })
 
@@ -101,8 +137,20 @@ describe('a campaign, end to end', () => {
     expect(blocked.status).toBe(422)
     expect(blocked.body.error.message).toMatch(/mailing address/i)
 
-    await api.patch('/settings', { organization: { address1: '1 Main St', city: 'Charlotte', region: 'NC', postalCode: '28202', country: 'USA' } })
-    const checks = (await api.get(`/campaigns/${campaignId}/checks`)).body as { key: string; ok: boolean; message: string }[]
+    await api.patch('/settings', {
+      organization: {
+        address1: '1 Main St',
+        city: 'Charlotte',
+        region: 'NC',
+        postalCode: '28202',
+        country: 'USA',
+      },
+    })
+    const checks = (await api.get(`/campaigns/${campaignId}/checks`)).body as {
+      key: string
+      ok: boolean
+      message: string
+    }[]
     expect(checks.filter((check) => !check.ok)).toEqual([])
     expect(checks.find((check) => check.key === 'audience')!.message).toMatch(/^3 people/)
   })
@@ -130,13 +178,24 @@ describe('a campaign, end to end', () => {
 
     const campaign = (await api.get(`/campaigns/${campaignId}`)).body
     expect(campaign.status).toBe('sent')
-    expect(campaign.stats).toMatchObject({ recipients: 3, sent: 2, bounced: 1, queued: 0, failed: 0 })
-    expect(catcher.mail.map((mail) => mail.to[0]).sort()).toEqual(['ada@example.test', 'grace@example.test'])
+    expect(campaign.stats).toMatchObject({
+      recipients: 3,
+      sent: 2,
+      bounced: 1,
+      queued: 0,
+      failed: 0,
+    })
+    expect(catcher.mail.map((mail) => mail.to[0]).sort()).toEqual([
+      'ada@example.test',
+      'grace@example.test',
+    ])
 
     // The address the server refused is finished: bounced and suppressed.
     const gone = (await api.get('/contacts?q=gone@')).body.items[0]
     expect(gone.status).toBe('bounced')
-    expect((await api.get('/suppressions?q=gone@')).body.items[0]).toMatchObject({ reason: 'bounced' })
+    expect((await api.get('/suppressions?q=gone@')).body.items[0]).toMatchObject({
+      reason: 'bounced',
+    })
   })
 
   it('puts the merge tags, footer, headers and tracking in what actually went out', async () => {
@@ -144,15 +203,21 @@ describe('a campaign, end to end', () => {
     const body = decodeQp(mail.raw)
     expect(mail.raw).toMatch(/Subject: Hello Ada/)
     expect(mail.raw).toMatch(/List-Unsubscribe-Post: List-Unsubscribe=One-Click/)
-    expect(mail.raw.replace(/\r\n\s+/g, ' ')).toMatch(/List-Unsubscribe: <https:\/\/mail\.example\.test\/api\/v1\/public\/unsubscribe\/[\w-]+\?m=[0-9a-f]+>/)
+    expect(mail.raw.replace(/\r\n\s+/g, ' ')).toMatch(
+      /List-Unsubscribe: <https:\/\/mail\.example\.test\/api\/v1\/public\/unsubscribe\/[\w-]+\?m=[0-9a-f]+>/,
+    )
     expect(body).toContain('<h1>Hi Ada</h1>')
     expect(body).toContain('Three things this month')
     // The compliance footer: who, where, and how to stop.
     expect(body).toContain('<strong>Northwind</strong>')
     expect(body).toContain('1 Main St, Charlotte, NC 28202, USA')
-    expect(body).toMatch(/href="https:\/\/mail\.example\.test\/unsubscribe\/[\w-]+\?m=[0-9a-f]+"[^>]*>Unsubscribe/)
+    expect(body).toMatch(
+      /href="https:\/\/mail\.example\.test\/unsubscribe\/[\w-]+\?m=[0-9a-f]+"[^>]*>Unsubscribe/,
+    )
     // The outside link goes through the redirect; our own links do not.
-    expect(body).toMatch(/href="https:\/\/mail\.example\.test\/t\/c\/[0-9a-f]+\?u=[\w-]+&amp;s=[\w-]+"/)
+    expect(body).toMatch(
+      /href="https:\/\/mail\.example\.test\/t\/c\/[0-9a-f]+\?u=[\w-]+&amp;s=[\w-]+"/,
+    )
     expect(body).not.toContain('href="https://example.com/post')
     expect(body).toMatch(/<img src="https:\/\/mail\.example\.test\/t\/o\/[0-9a-f]+\.gif"/)
     // And a plain-text part for clients that want one.
@@ -173,22 +238,33 @@ describe('a campaign, end to end', () => {
     expect(redirect.status).toBe(302)
     expect(redirect.headers.location).toBe('https://example.com/post?a=1&b=2')
 
-    const forged = await api.get(click.replace(/u=[\w-]+/, `u=${Buffer.from('https://evil.example').toString('base64url')}`))
+    const forged = await api.get(
+      click.replace(/u=[\w-]+/, `u=${Buffer.from('https://evil.example').toString('base64url')}`),
+    )
     expect(forged.status).toBe(400)
 
     const campaign = (await api.get(`/campaigns/${campaignId}`)).body
     expect(campaign.stats).toMatchObject({ opened: 1, opens: 2, clicked: 1, clicks: 1 })
     const report = (await api.get(`/campaigns/${campaignId}/report`)).body
-    expect(report.links).toEqual([{ url: 'https://example.com/post?a=1&b=2', clicks: 1, people: 1 }])
+    expect(report.links).toEqual([
+      { url: 'https://example.com/post?a=1&b=2', clicks: 1, people: 1 },
+    ])
 
     const ada = (await api.get('/contacts?q=ada@')).body.items[0]
     const activity = (await api.get(`/contacts/${ada.id}/activity`)).body as { type: string }[]
-    expect(activity.map((event) => event.type)).toEqual(expect.arrayContaining(['imported', 'sent', 'opened', 'clicked']))
+    expect(activity.map((event) => event.type)).toEqual(
+      expect.arrayContaining(['imported', 'sent', 'opened', 'clicked']),
+    )
   })
 
   it('unsubscribes on a one-click POST, never on a GET, and makes it stick', async () => {
-    const raw = catcher.mail.find((entry) => entry.to[0] === 'grace@example.test')!.raw.replace(/\r\n\s+/g, ' ')
-    const url = /List-Unsubscribe: <https:\/\/mail\.example\.test(\/api\/v1\/public\/unsubscribe\/[^>]+)>/.exec(raw)![1]!
+    const raw = catcher.mail
+      .find((entry) => entry.to[0] === 'grace@example.test')!
+      .raw.replace(/\r\n\s+/g, ' ')
+    const url =
+      /List-Unsubscribe: <https:\/\/mail\.example\.test(\/api\/v1\/public\/unsubscribe\/[^>]+)>/.exec(
+        raw,
+      )![1]!
     const stranger = client(app)
 
     // A scanner following the link lands on the page and changes nothing.
@@ -196,7 +272,12 @@ describe('a campaign, end to end', () => {
     expect(get.statusCode).toBe(302)
     expect((await api.get('/contacts?q=grace@')).body.items[0].status).toBe('subscribed')
 
-    const post = await app.inject({ method: 'POST', url, headers: { 'content-type': 'application/x-www-form-urlencoded' }, payload: 'List-Unsubscribe=One-Click' })
+    const post = await app.inject({
+      method: 'POST',
+      url,
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      payload: 'List-Unsubscribe=One-Click',
+    })
     expect(post.statusCode).toBe(200)
     void stranger
 
@@ -205,7 +286,12 @@ describe('a campaign, end to end', () => {
     expect((await api.get(`/campaigns/${campaignId}`)).body.stats.unsubscribed).toBe(1)
 
     // Re-importing the address does not bring them back.
-    const again = await api.post('/contacts/import', { csv: 'email\ngrace@example.test', mapping: { email: 'email' }, listIds: [listId], consentConfirmed: true })
+    const again = await api.post('/contacts/import', {
+      csv: 'email\ngrace@example.test',
+      mapping: { email: 'email' },
+      listIds: [listId],
+      consentConfirmed: true,
+    })
     expect(again.body).toMatchObject({ created: 0, updated: 1, suppressed: 1 })
     expect((await api.get('/contacts?q=grace@')).body.items[0].status).toBe('unsubscribed')
 

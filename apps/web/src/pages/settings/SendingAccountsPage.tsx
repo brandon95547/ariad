@@ -1,6 +1,17 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Mail, MoreHorizontal, Pencil, Plug, Plus, Power, Send, Server, Star, Trash2 } from 'lucide-react'
+import {
+  Mail,
+  MoreHorizontal,
+  Pencil,
+  Plug,
+  Plus,
+  Power,
+  Send,
+  Server,
+  Star,
+  Trash2,
+} from 'lucide-react'
 import type { SendingAccount, SendingAccountKind, VerifyResult } from '@ariad/shared'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { api, errorMessage } from '@/lib/api'
@@ -22,9 +33,24 @@ type Editor = { kind: SendingAccountKind; account: SendingAccount | null } | nul
 
 function statusBadge(account: SendingAccount) {
   if (!account.enabled) return <Badge tone="neutral">Turned off</Badge>
-  if (account.status === 'error') return <Badge tone="danger" dot>Cannot sign in</Badge>
-  if (account.pausedUntil) return <Badge tone="warning" dot>Paused {formatRelative(account.pausedUntil).replace(/^in /, 'for ')}</Badge>
-  if (account.status === 'ok') return <Badge tone="success" dot>Connected</Badge>
+  if (account.status === 'error')
+    return (
+      <Badge tone="danger" dot>
+        Cannot sign in
+      </Badge>
+    )
+  if (account.pausedUntil)
+    return (
+      <Badge tone="warning" dot>
+        Paused {formatRelative(account.pausedUntil).replace(/^in /, 'for ')}
+      </Badge>
+    )
+  if (account.status === 'ok')
+    return (
+      <Badge tone="success" dot>
+        Connected
+      </Badge>
+    )
   return <Badge tone="neutral">Not checked</Badge>
 }
 
@@ -49,7 +75,8 @@ export function SendingAccountsPage() {
   const refresh = () => client.invalidateQueries({ queryKey: keys.accounts })
 
   const verify = useMutation({
-    mutationFn: (id: string) => api.post<{ account: SendingAccount; verify: VerifyResult }>(`/sending-accounts/${id}/verify`),
+    mutationFn: (id: string) =>
+      api.post<{ account: SendingAccount; verify: VerifyResult }>(`/sending-accounts/${id}/verify`),
     onSuccess: ({ account, verify: result }) => {
       void refresh()
       if (result.ok) toast.success(`${account.label} is connected`)
@@ -69,7 +96,8 @@ export function SendingAccountsPage() {
   })
 
   const toggle = useMutation({
-    mutationFn: (account: SendingAccount) => api.patch(`/sending-accounts/${account.id}`, { enabled: !account.enabled }),
+    mutationFn: (account: SendingAccount) =>
+      api.patch(`/sending-accounts/${account.id}`, { enabled: !account.enabled }),
     onSuccess: (_result, account) => {
       void refresh()
       toast.success(account.enabled ? `${account.label} turned off` : `${account.label} turned on`)
@@ -95,7 +123,8 @@ export function SendingAccountsPage() {
         <div className="flex max-w-[40rem] flex-col gap-1">
           <h2 className="text-h3 text-[var(--ds-fg)]">Sending accounts</h2>
           <p className="text-body-sm text-[var(--ds-fg-muted)]">
-            The mailboxes Ariad sends through. Add a Gmail account, or any mail server or sending service that speaks SMTP.
+            The mailboxes Ariad sends through. Add a Gmail account, or any mail server or sending
+            service that speaks SMTP.
           </p>
         </div>
         {canEdit && list.length > 0 && (
@@ -175,12 +204,19 @@ export function SendingAccountsPage() {
           void client.invalidateQueries({ queryKey: keys.settings })
           if (done) {
             setEditor(null)
-            toast.success(`${account.label} is connected`, { description: `Sending as ${account.fromName} <${account.fromEmail}>` })
+            toast.success(`${account.label} is connected`, {
+              description: `Sending as ${account.fromName} <${account.fromEmail}>`,
+            })
           }
         }}
       />
 
-      <TestDialog account={testing} defaultTo={auth.data?.user?.email ?? ''} onClose={() => setTesting(null)} onDone={refresh} />
+      <TestDialog
+        account={testing}
+        defaultTo={auth.data?.user?.email ?? ''}
+        onClose={() => setTesting(null)}
+        onDone={refresh}
+      />
 
       <ConfirmDialog
         open={removing !== null}
@@ -191,8 +227,8 @@ export function SendingAccountsPage() {
         loading={remove.isPending}
       >
         <p>
-          Ariad will forget this account and its password. Campaigns already sent through it keep their history; anything set to use it
-          falls back to the default account.
+          Ariad will forget this account and its password. Campaigns already sent through it keep
+          their history; anything set to use it falls back to the default account.
         </p>
         {remove.isError && <Banner tone="danger">{errorMessage(remove.error)}</Banner>}
       </ConfirmDialog>
@@ -224,8 +260,20 @@ function AccountCard({
   const actions: MenuAction[] = [
     { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, onSelect: onEdit },
     { id: 'verify', label: 'Check connection', icon: <Plug size={14} />, onSelect: onVerify },
-    { id: 'default', label: 'Make default', icon: <Star size={14} />, onSelect: onDefault, disabled: account.isDefault || !account.enabled },
-    { id: 'toggle', label: account.enabled ? 'Turn off' : 'Turn on', icon: <Power size={14} />, onSelect: onToggle, separated: true },
+    {
+      id: 'default',
+      label: 'Make default',
+      icon: <Star size={14} />,
+      onSelect: onDefault,
+      disabled: account.isDefault || !account.enabled,
+    },
+    {
+      id: 'toggle',
+      label: account.enabled ? 'Turn off' : 'Turn on',
+      icon: <Power size={14} />,
+      onSelect: onToggle,
+      separated: true,
+    },
     { id: 'remove', label: 'Remove', icon: <Trash2 size={14} />, onSelect: onRemove, danger: true },
   ]
   const Icon = account.kind === 'gmail' ? Mail : Server
@@ -235,7 +283,10 @@ function AccountCard({
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex items-start gap-3.5">
-        <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)]" aria-hidden>
+        <span
+          className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)]"
+          aria-hidden
+        >
           <Icon size={17} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -255,7 +306,13 @@ function AccountCard({
         {canEdit && (
           <div className="flex shrink-0 items-center gap-1.5 coarse:gap-3">
             {roomForTest && (
-              <Button variant="outlined" size="sm" startIcon={<Send />} onClick={onTest} disabled={!account.enabled}>
+              <Button
+                variant="outlined"
+                size="sm"
+                startIcon={<Send />}
+                onClick={onTest}
+                disabled={!account.enabled}
+              >
                 Send test
               </Button>
             )}
@@ -264,7 +321,18 @@ function AccountCard({
               icon={<MoreHorizontal size={16} />}
               actions={
                 // On a phone the test button lives in the menu instead.
-                roomForTest ? actions : [{ id: 'test', label: 'Send test', icon: <Send size={14} />, onSelect: onTest, disabled: !account.enabled }, ...actions]
+                roomForTest
+                  ? actions
+                  : [
+                      {
+                        id: 'test',
+                        label: 'Send test',
+                        icon: <Send size={14} />,
+                        onSelect: onTest,
+                        disabled: !account.enabled,
+                      },
+                      ...actions,
+                    ]
               }
             />
           </div>
@@ -357,7 +425,11 @@ function TestDialog({
       open={account !== null}
       onClose={onClose}
       title="Send a test email"
-      description={account ? `Through ${account.label}, as ${account.fromName} <${account.fromEmail}>.` : undefined}
+      description={
+        account
+          ? `Through ${account.label}, as ${account.fromName} <${account.fromEmail}>.`
+          : undefined
+      }
       size="sm"
       footer={
         <>
@@ -372,10 +444,19 @@ function TestDialog({
     >
       <form id="test-send-form" onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <Field label="Send to">
-          <TextInput type="email" value={to} onChange={(event) => setTo(event.target.value)} autoComplete="email" required />
+          <TextInput
+            type="email"
+            value={to}
+            onChange={(event) => setTo(event.target.value)}
+            autoComplete="email"
+            required
+          />
         </Field>
         {result && (
-          <Banner tone={result.ok ? 'success' : 'danger'} title={result.ok ? 'Sent' : 'It did not send'}>
+          <Banner
+            tone={result.ok ? 'success' : 'danger'}
+            title={result.ok ? 'Sent' : 'It did not send'}
+          >
             {result.message}
           </Banner>
         )}

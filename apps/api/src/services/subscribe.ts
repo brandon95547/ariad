@@ -37,12 +37,17 @@ export interface SignupInput {
   formId: string | null
 }
 
-function confirmationEmail(ctx: Ctx, token: string, lists: string[]): { subject: string; html: string } {
+function confirmationEmail(
+  ctx: Ctx,
+  token: string,
+  lists: string[],
+): { subject: string; html: string } {
   const settings = getSettings(ctx.db)
   const organization = settings.organization.name || 'us'
   const link = `${publicUrl(ctx)}/confirm/${token}`
   const address = formatAddress(settings.organization)
-  const what = lists.length === 1 ? escapeHtml(lists[0]!) : `emails from ${escapeHtml(organization)}`
+  const what =
+    lists.length === 1 ? escapeHtml(lists[0]!) : `emails from ${escapeHtml(organization)}`
   return {
     subject: `Please confirm your subscription to ${organization}`,
     html: `<!doctype html><html><body style="margin:0;padding:0;background:#f3f4f6;">
@@ -67,53 +72,94 @@ export function signup(ctx: Ctx, input: SignupInput): FormSubmissionResult['stat
   // A bounced or complained address is not coming back through a form. The
   // caller answers as if it worked: a signup form must not confirm to a
   // stranger which addresses are on the list or why.
-  if (suppression === 'bounced' || suppression === 'complained' || existing?.status === 'bounced' || existing?.status === 'complained') {
+  if (
+    suppression === 'bounced' ||
+    suppression === 'complained' ||
+    existing?.status === 'bounced' ||
+    existing?.status === 'complained'
+  ) {
     return 'already_subscribed'
   }
 
   // Someone who unsubscribed and is now signing up again has changed their
   // mind — but only the owner of the address can say so, so it always goes
   // through a confirmation email, whatever the form's setting.
-  const returning = existing?.status === 'unsubscribed' || suppression === 'unsubscribed' || suppression === 'manual'
+  const returning =
+    existing?.status === 'unsubscribed' ||
+    suppression === 'unsubscribed' ||
+    suppression === 'manual'
   const confirm = input.doubleOptIn || returning
 
   if (confirm && !defaultAccountRow(ctx)) {
-    writeLog(db, 'error', 'forms', 'A signup could not be confirmed: there is no sending account to send the confirmation email from.')
-    throw new AppError(503, 'signups_unavailable', 'Signups are not available right now. Please try again later.')
+    writeLog(
+      db,
+      'error',
+      'forms',
+      'A signup could not be confirmed: there is no sending account to send the confirmation email from.',
+    )
+    throw new AppError(
+      503,
+      'signups_unavailable',
+      'Signups are not available right now. Please try again later.',
+    )
   }
 
   return db.transaction((): FormSubmissionResult['status'] => {
     const consent = { source: input.source, text: input.consentText, ip: input.ip }
 
     if (!confirm) {
-      const { row } = upsertContact(db, input.fields, { status: 'subscribed', source: input.source, consent, overwrite: false })
+      const { row } = upsertContact(db, input.fields, {
+        status: 'subscribed',
+        source: input.source,
+        consent,
+        overwrite: false,
+      })
       const before = (
-        db.prepare(`SELECT COUNT(*) AS n FROM list_members WHERE contact_id = ? AND status = 'subscribed' AND list_id IN (${placeholders(input.listIds.length || 1)})`).get(row.id, ...(input.listIds.length ? input.listIds : [''])) as { n: number }
+        db
+          .prepare(
+            `SELECT COUNT(*) AS n FROM list_members WHERE contact_id = ? AND status = 'subscribed' AND list_id IN (${placeholders(input.listIds.length || 1)})`,
+          )
+          .get(row.id, ...(input.listIds.length ? input.listIds : [''])) as { n: number }
       ).n
       for (const listId of input.listIds) addToList(ctx, row.id, listId, 'subscribed')
       for (const tagId of input.tagIds) addTag(ctx, row.id, tagId)
-      recordEvent(db, row.id, 'form_submitted', `Signed up (${input.source})`, { formId: input.formId })
-      if (input.formId) fireTrigger(ctx, { type: 'form_submitted', formId: input.formId, contactId: row.id })
-      return existing && before === input.listIds.length && input.listIds.length > 0 ? 'already_subscribed' : 'subscribed'
+      recordEvent(db, row.id, 'form_submitted', `Signed up (${input.source})`, {
+        formId: input.formId,
+      })
+      if (input.formId)
+        fireTrigger(ctx, { type: 'form_submitted', formId: input.formId, contactId: row.id })
+      return existing && before === input.listIds.length && input.listIds.length > 0
+        ? 'already_subscribed'
+        : 'subscribed'
     }
 
     // A returning contact keeps the standing they have until they confirm:
     // upsert never raises it, it only fills in what the form added.
-    const { row } = upsertContact(db, input.fields, { status: 'pending', source: input.source, overwrite: false })
+    const { row } = upsertContact(db, input.fields, {
+      status: 'pending',
+      source: input.source,
+      overwrite: false,
+    })
 
     const alreadyOnAll =
       !returning &&
       row.status === 'subscribed' &&
       input.listIds.length > 0 &&
       input.listIds.every((listId) =>
-        db.prepare("SELECT 1 FROM list_members WHERE list_id = ? AND contact_id = ? AND status = 'subscribed'").get(listId, row.id),
+        db
+          .prepare(
+            "SELECT 1 FROM list_members WHERE list_id = ? AND contact_id = ? AND status = 'subscribed'",
+          )
+          .get(listId, row.id),
       )
     if (alreadyOnAll) return 'already_subscribed'
 
     for (const listId of input.listIds) addToList(ctx, row.id, listId, 'pending')
 
     const token = randomToken(24)
-    db.prepare('INSERT INTO confirmations (token, contact_id, list_ids, form_id, created_at) VALUES (?, ?, ?, ?, ?)').run(
+    db.prepare(
+      'INSERT INTO confirmations (token, contact_id, list_ids, form_id, created_at) VALUES (?, ?, ?, ?, ?)',
+    ).run(
       token,
       row.id,
       JSON.stringify({ listIds: input.listIds, tagIds: input.tagIds, consent }),
@@ -121,31 +167,70 @@ export function signup(ctx: Ctx, input: SignupInput): FormSubmissionResult['stat
       nowIso(),
     )
     const listNames = input.listIds.length
-      ? (db.prepare(`SELECT name FROM lists WHERE id IN (${placeholders(input.listIds.length)})`).all(...input.listIds) as { name: string }[]).map((list) => list.name)
+      ? (
+          db
+            .prepare(`SELECT name FROM lists WHERE id IN (${placeholders(input.listIds.length)})`)
+            .all(...input.listIds) as { name: string }[]
+        ).map((list) => list.name)
       : []
     const mail = confirmationEmail(ctx, token, listNames)
     const now = nowIso()
     db.prepare(
       /* sql */ `INSERT INTO messages (id, kind, contact_id, to_email, account_id, subject, html, priority, status, next_attempt_at, token, queued_at)
                  VALUES (?, 'system', ?, ?, ?, ?, ?, 10, 'queued', ?, ?, ?)`,
-    ).run(newId('msg'), row.id, row.email, defaultAccountRow(ctx)?.id ?? null, mail.subject, mail.html, now, randomToken(16), now)
-    recordEvent(db, row.id, 'form_submitted', `Asked to subscribe (${input.source}); confirmation email sent`, { formId: input.formId })
+    ).run(
+      newId('msg'),
+      row.id,
+      row.email,
+      defaultAccountRow(ctx)?.id ?? null,
+      mail.subject,
+      mail.html,
+      now,
+      randomToken(16),
+      now,
+    )
+    recordEvent(
+      db,
+      row.id,
+      'form_submitted',
+      `Asked to subscribe (${input.source}); confirmation email sent`,
+      { formId: input.formId },
+    )
     return 'confirmation_sent'
   })()
 }
 
 /** The click on the confirmation link. Safe to repeat. */
-export function confirmSignup(ctx: Ctx, token: string, ip: string | null): { email: string; organization: string; formId: string | null } {
+export function confirmSignup(
+  ctx: Ctx,
+  token: string,
+  ip: string | null,
+): { email: string; organization: string; formId: string | null } {
   const { db } = ctx
   const row = db.prepare('SELECT * FROM confirmations WHERE token = ?').get(token) as
-    | { token: string; contact_id: string; list_ids: string; form_id: string | null; confirmed_at: string | null }
+    | {
+        token: string
+        contact_id: string
+        list_ids: string
+        form_id: string | null
+        confirmed_at: string | null
+      }
     | undefined
-  if (!row) throw new AppError(404, 'not_found', 'This confirmation link is not valid. It may have been used on a different address.')
+  if (!row)
+    throw new AppError(
+      404,
+      'not_found',
+      'This confirmation link is not valid. It may have been used on a different address.',
+    )
   const contact = getContactRow(db, row.contact_id)
   const organization = getSettings(db).organization.name
 
   if (!row.confirmed_at) {
-    const payload = parseJson<{ listIds: string[]; tagIds: string[]; consent: { source: string | null; text: string | null } }>(row.list_ids, {
+    const payload = parseJson<{
+      listIds: string[]
+      tagIds: string[]
+      consent: { source: string | null; text: string | null }
+    }>(row.list_ids, {
       listIds: [],
       tagIds: [],
       consent: { source: null, text: null },
@@ -157,16 +242,20 @@ export function confirmSignup(ctx: Ctx, token: string, ip: string | null): { ema
                    consent_at = ?, consent_source = ?, consent_text = ?, consent_ip = ?, updated_at = ? WHERE id = ?`,
       ).run(now, now, payload.consent.source, payload.consent.text, ip, now, contact.id)
       // They asked to come back and proved the address is theirs.
-      db.prepare("DELETE FROM suppressions WHERE email = ? AND reason IN ('unsubscribed','manual')").run(contact.email)
+      db.prepare(
+        "DELETE FROM suppressions WHERE email = ? AND reason IN ('unsubscribed','manual')",
+      ).run(contact.email)
       db.prepare('UPDATE confirmations SET confirmed_at = ? WHERE token = ?').run(now, token)
       recordEvent(db, contact.id, 'confirmed', 'Confirmed their subscription by email', { ip })
       for (const listId of payload.listIds) {
-        if (db.prepare('SELECT 1 FROM lists WHERE id = ?').get(listId)) addToList(ctx, contact.id, listId, 'subscribed')
+        if (db.prepare('SELECT 1 FROM lists WHERE id = ?').get(listId))
+          addToList(ctx, contact.id, listId, 'subscribed')
       }
       for (const tagId of payload.tagIds) {
         if (db.prepare('SELECT 1 FROM tags WHERE id = ?').get(tagId)) addTag(ctx, contact.id, tagId)
       }
-      if (row.form_id) fireTrigger(ctx, { type: 'form_submitted', formId: row.form_id, contactId: contact.id })
+      if (row.form_id)
+        fireTrigger(ctx, { type: 'form_submitted', formId: row.form_id, contactId: contact.id })
     })()
   }
   return { email: contact.email, organization, formId: row.form_id }

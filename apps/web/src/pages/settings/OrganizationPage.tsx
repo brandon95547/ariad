@@ -10,7 +10,10 @@ import { Banner, Skeleton } from '@/ui/Feedback'
 import { TextInput, Textarea } from '@/ui/Inputs'
 import { toast } from '@/ui/Toast'
 
-type Draft = Pick<SettingsView, 'organization' | 'publicUrl' | 'timezone' | 'sending' | 'compliance'>
+type Draft = Pick<
+  SettingsView,
+  'organization' | 'publicUrl' | 'timezone' | 'sending' | 'compliance'
+>
 
 const pickDraft = (settings: SettingsView): Draft => ({
   organization: settings.organization,
@@ -24,7 +27,14 @@ function timezones(): string[] {
   try {
     return Intl.supportedValuesOf('timeZone')
   } catch {
-    return ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'Europe/London', 'UTC']
+    return [
+      'America/New_York',
+      'America/Chicago',
+      'America/Denver',
+      'America/Los_Angeles',
+      'Europe/London',
+      'UTC',
+    ]
   }
 }
 
@@ -42,8 +52,13 @@ export function OrganizationPage() {
     if (settings.data && !draft) setDraft(pickDraft(settings.data))
   }, [settings.data, draft])
 
-  const zoneOptions = useMemo(() => timezones().map((zone) => ({ value: zone, label: zone.replace(/_/g, ' ') })), [])
-  const dirty = Boolean(draft && settings.data && JSON.stringify(draft) !== JSON.stringify(pickDraft(settings.data)))
+  const zoneOptions = useMemo(
+    () => timezones().map((zone) => ({ value: zone, label: zone.replace(/_/g, ' ') })),
+    [],
+  )
+  const dirty = Boolean(
+    draft && settings.data && JSON.stringify(draft) !== JSON.stringify(pickDraft(settings.data)),
+  )
 
   const save = useMutation({
     mutationFn: () => api.patch<SettingsView>('/settings', draft),
@@ -88,7 +103,10 @@ export function OrganizationPage() {
         </Banner>
       )}
 
-      <FormSection title="Organization" description="The name your subscribers know you by. It is in the footer of every email.">
+      <FormSection
+        title="Organization"
+        description="The name your subscribers know you by. It is in the footer of every email."
+      >
         <Field label="Name" error={fields['organization.name']}>
           <TextInput {...org('name')} autoComplete="organization" />
         </Field>
@@ -122,7 +140,9 @@ export function OrganizationPage() {
           <TextInput {...org('country')} autoComplete="country-name" />
         </Field>
         <p className="text-caption text-[var(--ds-fg-muted)]">
-          {address ? `In the footer as: ${address}` : 'Fill in at least the street address and city.'}
+          {address
+            ? `In the footer as: ${address}`
+            : 'Fill in at least the street address and city.'}
         </p>
       </FormSection>
 
@@ -130,7 +150,11 @@ export function OrganizationPage() {
         title="Public URL"
         description="The address your recipients' devices reach Ariad at. Unsubscribe links, open tracking and click tracking are built from it."
       >
-        <Field label="Public URL" hint={`Links currently use ${effective}`} error={fields.publicUrl}>
+        <Field
+          label="Public URL"
+          hint={`Links currently use ${effective}`}
+          error={fields.publicUrl}
+        >
           <TextInput
             value={draft.publicUrl}
             onChange={(event) => setDraft({ ...draft, publicUrl: event.target.value })}
@@ -142,45 +166,75 @@ export function OrganizationPage() {
         </Field>
         {isLocal && (
           <Banner tone="warning" title="These links only work on this computer">
-            {effective} is not reachable from anyone else's inbox. You can connect accounts and send yourself tests now; before a real
-            campaign, put Ariad on a server with a domain and enter that address here.
+            {effective} is not reachable from anyone else's inbox. You can connect accounts and send
+            yourself tests now; before a real campaign, put Ariad on a server with a domain and
+            enter that address here.
           </Banner>
         )}
       </FormSection>
 
-      <FormSection title="Time zone" description="Used for scheduled sends and for date-based automations such as birthdays.">
+      <FormSection
+        title="Time zone"
+        description="Used for scheduled sends and for date-based automations such as birthdays."
+      >
         <Field label="Time zone" htmlFor="settings-timezone">
-          <Combobox id="settings-timezone" options={zoneOptions} value={draft.timezone} onChange={(timezone) => setDraft({ ...draft, timezone })} />
+          <Combobox
+            id="settings-timezone"
+            options={zoneOptions}
+            value={draft.timezone}
+            onChange={(timezone) => setDraft({ ...draft, timezone })}
+          />
         </Field>
       </FormSection>
 
-      <FormSection title="Tracking" description="The starting choice for new campaigns. Each campaign can change it.">
+      <FormSection
+        title="Tracking"
+        description="The starting choice for new campaigns. Each campaign can change it."
+      >
         <Switch
           label="Track opens"
           description="Adds a 1-pixel image to each email. Some mail apps load it automatically, so opens are an estimate."
           checked={draft.sending.trackOpens}
-          onChange={(trackOpens) => setDraft({ ...draft, sending: { ...draft.sending, trackOpens } })}
+          onChange={(trackOpens) =>
+            setDraft({ ...draft, sending: { ...draft.sending, trackOpens } })
+          }
         />
         <Switch
           label="Track clicks"
           description="Sends links through your public URL so clicks can be counted."
           checked={draft.sending.trackClicks}
-          onChange={(trackClicks) => setDraft({ ...draft, sending: { ...draft.sending, trackClicks } })}
+          onChange={(trackClicks) =>
+            setDraft({ ...draft, sending: { ...draft.sending, trackClicks } })
+          }
         />
       </FormSection>
 
-      <FormSection title="Consent" description="How people join, and what the footer tells them about why they are hearing from you.">
+      <FormSection
+        title="Consent"
+        description="How people join, and what the footer tells them about why they are hearing from you."
+      >
         <Switch
           label="Double opt-in for new lists and forms"
           description="New subscribers confirm by email before they are added. It keeps typos and bots off your lists and is the clearest record of consent."
           checked={draft.compliance.doubleOptInDefault}
-          onChange={(doubleOptInDefault) => setDraft({ ...draft, compliance: { ...draft.compliance, doubleOptInDefault } })}
+          onChange={(doubleOptInDefault) =>
+            setDraft({ ...draft, compliance: { ...draft.compliance, doubleOptInDefault } })
+          }
         />
-        <Field label="Footer note" optional hint="Shown under your address in every marketing email.">
+        <Field
+          label="Footer note"
+          optional
+          hint="Shown under your address in every marketing email."
+        >
           <Textarea
             rows={2}
             value={draft.compliance.footerNote}
-            onChange={(event) => setDraft({ ...draft, compliance: { ...draft.compliance, footerNote: event.target.value } })}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                compliance: { ...draft.compliance, footerNote: event.target.value },
+              })
+            }
             disabled={!canEdit}
           />
         </Field>
@@ -192,7 +246,11 @@ export function OrganizationPage() {
             Save changes
           </Button>
           {dirty && (
-            <Button variant="text" onClick={() => setDraft(pickDraft(settings.data))} disabled={save.isPending}>
+            <Button
+              variant="text"
+              onClick={() => setDraft(pickDraft(settings.data))}
+              disabled={save.isPending}
+            >
               Discard
             </Button>
           )}

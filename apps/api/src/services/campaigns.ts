@@ -91,7 +91,9 @@ export function statsFor(db: Db, ids: string[]): Map<string, CampaignStats> {
 /** Totals across every marketing message queued since a moment in time. */
 export function statsSince(db: Db, since: string): CampaignStats {
   const row = db
-    .prepare(`SELECT ${STATS_COLUMNS} FROM messages WHERE kind IN ('campaign','automation') AND queued_at >= ?`)
+    .prepare(
+      `SELECT ${STATS_COLUMNS} FROM messages WHERE kind IN ('campaign','automation') AND queued_at >= ?`,
+    )
     .get(since) as StatsRow | undefined
   return toStats(row)
 }
@@ -151,17 +153,31 @@ function anyOf(db: Db, listIds: string[], segmentIds: string[], tagIds: string[]
   }
   for (const id of segmentIds) parts.push(compileSegment(db, loadSegment(db, id)))
   if (parts.length === 0) return null
-  return { sql: `(${parts.map((part) => part.sql).join(' OR ')})`, params: parts.flatMap((part) => part.params) }
+  return {
+    sql: `(${parts.map((part) => part.sql).join(' OR ')})`,
+    params: parts.flatMap((part) => part.params),
+  }
 }
 
 /** The audience as a WHERE clause over `contacts c`, before the sendable filter. */
 export function audienceWhere(db: Db, audience: CampaignAudience): Compiled {
   const include = audience.everyone
     ? { sql: '1 = 1', params: [] }
-    : (anyOf(db, audience.listIds, audience.segmentIds, audience.tagIds) ?? { sql: '0 = 1', params: [] })
-  const exclude = anyOf(db, audience.excludeListIds, audience.excludeSegmentIds, audience.excludeTagIds)
+    : (anyOf(db, audience.listIds, audience.segmentIds, audience.tagIds) ?? {
+        sql: '0 = 1',
+        params: [],
+      })
+  const exclude = anyOf(
+    db,
+    audience.excludeListIds,
+    audience.excludeSegmentIds,
+    audience.excludeTagIds,
+  )
   return exclude
-    ? { sql: `${include.sql} AND NOT ${exclude.sql}`, params: [...include.params, ...exclude.params] }
+    ? {
+        sql: `${include.sql} AND NOT ${exclude.sql}`,
+        params: [...include.params, ...exclude.params],
+      }
     : include
 }
 
@@ -200,7 +216,8 @@ export function estimateAudience(db: Db, audience: CampaignAudience): AudienceEs
 
 export function accountFor(ctx: Ctx, accountId: string | null): AccountRow | undefined {
   if (accountId) {
-    const row = ctx.db.prepare('SELECT * FROM sending_accounts WHERE id = ?').get(accountId) as AccountRow | undefined
+    const row = ctx.db.prepare('SELECT * FROM sending_accounts WHERE id = ?').get(accountId) as
+      AccountRow | undefined
     if (row) return row
   }
   return defaultAccountRow(ctx)
@@ -213,7 +230,11 @@ export function checkCampaign(ctx: Ctx, row: CampaignRow): CampaignCheck[] {
   const estimate = estimateAudience(ctx.db, audience)
   const account = accountFor(ctx, row.account_id)
   const base = publicUrl(ctx)
-  const text = row.html.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
+  const text = row.html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .trim()
 
   const checks: CampaignCheck[] = [
     {
@@ -297,7 +318,9 @@ export function startCampaign(ctx: Ctx, id: string): number {
 
   const queued = db.transaction(() => {
     const claimed = db
-      .prepare("UPDATE campaigns SET status = 'sending', started_at = ?, account_id = ?, updated_at = ? WHERE id = ? AND status IN ('draft','scheduled')")
+      .prepare(
+        "UPDATE campaigns SET status = 'sending', started_at = ?, account_id = ?, updated_at = ? WHERE id = ? AND status IN ('draft','scheduled')",
+      )
       .run(now, account?.id ?? null, now, id)
     if (claimed.changes === 0) return 0
     return db
@@ -309,7 +332,13 @@ export function startCampaign(ctx: Ctx, id: string): number {
       .run(id, account?.id ?? null, now, now, ...where.params).changes
   })()
 
-  writeLog(db, 'info', 'campaigns', `Campaign "${row.name}" started: ${queued.toLocaleString('en-US')} recipients queued`, { campaignId: id })
+  writeLog(
+    db,
+    'info',
+    'campaigns',
+    `Campaign "${row.name}" started: ${queued.toLocaleString('en-US')} recipients queued`,
+    { campaignId: id },
+  )
   return queued
 }
 
@@ -331,7 +360,11 @@ export function finishCampaigns(ctx: Ctx): void {
     .all() as { id: string; name: string }[]
   const now = nowIso()
   for (const campaign of done) {
-    ctx.db.prepare("UPDATE campaigns SET status = 'sent', finished_at = ?, updated_at = ? WHERE id = ?").run(now, now, campaign.id)
-    writeLog(ctx.db, 'info', 'campaigns', `Campaign "${campaign.name}" finished sending`, { campaignId: campaign.id })
+    ctx.db
+      .prepare("UPDATE campaigns SET status = 'sent', finished_at = ?, updated_at = ? WHERE id = ?")
+      .run(now, now, campaign.id)
+    writeLog(ctx.db, 'info', 'campaigns', `Campaign "${campaign.name}" finished sending`, {
+      campaignId: campaign.id,
+    })
   }
 }

@@ -14,7 +14,12 @@ describe('date and follow-up triggers', () => {
   let api: ReturnType<typeof client>
   let listId: string
 
-  const email = (subject: string) => ({ id: `e-${subject}`, type: 'email', subject, html: `<p>${subject}</p>` })
+  const email = (subject: string) => ({
+    id: `e-${subject}`,
+    type: 'email',
+    subject,
+    html: `<p>${subject}</p>`,
+  })
   const pad = (value: number) => String(value).padStart(2, '0')
   const dayOffset = (days: number) => localNow('UTC', new Date(Date.now() + days * 86_400_000))
 
@@ -23,7 +28,10 @@ describe('date and follow-up triggers', () => {
     catcher = await startCatcher()
     api = client(app)
     await setupOwner(api)
-    await api.patch('/settings', { organization: { address1: '1 Main St', city: 'Charlotte' }, timezone: 'UTC' })
+    await api.patch('/settings', {
+      organization: { address1: '1 Main St', city: 'Charlotte' },
+      timezone: 'UTC',
+    })
     await api.post('/sending-accounts', smtpAccount(catcher))
     listId = (await api.post('/lists', { name: 'Everyone' })).body.id
   })
@@ -36,34 +44,65 @@ describe('date and follow-up triggers', () => {
   it('greets people whose birthday is today, once a year, whatever year they were born', async () => {
     const today = dayOffset(0)
     const tomorrow = dayOffset(1)
-    await api.post('/contacts', { email: 'today@example.test', firstName: 'Tess', birthday: `1990-${today.md}`, listIds: [listId] })
-    await api.post('/contacts', { email: 'noyear@example.test', birthday: `--${today.md}`, listIds: [listId] })
-    await api.post('/contacts', { email: 'tomorrow@example.test', birthday: `1985-${tomorrow.md}`, listIds: [listId] })
+    await api.post('/contacts', {
+      email: 'today@example.test',
+      firstName: 'Tess',
+      birthday: `1990-${today.md}`,
+      listIds: [listId],
+    })
+    await api.post('/contacts', {
+      email: 'noyear@example.test',
+      birthday: `--${today.md}`,
+      listIds: [listId],
+    })
+    await api.post('/contacts', {
+      email: 'tomorrow@example.test',
+      birthday: `1985-${tomorrow.md}`,
+      listIds: [listId],
+    })
     await api.post('/contacts', { email: 'none@example.test', listIds: [listId] })
 
     const automation = (
-      await api.post('/automations', { name: 'Birthday', trigger: { type: 'date', field: 'birthday', offsetDays: 0, hour: 0 }, steps: [email('Happy birthday')] })
+      await api.post('/automations', {
+        name: 'Birthday',
+        trigger: { type: 'date', field: 'birthday', offsetDays: 0, hour: 0 },
+        steps: [email('Happy birthday')],
+      })
     ).body
     await api.post(`/automations/${automation.id}/activate`)
 
     scanScheduledTriggers(app.ctx)
     await app.worker.tick()
-    expect(catcher.mail.map((mail) => mail.to[0]).sort()).toEqual(['noyear@example.test', 'today@example.test'])
+    expect(catcher.mail.map((mail) => mail.to[0]).sort()).toEqual([
+      'noyear@example.test',
+      'today@example.test',
+    ])
 
     // The scan runs every few minutes all day. Nobody is greeted twice.
     scanScheduledTriggers(app.ctx)
     scanScheduledTriggers(app.ctx)
     await app.worker.tick()
     expect(catcher.mail).toHaveLength(2)
-    expect((await api.get(`/automations/${automation.id}`)).body.stats).toMatchObject({ completed: 2, emailsSent: 2 })
+    expect((await api.get(`/automations/${automation.id}`)).body.stats).toMatchObject({
+      completed: 2,
+      emailsSent: 2,
+    })
   })
 
   it('counts days before the date when asked to', async () => {
     catcher.mail.length = 0
     const inThreeDays = dayOffset(3)
-    await api.post('/contacts', { email: 'soon@example.test', birthday: `1970-${inThreeDays.md}`, listIds: [listId] })
+    await api.post('/contacts', {
+      email: 'soon@example.test',
+      birthday: `1970-${inThreeDays.md}`,
+      listIds: [listId],
+    })
     const automation = (
-      await api.post('/automations', { name: 'Coming up', trigger: { type: 'date', field: 'birthday', offsetDays: -3, hour: 0 }, steps: [email('Three days to go')] })
+      await api.post('/automations', {
+        name: 'Coming up',
+        trigger: { type: 'date', field: 'birthday', offsetDays: -3, hour: 0 },
+        steps: [email('Three days to go')],
+      })
     ).body
     await api.post(`/automations/${automation.id}/activate`)
 
@@ -76,9 +115,17 @@ describe('date and follow-up triggers', () => {
     catcher.mail.length = 0
     const now = localNow('UTC')
     if (now.hour === 23) return // No later hour today to wait for.
-    await api.post('/contacts', { email: 'later@example.test', birthday: `2000-${now.md}`, listIds: [listId] })
+    await api.post('/contacts', {
+      email: 'later@example.test',
+      birthday: `2000-${now.md}`,
+      listIds: [listId],
+    })
     const automation = (
-      await api.post('/automations', { name: 'Evening', trigger: { type: 'date', field: 'birthday', offsetDays: 0, hour: now.hour + 1 }, steps: [email('Good evening')] })
+      await api.post('/automations', {
+        name: 'Evening',
+        trigger: { type: 'date', field: 'birthday', offsetDays: 0, hour: now.hour + 1 },
+        steps: [email('Good evening')],
+      })
     ).body
     await api.post(`/automations/${automation.id}/activate`)
     scanScheduledTriggers(app.ctx)
@@ -91,7 +138,14 @@ describe('date and follow-up triggers', () => {
     const followers = (await api.post('/lists', { name: 'Followers' })).body.id
     await api.post('/contacts', { email: 'opened@example.test', listIds: [followers] })
     await api.post('/contacts', { email: 'ignored@example.test', listIds: [followers] })
-    const campaign = (await api.post('/campaigns', { name: 'Launch', subject: 'Launch', html: '<p>Launch</p>', audience: { listIds: [followers] } })).body
+    const campaign = (
+      await api.post('/campaigns', {
+        name: 'Launch',
+        subject: 'Launch',
+        html: '<p>Launch</p>',
+        audience: { listIds: [followers] },
+      })
+    ).body
     await api.post(`/campaigns/${campaign.id}/send`, {})
     await app.worker.tick()
     await app.worker.tick()
@@ -100,14 +154,23 @@ describe('date and follow-up triggers', () => {
     const automation = (
       await api.post('/automations', {
         name: 'Nudge',
-        trigger: { type: 'campaign_followup', campaignId: campaign.id, condition: 'not_opened', afterDays: 3 },
+        trigger: {
+          type: 'campaign_followup',
+          campaignId: campaign.id,
+          condition: 'not_opened',
+          afterDays: 3,
+        },
         steps: [email('In case you missed it')],
       })
     ).body
     await api.post(`/automations/${automation.id}/activate`)
 
     // One of them opens it.
-    const opened = app.ctx.db.prepare("SELECT token FROM messages WHERE to_email = 'opened@example.test' AND campaign_id = ?").get(campaign.id) as { token: string }
+    const opened = app.ctx.db
+      .prepare(
+        "SELECT token FROM messages WHERE to_email = 'opened@example.test' AND campaign_id = ?",
+      )
+      .get(campaign.id) as { token: string }
     await api.get(`/t/o/${opened.token}.gif`)
 
     // Too soon: it went out a minute ago.
@@ -117,7 +180,9 @@ describe('date and follow-up triggers', () => {
     expect(catcher.mail).toHaveLength(0)
 
     // Three days later.
-    app.ctx.db.prepare('UPDATE messages SET sent_at = ? WHERE campaign_id = ?').run(new Date(Date.now() - 3 * 86_400_000 - 60_000).toISOString(), campaign.id)
+    app.ctx.db
+      .prepare('UPDATE messages SET sent_at = ? WHERE campaign_id = ?')
+      .run(new Date(Date.now() - 3 * 86_400_000 - 60_000).toISOString(), campaign.id)
     scanScheduledTriggers(app.ctx)
     scanScheduledTriggers(app.ctx)
     await app.worker.tick()

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Copy, Save } from 'lucide-react'
 import { roleAtLeast, type Template } from '@ariad/shared'
+import { UnsavedGuard } from '@/components/UnsavedGuard'
 import { EmailEditor } from '@/features/email/EmailEditor'
 import { EmailPreview } from '@/features/email/EmailPreview'
 import { MergeTagMenu, insertAtCursor } from '@/features/email/MergeTagMenu'
@@ -29,7 +30,10 @@ const toDraft = (template: Template): Draft => ({
 /** One template: its name, its suggested subject, and the email itself. */
 export function TemplateEditorPage() {
   const { id = '' } = useParams()
-  const template = useQuery({ queryKey: ['template', id], queryFn: () => api.get<Template>(`/templates/${id}`) })
+  const template = useQuery({
+    queryKey: ['template', id],
+    queryFn: () => api.get<Template>(`/templates/${id}`),
+  })
 
   if (template.isPending) {
     return (
@@ -44,7 +48,11 @@ export function TemplateEditorPage() {
     return (
       <Page>
         <PageHeader title="Template" back={{ to: '/templates', label: 'Templates' }} />
-        {missing ? <EmptyState title="This template no longer exists" /> : <Banner tone="danger">{errorMessage(template.error)}</Banner>}
+        {missing ? (
+          <EmptyState title="This template no longer exists" />
+        ) : (
+          <Banner tone="danger">{errorMessage(template.error)}</Banner>
+        )}
       </Page>
     )
   }
@@ -54,19 +62,13 @@ export function TemplateEditorPage() {
 function Editor({ template }: { template: Template }) {
   const client = useQueryClient()
   const navigate = useNavigate()
-  const canEdit = roleAtLeast(useAuthState().data?.user?.role ?? 'viewer', 'editor') && !template.builtin
+  const canEdit =
+    roleAtLeast(useAuthState().data?.user?.role ?? 'viewer', 'editor') && !template.builtin
   const [draft, setDraft] = useState<Draft>(() => toDraft(template))
   const [saved, setSaved] = useState<Draft>(() => toDraft(template))
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved])
   const patch = (next: Partial<Draft>) => setDraft((current) => ({ ...current, ...next }))
   const subject = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (!dirty) return
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty])
 
   const save = useMutation({
     mutationFn: (body: Draft) => api.patch<Template>(`/templates/${template.id}`, body),
@@ -76,7 +78,8 @@ function Editor({ template }: { template: Template }) {
       void client.invalidateQueries({ queryKey: ['templates'] })
       toast.success('Template saved')
     },
-    onError: (error) => toast.error('The template was not saved', { description: errorMessage(error) }),
+    onError: (error) =>
+      toast.error('The template was not saved', { description: errorMessage(error) }),
   })
 
   const duplicate = useMutation({
@@ -96,14 +99,33 @@ function Editor({ template }: { template: Template }) {
         description={canEdit ? (dirty ? 'Unsaved changes' : 'All changes saved') : undefined}
         actions={
           canEdit ? (
-            <Button startIcon={<Save />} onClick={() => save.mutate(draft)} loading={save.isPending} disabled={!dirty || !draft.name.trim()}>
+            <Button
+              startIcon={<Save />}
+              onClick={() => save.mutate(draft)}
+              loading={save.isPending}
+              disabled={!dirty || !draft.name.trim()}
+            >
               Save template
             </Button>
           ) : template.builtin ? (
-            <Button startIcon={<Copy />} onClick={() => duplicate.mutate()} loading={duplicate.isPending}>
+            <Button
+              startIcon={<Copy />}
+              onClick={() => duplicate.mutate()}
+              loading={duplicate.isPending}
+            >
               Make a copy to edit
             </Button>
           ) : undefined
+        }
+      />
+
+      <UnsavedGuard
+        dirty={dirty && canEdit}
+        onSave={() =>
+          save.mutateAsync(draft).then(
+            () => true,
+            () => false,
+          )
         }
       />
 
@@ -117,22 +139,48 @@ function Editor({ template }: { template: Template }) {
         <>
           <div className="grid max-w-[44rem] grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Template name">
-              <TextInput value={draft.name} onChange={(event) => patch({ name: event.target.value })} />
+              <TextInput
+                value={draft.name}
+                onChange={(event) => patch({ name: event.target.value })}
+              />
             </Field>
             <Field label="Description" optional>
-              <TextInput value={draft.description ?? ''} onChange={(event) => patch({ description: event.target.value || null })} />
+              <TextInput
+                value={draft.description ?? ''}
+                onChange={(event) => patch({ description: event.target.value || null })}
+              />
             </Field>
-            <Field label="Suggested subject" optional hint="Fills in the subject of an email started from this template.">
-              <TextInput ref={subject} value={draft.subject} onChange={(event) => patch({ subject: event.target.value })} />
+            <Field
+              label="Suggested subject"
+              optional
+              hint="Fills in the subject of an email started from this template."
+            >
+              <TextInput
+                ref={subject}
+                value={draft.subject}
+                onChange={(event) => patch({ subject: event.target.value })}
+              />
             </Field>
             <Field label="Suggested preview text" optional>
-              <TextInput value={draft.preheader ?? ''} onChange={(event) => patch({ preheader: event.target.value || null })} />
+              <TextInput
+                value={draft.preheader ?? ''}
+                onChange={(event) => patch({ preheader: event.target.value || null })}
+              />
             </Field>
             <div className="-mt-2 flex sm:col-span-2">
-              <MergeTagMenu onPick={(token) => patch({ subject: insertAtCursor(subject.current, draft.subject, token) })} />
+              <MergeTagMenu
+                onPick={(token) =>
+                  patch({ subject: insertAtCursor(subject.current, draft.subject, token) })
+                }
+              />
             </div>
           </div>
-          <EmailEditor value={{ html: draft.html, design: draft.design }} onChange={(body) => patch(body)} subject={draft.subject} preheader={draft.preheader} />
+          <EmailEditor
+            value={{ html: draft.html, design: draft.design }}
+            onChange={(body) => patch(body)}
+            subject={draft.subject}
+            preheader={draft.preheader}
+          />
         </>
       ) : (
         <EmailPreview html={template.html} subject={template.subject} />

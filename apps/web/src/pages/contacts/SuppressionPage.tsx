@@ -27,7 +27,10 @@ const REASONS: Record<SuppressionReason, { label: string; tone: Tone }> = {
   bounced: { label: 'Bounced', tone: 'danger' },
   complained: { label: 'Spam complaint', tone: 'danger' },
 }
-const REASON_OPTIONS = (Object.keys(REASONS) as SuppressionReason[]).map((value) => ({ value, label: REASONS[value].label }))
+const REASON_OPTIONS = (Object.keys(REASONS) as SuppressionReason[]).map((value) => ({
+  value,
+  label: REASONS[value].label,
+}))
 
 /**
  * Lists and segments › Suppression list. The addresses Ariad never emails,
@@ -48,15 +51,20 @@ export function SuppressionPage() {
 
   const suppressions = useQuery({
     queryKey: [...contactKeys.suppressions, { q, page }],
-    queryFn: ({ signal }) => api.get<Paged<Suppression>>(`/suppressions${qs({ q, page, pageSize: PAGE_SIZE })}`, { signal }),
+    queryFn: ({ signal }) =>
+      api.get<Paged<Suppression>>(`/suppressions${qs({ q, page, pageSize: PAGE_SIZE })}`, {
+        signal,
+      }),
     placeholderData: keepPreviousData,
   })
   const rows = suppressions.data?.items ?? []
   const total = suppressions.data?.total ?? 0
-  const noneAtAll = suppressions.isSuccess && !suppressions.isPlaceholderData && total === 0 && q === ''
+  const noneAtAll =
+    suppressions.isSuccess && !suppressions.isPlaceholderData && total === 0 && q === ''
 
   const remove = useMutation({
-    mutationFn: (entry: Suppression) => api.delete(`/suppressions/${encodeURIComponent(entry.email)}`),
+    mutationFn: (entry: Suppression) =>
+      api.delete(`/suppressions/${encodeURIComponent(entry.email)}`),
     onSuccess: (_result, entry) => {
       setRemoving(null)
       void invalidate(contactKeys.suppressions)
@@ -68,11 +76,27 @@ export function SuppressionPage() {
     {
       key: 'email',
       header: 'Email address',
-      cell: (entry) => <span className="text-label text-[var(--ds-fg)] [overflow-wrap:anywhere]">{entry.email}</span>,
+      cell: (entry) => (
+        <span className="text-label text-[var(--ds-fg)] [overflow-wrap:anywhere]">
+          {entry.email}
+        </span>
+      ),
     },
-    { key: 'reason', header: 'Reason', cell: (entry) => <Badge tone={REASONS[entry.reason].tone}>{REASONS[entry.reason].label}</Badge> },
+    {
+      key: 'reason',
+      header: 'Reason',
+      cell: (entry) => (
+        <Badge tone={REASONS[entry.reason].tone}>{REASONS[entry.reason].label}</Badge>
+      ),
+    },
     { key: 'note', header: 'Note', hideBelow: 'md', cell: (entry) => entry.note },
-    { key: 'added', header: 'Added', hideBelow: 'sm', className: 'whitespace-nowrap', cell: (entry) => formatDate(entry.createdAt) },
+    {
+      key: 'added',
+      header: 'Added',
+      hideBelow: 'sm',
+      className: 'whitespace-nowrap',
+      cell: (entry) => formatDate(entry.createdAt),
+    },
     ...(canRemove
       ? [
           {
@@ -131,13 +155,23 @@ export function SuppressionPage() {
         </Card>
       ) : (
         <div className="flex flex-col gap-3">
-          <SearchInput value={search} onChange={setSearch} placeholder="Search addresses…" className="sm:max-w-[22rem]" />
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search addresses…"
+            className="sm:max-w-[22rem]"
+          />
 
           {suppressions.isError && (
             <Banner
               tone="danger"
               actions={
-                <Button size="sm" variant="outlined" onClick={() => suppressions.refetch()} loading={suppressions.isFetching}>
+                <Button
+                  size="sm"
+                  variant="outlined"
+                  onClick={() => suppressions.refetch()}
+                  loading={suppressions.isFetching}
+                >
                   Try again
                 </Button>
               }
@@ -171,7 +205,9 @@ export function SuppressionPage() {
                   }
                 />
               </Card>
-              {total > 0 && <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />}
+              {total > 0 && (
+                <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
+              )}
             </>
           )}
         </div>
@@ -198,8 +234,9 @@ export function SuppressionPage() {
         loading={remove.isPending}
       >
         <p>
-          <span className="text-[var(--ds-fg)] [overflow-wrap:anywhere]">{removing?.email}</span> comes off the suppression list, so an import, a
-          signup form or someone on your team can subscribe it again.
+          <span className="text-[var(--ds-fg)] [overflow-wrap:anywhere]">{removing?.email}</span>{' '}
+          comes off the suppression list, so an import, a signup form or someone on your team can
+          subscribe it again.
         </p>
         <p>
           {removing?.reason === 'bounced'
@@ -215,15 +252,28 @@ export function SuppressionPage() {
 }
 
 /** Adds addresses by hand. What is not an address is left out, and named, so it can be put right. */
-function AddDialog({ open, onClose, onAdded }: { open: boolean; onClose: () => void; onAdded: (added: number, done: boolean) => void }) {
+function AddDialog({
+  open,
+  onClose,
+  onAdded,
+}: {
+  open: boolean
+  onClose: () => void
+  onAdded: (added: number, done: boolean) => void
+}) {
   const formId = useId()
   const [emails, setEmails] = useState('')
   const [reason, setReason] = useState<SuppressionReason>('manual')
   const [note, setNote] = useState('')
-  const [result, setResult] = useState<{ added: number; invalid: number; rejected: string[] } | null>(null)
+  const [result, setResult] = useState<{
+    added: number
+    invalid: number
+    rejected: string[]
+  } | null>(null)
 
   const add = useMutation({
-    mutationFn: () => api.post<{ added: number; invalid: number }>('/suppressions', { emails, reason, note }),
+    mutationFn: () =>
+      api.post<{ added: number; invalid: number }>('/suppressions', { emails, reason, note }),
     onSuccess: (outcome) => {
       // The server counts what it refused; the same split and the same test say which they were.
       const rejected = emails.split(/[\s,;]+/).filter((entry) => entry && !isEmail(entry))
@@ -275,8 +325,18 @@ function AddDialog({ open, onClose, onAdded }: { open: boolean; onClose: () => v
       <form id={formId} onSubmit={submit} className="flex flex-col gap-5" noValidate>
         {general && <Banner tone="danger">{general}</Banner>}
         {result && (
-          <Banner tone="warning" title={result.added > 0 ? `${plural(result.added, 'address', 'addresses')} added` : 'Nothing was added'}>
-            {plural(result.invalid, 'entry', 'entries')} {result.invalid === 1 ? 'is not an email address and was' : 'are not email addresses and were'}{' '}
+          <Banner
+            tone="warning"
+            title={
+              result.added > 0
+                ? `${plural(result.added, 'address', 'addresses')} added`
+                : 'Nothing was added'
+            }
+          >
+            {plural(result.invalid, 'entry', 'entries')}{' '}
+            {result.invalid === 1
+              ? 'is not an email address and was'
+              : 'are not email addresses and were'}{' '}
             left out{result.rejected.length > 0 ? ': ' : '.'}
             {result.rejected.length > 0 && (
               <span className="[overflow-wrap:anywhere]">
@@ -287,7 +347,11 @@ function AddDialog({ open, onClose, onAdded }: { open: boolean; onClose: () => v
             {result.invalid === 1 ? 'Fix it' : 'Fix them'} below and add again.
           </Banner>
         )}
-        <Field label="Email addresses" hint="One per line, or separated by commas." error={fields.emails ? 'Enter at least one email address.' : undefined}>
+        <Field
+          label="Email addresses"
+          hint="One per line, or separated by commas."
+          error={fields.emails ? 'Enter at least one email address.' : undefined}
+        >
           <Textarea
             rows={6}
             value={emails}
@@ -297,10 +361,24 @@ function AddDialog({ open, onClose, onAdded }: { open: boolean; onClose: () => v
           />
         </Field>
         <Field label="Reason" htmlFor={`${formId}-reason`}>
-          <Select id={`${formId}-reason`} value={reason} onChange={(event) => setReason(event.target.value as SuppressionReason)} options={REASON_OPTIONS} />
+          <Select
+            id={`${formId}-reason`}
+            value={reason}
+            onChange={(event) => setReason(event.target.value as SuppressionReason)}
+            options={REASON_OPTIONS}
+          />
         </Field>
-        <Field label="Note" optional hint="For whoever looks at this list later: where the addresses came from." error={fields.note}>
-          <TextInput value={note} onChange={(event) => setNote(event.target.value)} maxLength={300} />
+        <Field
+          label="Note"
+          optional
+          hint="For whoever looks at this list later: where the addresses came from."
+          error={fields.note}
+        >
+          <TextInput
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            maxLength={300}
+          />
         </Field>
       </form>
     </Dialog>

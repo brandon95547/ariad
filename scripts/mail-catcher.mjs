@@ -38,5 +38,7 @@ const server = new SMTPServer({
 })
 
 server.listen(PORT, '127.0.0.1', () => {
-  process.stdout.write(`\n  Mail catcher listening on 127.0.0.1:${PORT}\n  CATCHER_VERBOSE=1 prints each message in full.\n`)
+  process.stdout.write(
+    `\n  Mail catcher listening on 127.0.0.1:${PORT}\n  CATCHER_VERBOSE=1 prints each message in full.\n`,
+  )
 })

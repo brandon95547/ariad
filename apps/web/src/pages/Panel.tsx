@@ -25,13 +25,19 @@ export function Panel({
   children: ReactNode
 }) {
   return (
-    <Card as="section" padding="none" className={cn('flex min-w-0 flex-col overflow-hidden', className)}>
+    <Card
+      as="section"
+      padding="none"
+      className={cn('flex min-w-0 flex-col overflow-hidden', className)}
+    >
       <header className="flex items-center justify-between gap-4 border-b border-[var(--ds-border-subtle)] px-5 py-3.5">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="text-label text-[var(--ds-fg)]">{title}</h2>
           {description && <p className="text-caption text-[var(--ds-fg-muted)]">{description}</p>}
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-1.5 coarse:gap-3">{actions}</div>}
+        {actions && (
+          <div className="flex shrink-0 items-center gap-1.5 coarse:gap-3">{actions}</div>
+        )}
       </header>
       <div className={cn('min-w-0 flex-1', !flush && 'p-5')}>{children}</div>
     </Card>

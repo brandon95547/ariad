@@ -50,10 +50,16 @@ const focusRing =
   'rounded-[var(--radius-xs)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ds-focus-ring)]'
 
 /** A link in a sentence. */
-export const inlineLink = cn(focusRing, 'text-[var(--ds-accent-text)] underline underline-offset-2 hover:text-[var(--ds-fg)]')
+export const inlineLink = cn(
+  focusRing,
+  'text-[var(--ds-accent-text)] underline underline-offset-2 hover:text-[var(--ds-fg)]',
+)
 
 /** The name in a table row, when the name is the way in. */
-export const rowLink = cn(focusRing, 'font-medium text-[var(--ds-fg)] underline-offset-2 hover:underline')
+export const rowLink = cn(
+  focusRing,
+  'font-medium text-[var(--ds-fg)] underline-offset-2 hover:underline',
+)
 
 const STATUS_TONE: Record<ContactStatus, Tone> = {
   subscribed: 'success',
@@ -73,11 +79,25 @@ export function StatusBadge({ status, size }: { status: ContactStatus; size?: 's
 
 /** A tag's own color, as the dot that goes with its name. */
 export function TagDot({ color, className }: { color: string; className?: string }) {
-  return <span aria-hidden className={cn('block h-2 w-2 shrink-0 rounded-full', className)} style={{ backgroundColor: color }} />
+  return (
+    <span
+      aria-hidden
+      className={cn('block h-2 w-2 shrink-0 rounded-full', className)}
+      style={{ backgroundColor: color }}
+    />
+  )
 }
 
 /** The heading of an audience tab: what the tab holds, and its one verb. */
-export function TabHeader({ title, description, action }: { title: string; description: ReactNode; action?: ReactNode }) {
+export function TabHeader({
+  title,
+  description,
+  action,
+}: {
+  title: string
+  description: ReactNode
+  action?: ReactNode
+}) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="flex max-w-[40rem] flex-col gap-1">
@@ -91,7 +111,9 @@ export function TabHeader({ title, description, action }: { title: string; descr
 
 /** Adds the current value to a select's options when it is no longer one of them. */
 export function withCurrent(options: SelectOption[], value: string, label: string): SelectOption[] {
-  return value && !options.some((option) => option.value === value) ? [...options, { value, label }] : options
+  return value && !options.some((option) => option.value === value)
+    ? [...options, { value, label }]
+    : options
 }
 
 /* ---- Editing a contact ---------------------------------------------------- */
@@ -129,7 +151,9 @@ export function draftOf(contact: Contact): ContactDraft {
     phone: contact.phone ?? '',
     birthday: contact.birthday ?? '',
     custom: { ...contact.custom },
-    listIds: contact.lists.filter((membership) => membership.status !== 'unsubscribed').map((membership) => membership.listId),
+    listIds: contact.lists
+      .filter((membership) => membership.status !== 'unsubscribed')
+      .map((membership) => membership.listId),
     tagIds: contact.tags.map((tag) => tag.id),
   }
 }
@@ -152,7 +176,9 @@ export function sameDraft(a: ContactDraft, b: ContactDraft): boolean {
 export function draftBody(draft: ContactDraft) {
   return {
     ...draft,
-    custom: Object.fromEntries(Object.entries(draft.custom).filter(([, value]) => value.trim() !== '')),
+    custom: Object.fromEntries(
+      Object.entries(draft.custom).filter(([, value]) => value.trim() !== ''),
+    ),
   }
 }
 
@@ -196,7 +222,10 @@ function BirthdayField({
             onChange={(event) => change({ ...parts, month: event.target.value })}
             disabled={readOnly}
             aria-describedby={`${id}-month-hint`}
-            options={[{ value: '', label: 'Month' }, ...MONTHS.map((month, index) => ({ value: String(index + 1), label: month }))]}
+            options={[
+              { value: '', label: 'Month' },
+              ...MONTHS.map((month, index) => ({ value: String(index + 1), label: month })),
+            ]}
           />
         </div>
         <TextInput
@@ -227,7 +256,11 @@ function BirthdayField({
 function splitBirthday(value: string) {
   const match = /^(\d{4}|-)-(\d{2})-(\d{2})$/.exec(value)
   if (!match) return { month: '', day: '', year: '' }
-  return { month: String(Number(match[2])), day: String(Number(match[3])), year: match[1] === '-' ? '' : match[1]! }
+  return {
+    month: String(Number(match[2])),
+    day: String(Number(match[3])),
+    year: match[1] === '-' ? '' : match[1]!,
+  }
 }
 
 function joinBirthday(parts: { month: string; day: string; year: string }): string {
@@ -261,7 +294,14 @@ function CustomFieldControl({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           disabled={readOnly}
-          options={withCurrent([{ value: '', label: 'Not set' }, ...choices.map((choice) => ({ value: choice, label: choice }))], value, value)}
+          options={withCurrent(
+            [
+              { value: '', label: 'Not set' },
+              ...choices.map((choice) => ({ value: choice, label: choice })),
+            ],
+            value,
+            value,
+          )}
         />
       </Field>
     )
@@ -296,7 +336,8 @@ export function ProfileFields({
 }) {
   const text = (key: 'email' | 'firstName' | 'lastName' | 'company' | 'phone') => ({
     value: draft[key],
-    onChange: (event: { target: { value: string } }) => onChange({ ...draft, [key]: event.target.value }),
+    onChange: (event: { target: { value: string } }) =>
+      onChange({ ...draft, [key]: event.target.value }),
     autoComplete: 'off',
     readOnly,
   })
@@ -321,13 +362,20 @@ export function ProfileFields({
           <TextInput type="tel" inputMode="tel" {...text('phone')} />
         </Field>
       </div>
-      <BirthdayField value={draft.birthday} onChange={(birthday) => onChange({ ...draft, birthday })} error={errors.birthday} readOnly={readOnly} />
+      <BirthdayField
+        value={draft.birthday}
+        onChange={(birthday) => onChange({ ...draft, birthday })}
+        error={errors.birthday}
+        readOnly={readOnly}
+      />
       {fields.map((field) => (
         <CustomFieldControl
           key={field.id}
           field={field}
           value={draft.custom[field.key] ?? ''}
-          onChange={(value) => onChange({ ...draft, custom: { ...draft.custom, [field.key]: value } })}
+          onChange={(value) =>
+            onChange({ ...draft, custom: { ...draft.custom, [field.key]: value } })
+          }
           error={errors[`custom.${field.key}`]}
           readOnly={readOnly}
         />
@@ -356,7 +404,11 @@ export function MembershipFields({
     <>
       <Field label="Lists" hint={listHint}>
         <MultiSelect
-          options={lists.map((list) => ({ value: list.id, label: list.name, hint: formatNumber(list.subscribedCount) }))}
+          options={lists.map((list) => ({
+            value: list.id,
+            label: list.name,
+            hint: formatNumber(list.subscribedCount),
+          }))}
           value={draft.listIds}
           onChange={(listIds) => onChange({ ...draft, listIds })}
           placeholder={readOnly ? 'None' : 'Choose lists…'}
@@ -366,7 +418,11 @@ export function MembershipFields({
       </Field>
       <Field label="Tags">
         <MultiSelect
-          options={tags.map((tag) => ({ value: tag.id, label: tag.name, hint: formatNumber(tag.contactCount) }))}
+          options={tags.map((tag) => ({
+            value: tag.id,
+            label: tag.name,
+            hint: formatNumber(tag.contactCount),
+          }))}
           value={draft.tagIds}
           onChange={(tagIds) => onChange({ ...draft, tagIds })}
           placeholder={readOnly ? 'None' : 'Choose tags…'}

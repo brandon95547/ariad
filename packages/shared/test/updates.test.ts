@@ -41,16 +41,23 @@ describe('update schemas', () => {
   }
 
   it('keeps what a campaign update leaves out, out', () => {
-    expect(campaignUpdateSchema.parse({ subject: 'New subject' })).toEqual({ subject: 'New subject' })
+    expect(campaignUpdateSchema.parse({ subject: 'New subject' })).toEqual({
+      subject: 'New subject',
+    })
   })
 
   it('still validates and transforms the fields that are given', () => {
-    expect(contactUpdateSchema.parse({ email: '  Ada@Example.TEST ', firstName: '' })).toEqual({ email: 'ada@example.test', firstName: null })
+    expect(contactUpdateSchema.parse({ email: '  Ada@Example.TEST ', firstName: '' })).toEqual({
+      email: 'ada@example.test',
+      firstName: null,
+    })
     expect(listUpdateSchema.safeParse({ name: '' }).success).toBe(false)
   })
 
   it('takes the default off and leaves the rest of the field alone', () => {
-    const schema = patchOf(z.object({ count: z.number().int().min(1).default(5), label: z.string() }))
+    const schema = patchOf(
+      z.object({ count: z.number().int().min(1).default(5), label: z.string() }),
+    )
     expect(schema.parse({})).toEqual({})
     expect(schema.parse({ count: 2 })).toEqual({ count: 2 })
     expect(schema.safeParse({ count: 0 }).success).toBe(false)

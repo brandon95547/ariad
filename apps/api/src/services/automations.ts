@@ -37,7 +37,8 @@ export interface AutomationRow {
 }
 
 export function getAutomationRow(db: Db, id: string): AutomationRow {
-  const row = db.prepare('SELECT * FROM automations WHERE id = ?').get(id) as AutomationRow | undefined
+  const row = db.prepare('SELECT * FROM automations WHERE id = ?').get(id) as
+    AutomationRow | undefined
   if (!row) throw AppError.notFound('automation')
   return row
 }
@@ -95,8 +96,12 @@ export function enroll(db: Db, automationId: string, contactId: string, occasion
     )
     .run(newId('run'), automationId, contactId, occasion, nowIso(), nowIso())
   if (result.changes > 0) {
-    const row = db.prepare('SELECT name FROM automations WHERE id = ?').get(automationId) as { name: string }
-    recordEvent(db, contactId, 'automation_started', `Started automation: ${row.name}`, { automationId })
+    const row = db.prepare('SELECT name FROM automations WHERE id = ?').get(automationId) as {
+      name: string
+    }
+    recordEvent(db, contactId, 'automation_started', `Started automation: ${row.name}`, {
+      automationId,
+    })
   }
   return result.changes > 0
 }
@@ -108,16 +113,24 @@ export type TriggerEvent =
 
 /** Something happened to a contact: start every active automation that was waiting for it. */
 export function fireTrigger(ctx: Ctx, event: TriggerEvent): void {
-  const rows = ctx.db.prepare("SELECT id, trigger FROM automations WHERE status = 'active'").all() as {
+  const rows = ctx.db
+    .prepare("SELECT id, trigger FROM automations WHERE status = 'active'")
+    .all() as {
     id: string
     trigger: string
   }[]
   for (const row of rows) {
     const trigger = parseJson<AutomationTrigger>(row.trigger, { type: 'manual' })
     const matches =
-      (trigger.type === 'list_subscribed' && event.type === 'list_subscribed' && (trigger.listId === null || trigger.listId === event.listId)) ||
-      (trigger.type === 'tag_added' && event.type === 'tag_added' && trigger.tagId === event.tagId) ||
-      (trigger.type === 'form_submitted' && event.type === 'form_submitted' && (trigger.formId === null || trigger.formId === event.formId))
+      (trigger.type === 'list_subscribed' &&
+        event.type === 'list_subscribed' &&
+        (trigger.listId === null || trigger.listId === event.listId)) ||
+      (trigger.type === 'tag_added' &&
+        event.type === 'tag_added' &&
+        trigger.tagId === event.tagId) ||
+      (trigger.type === 'form_submitted' &&
+        event.type === 'form_submitted' &&
+        (trigger.formId === null || trigger.formId === event.formId))
     if (matches) enroll(ctx.db, row.id, event.contactId, 'once')
   }
 }
@@ -129,18 +142,27 @@ interface RunRow {
   step_index: number
 }
 
-function endRun(db: Db, run: RunRow, status: 'completed' | 'exited' | 'failed', note: string | null): void {
-  db.prepare('UPDATE automation_runs SET status = ?, note = ?, next_run_at = NULL, finished_at = ? WHERE id = ?').run(
-    status,
-    note,
-    nowIso(),
-    run.id,
-  )
+function endRun(
+  db: Db,
+  run: RunRow,
+  status: 'completed' | 'exited' | 'failed',
+  note: string | null,
+): void {
+  db.prepare(
+    'UPDATE automation_runs SET status = ?, note = ?, next_run_at = NULL, finished_at = ? WHERE id = ?',
+  ).run(status, note, nowIso(), run.id)
   if (status === 'completed') {
-    const row = db.prepare('SELECT name FROM automations WHERE id = ?').get(run.automation_id) as { name: string } | undefined
-    recordEvent(db, run.contact_id, 'automation_completed', `Finished automation: ${row?.name ?? ''}`.trim(), {
-      automationId: run.automation_id,
-    })
+    const row = db.prepare('SELECT name FROM automations WHERE id = ?').get(run.automation_id) as
+      { name: string } | undefined
+    recordEvent(
+      db,
+      run.contact_id,
+      'automation_completed',
+      `Finished automation: ${row?.name ?? ''}`.trim(),
+      {
+        automationId: run.automation_id,
+      },
+    )
   }
 }
 
@@ -172,9 +194,7 @@ function advance(ctx: Ctx, run: RunRow, automation: AutomationRow): void {
     }
 
     if (step.type === 'email') {
-      const account = automation.account_id
-        ? { id: automation.account_id }
-        : defaultAccountRow(ctx)
+      const account = automation.account_id ? { id: automation.account_id } : defaultAccountRow(ctx)
       const now = nowIso()
       db.prepare(
         /* sql */ `INSERT INTO messages (id, kind, automation_id, step_id, contact_id, to_email, account_id, subject, html, priority, status, next_attempt_at, token, queued_at)
@@ -193,7 +213,8 @@ function advance(ctx: Ctx, run: RunRow, automation: AutomationRow): void {
         now,
       )
     } else if (step.type === 'add_tag') {
-      if (db.prepare('SELECT 1 FROM tags WHERE id = ?').get(step.tagId)) addTag(ctx, run.contact_id, step.tagId)
+      if (db.prepare('SELECT 1 FROM tags WHERE id = ?').get(step.tagId))
+        addTag(ctx, run.contact_id, step.tagId)
     } else if (step.type === 'remove_tag') {
       removeTag(db, run.contact_id, step.tagId)
     }
@@ -220,16 +241,25 @@ export function advanceDueRuns(ctx: Ctx): void {
       ctx.db.transaction(() => advance(ctx, run, automation))()
     } catch (error) {
       endRun(ctx.db, run, 'failed', String((error as Error).message ?? error).slice(0, 300))
-      writeLog(ctx.db, 'error', 'automations', `Automation "${automation.name}" failed for a contact`, {
-        runId: run.id,
-        error: String(error),
-      })
+      writeLog(
+        ctx.db,
+        'error',
+        'automations',
+        `Automation "${automation.name}" failed for a contact`,
+        {
+          runId: run.id,
+          error: String(error),
+        },
+      )
     }
   }
 }
 
 /** Today's date and hour where the account lives, not where the server does. */
-export function localNow(timezone: string, at = new Date()): { year: number; md: string; hour: number } {
+export function localNow(
+  timezone: string,
+  at = new Date(),
+): { year: number; md: string; hour: number } {
   let parts: Intl.DateTimeFormatPart[]
   try {
     parts = new Intl.DateTimeFormat('en-CA', {
@@ -244,7 +274,11 @@ export function localNow(timezone: string, at = new Date()): { year: number; md:
     return localNow('UTC', at)
   }
   const get = (type: string) => parts.find((part) => part.type === type)?.value ?? '00'
-  return { year: Number(get('year')), md: `${get('month')}-${get('day')}`, hour: Number(get('hour')) }
+  return {
+    year: Number(get('year')),
+    md: `${get('month')}-${get('day')}`,
+    hour: Number(get('hour')),
+  }
 }
 
 const CUSTOM_KEY = /^[a-z][a-z0-9_]{0,39}$/
@@ -255,7 +289,9 @@ const CUSTOM_KEY = /^[a-z][a-z0-9_]{0,39}$/
  */
 export function scanScheduledTriggers(ctx: Ctx): void {
   const { db } = ctx
-  const rows = db.prepare("SELECT * FROM automations WHERE status = 'active'").all() as AutomationRow[]
+  const rows = db
+    .prepare("SELECT * FROM automations WHERE status = 'active'")
+    .all() as AutomationRow[]
   const timezone = getSettings(db).timezone
 
   for (const row of rows) {
@@ -279,7 +315,9 @@ export function scanScheduledTriggers(ctx: Ctx): void {
       } else continue
 
       const contacts = db
-        .prepare(`SELECT c.id FROM contacts c WHERE substr(${column}, -5) = ? ${extra} AND ${SENDABLE}`)
+        .prepare(
+          `SELECT c.id FROM contacts c WHERE substr(${column}, -5) = ? ${extra} AND ${SENDABLE}`,
+        )
         .all(target.md) as { id: string }[]
       for (const contact of contacts) enroll(db, row.id, contact.id, String(now.year))
     }
@@ -304,8 +342,12 @@ export function scanScheduledTriggers(ctx: Ctx): void {
                      WHERE m.kind = 'campaign' AND m.status = 'sent' AND m.sent_at BETWEEN ? AND ?
                        AND (? IS NULL OR m.campaign_id = ?) AND ${condition} AND ${SENDABLE}`,
         )
-        .all(lower, upper, trigger.campaignId, trigger.campaignId) as { contactId: string; campaignId: string }[]
-      for (const message of messages) enroll(db, row.id, message.contactId, `campaign:${message.campaignId}`)
+        .all(lower, upper, trigger.campaignId, trigger.campaignId) as {
+        contactId: string
+        campaignId: string
+      }[]
+      for (const message of messages)
+        enroll(db, row.id, message.contactId, `campaign:${message.campaignId}`)
     }
   }
 }

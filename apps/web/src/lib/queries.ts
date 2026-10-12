@@ -26,18 +26,35 @@ export const keys = {
 }
 
 export const useAuthState = () =>
-  useQuery({ queryKey: keys.auth, queryFn: () => api.get<AuthState>('/auth/state'), staleTime: 60_000, retry: 1 })
+  useQuery({
+    queryKey: keys.auth,
+    queryFn: () => api.get<AuthState>('/auth/state'),
+    staleTime: 60_000,
+    retry: 1,
+  })
 
 export const useSettings = () =>
-  useQuery({ queryKey: keys.settings, queryFn: () => api.get<SettingsView>('/settings'), staleTime: 30_000 })
+  useQuery({
+    queryKey: keys.settings,
+    queryFn: () => api.get<SettingsView>('/settings'),
+    staleTime: 30_000,
+  })
 
 export const useAccounts = (options: { refetchInterval?: number } = {}) =>
-  useQuery({ queryKey: keys.accounts, queryFn: () => api.get<SendingAccount[]>('/sending-accounts'), ...options })
+  useQuery({
+    queryKey: keys.accounts,
+    queryFn: () => api.get<SendingAccount[]>('/sending-accounts'),
+    ...options,
+  })
 
-export const useLists = () => useQuery({ queryKey: keys.lists, queryFn: () => api.get<ContactList[]>('/lists') })
-export const useTags = () => useQuery({ queryKey: keys.tags, queryFn: () => api.get<Tag[]>('/tags') })
-export const useFields = () => useQuery({ queryKey: keys.fields, queryFn: () => api.get<CustomField[]>('/fields') })
-export const useSegments = () => useQuery({ queryKey: keys.segments, queryFn: () => api.get<Segment[]>('/segments') })
+export const useLists = () =>
+  useQuery({ queryKey: keys.lists, queryFn: () => api.get<ContactList[]>('/lists') })
+export const useTags = () =>
+  useQuery({ queryKey: keys.tags, queryFn: () => api.get<Tag[]>('/tags') })
+export const useFields = () =>
+  useQuery({ queryKey: keys.fields, queryFn: () => api.get<CustomField[]>('/fields') })
+export const useSegments = () =>
+  useQuery({ queryKey: keys.segments, queryFn: () => api.get<Segment[]>('/segments') })
 
 /** Marks everything under these keys stale, e.g. after an import touches contacts, lists and tags at once. */
 export function useInvalidate() {

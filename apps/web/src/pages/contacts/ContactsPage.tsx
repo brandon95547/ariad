@@ -1,8 +1,29 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Download, ListMinus, ListPlus, MoreHorizontal, Plus, Search, SlidersHorizontal, Tag as TagIcon, Trash2, Upload, UserMinus, Users, X } from 'lucide-react'
-import { API_PREFIX, CONTACT_STATUSES, CONTACT_STATUS_LABELS, type Contact, type ContactStatus, type Paged } from '@ariad/shared'
+import {
+  Download,
+  ListMinus,
+  ListPlus,
+  MoreHorizontal,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Tag as TagIcon,
+  Trash2,
+  Upload,
+  UserMinus,
+  Users,
+  X,
+} from 'lucide-react'
+import {
+  API_PREFIX,
+  CONTACT_STATUSES,
+  CONTACT_STATUS_LABELS,
+  type Contact,
+  type ContactStatus,
+  type Paged,
+} from '@ariad/shared'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { api, errorMessage, qs } from '@/lib/api'
 import { formatDate, formatDateTime, formatNumber, formatRelative, plural } from '@/lib/format'
@@ -39,9 +60,13 @@ const SORTS = [
 ] as const
 type Sort = (typeof SORTS)[number]['value']
 
-type BulkAction = 'add_tag' | 'remove_tag' | 'add_to_list' | 'remove_from_list' | 'unsubscribe' | 'delete'
+type BulkAction =
+  'add_tag' | 'remove_tag' | 'add_to_list' | 'remove_from_list' | 'unsubscribe' | 'delete'
 
-const PICKERS: Record<Exclude<BulkAction, 'unsubscribe' | 'delete'>, { title: (count: string) => string; confirm: string; note?: string }> = {
+const PICKERS: Record<
+  Exclude<BulkAction, 'unsubscribe' | 'delete'>,
+  { title: (count: string) => string; confirm: string; note?: string }
+> = {
   add_tag: {
     title: (count) => `Add a tag to ${count}`,
     confirm: 'Add tag',
@@ -53,7 +78,10 @@ const PICKERS: Record<Exclude<BulkAction, 'unsubscribe' | 'delete'>, { title: (c
     confirm: 'Add to list',
     note: 'They are subscribed to the list right away, and any automation that runs when someone joins it starts for each of them.',
   },
-  remove_from_list: { title: (count) => `Remove ${count} from a list`, confirm: 'Remove from list' },
+  remove_from_list: {
+    title: (count) => `Remove ${count} from a list`,
+    confirm: 'Remove from list',
+  },
 }
 
 function lastActivity(contact: Contact): { verb: string; at: string } | null {
@@ -82,7 +110,9 @@ const COLUMNS: Column<Contact>[] = [
       return (
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-label text-[var(--ds-fg)]">{name || contact.email}</span>
-          {name && <span className="truncate text-caption text-[var(--ds-fg-muted)]">{contact.email}</span>}
+          {name && (
+            <span className="truncate text-caption text-[var(--ds-fg-muted)]">{contact.email}</span>
+          )}
         </div>
       )
     },
@@ -91,7 +121,7 @@ const COLUMNS: Column<Contact>[] = [
   {
     key: 'tags',
     header: 'Tags',
-    hideBelow: 'lg',
+    hideBelow: 'xl',
     cell: (contact) =>
       contact.tags.length === 0 ? null : (
         <div className="flex min-w-[10rem] flex-wrap items-center gap-1">
@@ -101,7 +131,13 @@ const COLUMNS: Column<Contact>[] = [
             </Chip>
           ))}
           {contact.tags.length > 3 && (
-            <span className="px-1 text-caption text-[var(--ds-fg-muted)]" title={contact.tags.slice(3).map((tag) => tag.name).join(', ')}>
+            <span
+              className="px-1 text-caption text-[var(--ds-fg-muted)]"
+              title={contact.tags
+                .slice(3)
+                .map((tag) => tag.name)
+                .join(', ')}
+            >
               +{contact.tags.length - 3}
             </span>
           )}
@@ -112,7 +148,7 @@ const COLUMNS: Column<Contact>[] = [
     key: 'lists',
     header: 'Lists',
     align: 'right',
-    hideBelow: 'lg',
+    hideBelow: 'xl',
     cell: (contact) => {
       const on = contact.lists.filter((membership) => membership.status !== 'unsubscribed')
       return (
@@ -138,7 +174,13 @@ const COLUMNS: Column<Contact>[] = [
       )
     },
   },
-  { key: 'added', header: 'Added', hideBelow: 'sm', className: 'whitespace-nowrap', cell: (contact) => formatDate(contact.createdAt) },
+  {
+    key: 'added',
+    header: 'Added',
+    hideBelow: 'sm',
+    className: 'whitespace-nowrap',
+    cell: (contact) => formatDate(contact.createdAt),
+  },
 ]
 
 /**
@@ -159,14 +201,18 @@ export function ContactsPage() {
   const segments = useSegments()
 
   const status = CONTACT_STATUSES.find((value) => value === params.get('status')) ?? ''
-  const sort: Sort = SORTS.find((option) => option.value === params.get('sort'))?.value ?? 'created_desc'
+  const sort: Sort =
+    SORTS.find((option) => option.value === params.get('sort'))?.value ?? 'created_desc'
   const q = params.get('q') ?? ''
   const listId = params.get('listId') ?? ''
   const tagId = params.get('tagId') ?? ''
   const segmentId = params.get('segmentId') ?? ''
   const page = Math.max(1, Math.floor(Number(params.get('page'))) || 1)
 
-  const filters = useMemo(() => ({ q, status, listId, tagId, segmentId }), [q, status, listId, tagId, segmentId])
+  const filters = useMemo(
+    () => ({ q, status, listId, tagId, segmentId }),
+    [q, status, listId, tagId, segmentId],
+  )
   const activeFilters = [status, listId, tagId, segmentId].filter(Boolean).length
   const filtered = activeFilters > 0 || q !== ''
 
@@ -208,12 +254,16 @@ export function ContactsPage() {
 
   const contacts = useQuery({
     queryKey: contactKeys.list({ ...filters, sort, page }),
-    queryFn: ({ signal }) => api.get<Paged<Contact>>(`/contacts${qs({ ...filters, sort, page, pageSize: PAGE_SIZE })}`, { signal }),
+    queryFn: ({ signal }) =>
+      api.get<Paged<Contact>>(`/contacts${qs({ ...filters, sort, page, pageSize: PAGE_SIZE })}`, {
+        signal,
+      }),
     placeholderData: keepPreviousData,
   })
   const rows = contacts.data?.items ?? []
   const total = contacts.data?.total ?? 0
-  const noContactsAtAll = contacts.isSuccess && !contacts.isPlaceholderData && total === 0 && !filtered
+  const noContactsAtAll =
+    contacts.isSuccess && !contacts.isPlaceholderData && total === 0 && !filtered
 
   // A page past the end, after a delete or from an old link, falls back to the last one.
   useEffect(() => {
@@ -286,51 +336,117 @@ export function ContactsPage() {
 
   const listOptions = (lists.data ?? []).map((list) => ({ value: list.id, label: list.name }))
   const tagOptions = (tags.data ?? []).map((tag) => ({ value: tag.id, label: tag.name }))
-  const segmentOptions = (segments.data ?? []).map((segment) => ({ value: segment.id, label: segment.name }))
+  const segmentOptions = (segments.data ?? []).map((segment) => ({
+    value: segment.id,
+    label: segment.name,
+  }))
 
-  const filterSelects: { key: string; label: string; value: string; options: SelectOption[]; width: string }[] = [
+  const filterSelects: {
+    key: string
+    label: string
+    value: string
+    options: SelectOption[]
+    width: string
+  }[] = [
     {
       key: 'status',
       label: 'Status',
       value: status,
       width: 'w-[9.5rem]',
-      options: [{ value: '', label: 'All statuses' }, ...CONTACT_STATUSES.map((value: ContactStatus) => ({ value, label: CONTACT_STATUS_LABELS[value] }))],
+      options: [
+        { value: '', label: 'All statuses' },
+        ...CONTACT_STATUSES.map((value: ContactStatus) => ({
+          value,
+          label: CONTACT_STATUS_LABELS[value],
+        })),
+      ],
     },
     {
       key: 'listId',
       label: 'List',
       value: listId,
       width: 'w-[9.5rem]',
-      options: withCurrent([{ value: '', label: 'All lists' }, ...listOptions], lists.isSuccess ? listId : '', 'A deleted list'),
+      options: withCurrent(
+        [{ value: '', label: 'All lists' }, ...listOptions],
+        lists.isSuccess ? listId : '',
+        'A deleted list',
+      ),
     },
     {
       key: 'tagId',
       label: 'Tag',
       value: tagId,
       width: 'w-[8.5rem]',
-      options: withCurrent([{ value: '', label: 'All tags' }, ...tagOptions], tags.isSuccess ? tagId : '', 'A deleted tag'),
+      options: withCurrent(
+        [{ value: '', label: 'All tags' }, ...tagOptions],
+        tags.isSuccess ? tagId : '',
+        'A deleted tag',
+      ),
     },
     {
       key: 'segmentId',
       label: 'Segment',
       value: segmentId,
       width: 'w-[10rem]',
-      options: withCurrent([{ value: '', label: 'All segments' }, ...segmentOptions], segments.isSuccess ? segmentId : '', 'A deleted segment'),
+      options: withCurrent(
+        [{ value: '', label: 'All segments' }, ...segmentOptions],
+        segments.isSuccess ? segmentId : '',
+        'A deleted segment',
+      ),
     },
     { key: 'sort', label: 'Sort by', value: sort, width: 'w-[10rem]', options: [...SORTS] },
   ]
 
   const searchField = (
-    <SearchInput value={search} onChange={setSearch} placeholder="Search contacts…" aria-label="Search contacts by name, email or company" className="min-w-0 flex-1" />
+    <SearchInput
+      value={search}
+      onChange={setSearch}
+      placeholder="Search contacts…"
+      aria-label="Search contacts by name, email or company"
+      className="min-w-0 flex-1"
+    />
   )
 
   const bulkMenu: MenuAction[] = [
-    { id: 'add_tag', label: 'Add tag', icon: <TagIcon size={14} />, onSelect: () => openBulk('add_tag') },
-    { id: 'remove_tag', label: 'Remove tag', icon: <TagIcon size={14} />, onSelect: () => openBulk('remove_tag') },
-    { id: 'add_to_list', label: 'Add to list', icon: <ListPlus size={14} />, onSelect: () => openBulk('add_to_list'), separated: true },
-    { id: 'remove_from_list', label: 'Remove from list', icon: <ListMinus size={14} />, onSelect: () => openBulk('remove_from_list') },
-    { id: 'unsubscribe', label: 'Unsubscribe', icon: <UserMinus size={14} />, onSelect: () => openBulk('unsubscribe'), separated: true },
-    { id: 'delete', label: 'Delete', icon: <Trash2 size={14} />, onSelect: () => openBulk('delete'), danger: true },
+    {
+      id: 'add_tag',
+      label: 'Add tag',
+      icon: <TagIcon size={14} />,
+      onSelect: () => openBulk('add_tag'),
+    },
+    {
+      id: 'remove_tag',
+      label: 'Remove tag',
+      icon: <TagIcon size={14} />,
+      onSelect: () => openBulk('remove_tag'),
+    },
+    {
+      id: 'add_to_list',
+      label: 'Add to list',
+      icon: <ListPlus size={14} />,
+      onSelect: () => openBulk('add_to_list'),
+      separated: true,
+    },
+    {
+      id: 'remove_from_list',
+      label: 'Remove from list',
+      icon: <ListMinus size={14} />,
+      onSelect: () => openBulk('remove_from_list'),
+    },
+    {
+      id: 'unsubscribe',
+      label: 'Unsubscribe',
+      icon: <UserMinus size={14} />,
+      onSelect: () => openBulk('unsubscribe'),
+      separated: true,
+    },
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <Trash2 size={14} />,
+      onSelect: () => openBulk('delete'),
+      danger: true,
+    },
   ]
 
   const picker = bulk && bulk !== 'unsubscribe' && bulk !== 'delete' ? PICKERS[bulk] : null
@@ -349,7 +465,11 @@ export function ContactsPage() {
             </Button>
           ) : roomForActions ? (
             <>
-              <Button variant="outlined" startIcon={<Upload />} onClick={() => navigate('/contacts/import')}>
+              <Button
+                variant="outlined"
+                startIcon={<Upload />}
+                onClick={() => navigate('/contacts/import')}
+              >
                 Import
               </Button>
               <Button variant="outlined" startIcon={<Download />} onClick={download}>
@@ -368,8 +488,18 @@ export function ContactsPage() {
                 label="More contact actions"
                 icon={<MoreHorizontal size={16} />}
                 actions={[
-                  { id: 'import', label: 'Import', icon: <Upload size={14} />, onSelect: () => navigate('/contacts/import') },
-                  { id: 'export', label: 'Export', icon: <Download size={14} />, onSelect: download },
+                  {
+                    id: 'import',
+                    label: 'Import',
+                    icon: <Upload size={14} />,
+                    onSelect: () => navigate('/contacts/import'),
+                  },
+                  {
+                    id: 'export',
+                    label: 'Export',
+                    icon: <Download size={14} />,
+                    onSelect: download,
+                  },
                 ]}
               />
             </>
@@ -405,7 +535,12 @@ export function ContactsPage() {
         <div className="flex flex-col gap-3">
           {/* The bulk bar takes the filters' place and their height, so the row just ticked stays under the pointer. */}
           <div className="grid">
-            <div className={cn('col-start-1 row-start-1 flex flex-wrap items-center gap-2', count > 0 && 'invisible')}>
+            <div
+              className={cn(
+                'col-start-1 row-start-1 flex flex-wrap items-center gap-2',
+                count > 0 && 'invisible',
+              )}
+            >
               {searchField}
               {inlineFilters ? (
                 filterSelects.map((filter) => (
@@ -419,7 +554,11 @@ export function ContactsPage() {
                   </div>
                 ))
               ) : (
-                <Button variant="outlined" startIcon={<SlidersHorizontal />} onClick={() => setFiltersOpen(true)}>
+                <Button
+                  variant="outlined"
+                  startIcon={<SlidersHorizontal />}
+                  onClick={() => setFiltersOpen(true)}
+                >
                   {activeFilters > 0 ? `Filters · ${activeFilters}` : 'Filters'}
                 </Button>
               )}
@@ -427,39 +566,84 @@ export function ContactsPage() {
 
             {count > 0 && (
               <div className="col-start-1 row-start-1 flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1 self-start rounded-[var(--radius-md)] bg-[var(--ds-accent-subtle)] py-0.5 pr-0.5 pl-3">
-                <span aria-live="polite" data-tabular className="text-label text-[var(--ds-accent-text)]">
+                <span
+                  aria-live="polite"
+                  data-tabular
+                  className="text-label text-[var(--ds-accent-text)]"
+                >
                   {formatNumber(count)} selected
                 </span>
                 {offerAll && (
-                  <Button size="xs" variant="text" onClick={() => selectAll.mutate()} loading={selectAll.isPending}>
-                    {total > BULK_LIMIT ? `Select the first ${formatNumber(BULK_LIMIT)} matching` : `Select all ${formatNumber(total)} matching`}
+                  <Button
+                    size="xs"
+                    variant="text"
+                    onClick={() => selectAll.mutate()}
+                    loading={selectAll.isPending}
+                  >
+                    {total > BULK_LIMIT
+                      ? `Select the first ${formatNumber(BULK_LIMIT)} matching`
+                      : `Select all ${formatNumber(total)} matching`}
                   </Button>
                 )}
                 <div className="ml-auto flex items-center gap-1 coarse:gap-3">
                   {roomForBulk ? (
                     <>
-                      <Button size="xs" variant="text" startIcon={<TagIcon />} onClick={() => openBulk('add_tag')}>
+                      <Button
+                        size="xs"
+                        variant="text"
+                        startIcon={<TagIcon />}
+                        onClick={() => openBulk('add_tag')}
+                      >
                         Add tag
                       </Button>
-                      <Button size="xs" variant="text" startIcon={<ListPlus />} onClick={() => openBulk('add_to_list')}>
+                      <Button
+                        size="xs"
+                        variant="text"
+                        startIcon={<ListPlus />}
+                        onClick={() => openBulk('add_to_list')}
+                      >
                         Add to list
                       </Button>
-                      <Button size="xs" variant="text" startIcon={<UserMinus />} onClick={() => openBulk('unsubscribe')}>
+                      <Button
+                        size="xs"
+                        variant="text"
+                        startIcon={<UserMinus />}
+                        onClick={() => openBulk('unsubscribe')}
+                      >
                         Unsubscribe
                       </Button>
-                      <Button size="xs" variant="danger-outline" startIcon={<Trash2 />} onClick={() => openBulk('delete')}>
+                      <Button
+                        size="xs"
+                        variant="danger-outline"
+                        startIcon={<Trash2 />}
+                        onClick={() => openBulk('delete')}
+                      >
                         Delete
                       </Button>
                       <ActionMenu
                         label="More actions for the selection"
                         icon={<MoreHorizontal size={16} />}
-                        actions={bulkMenu.filter((action) => action.id === 'remove_tag' || action.id === 'remove_from_list').map((action) => ({ ...action, separated: false }))}
+                        actions={bulkMenu
+                          .filter(
+                            (action) =>
+                              action.id === 'remove_tag' || action.id === 'remove_from_list',
+                          )
+                          .map((action) => ({ ...action, separated: false }))}
                       />
                     </>
                   ) : (
-                    <ActionMenu label="Actions for the selection" icon={<MoreHorizontal size={16} />} actions={bulkMenu} />
+                    <ActionMenu
+                      label="Actions for the selection"
+                      icon={<MoreHorizontal size={16} />}
+                      actions={bulkMenu}
+                    />
                   )}
-                  <IconButton label="Clear selection" icon={<X />} size="sm" onClick={() => setSelected(new Set())} />
+                  <IconButton
+                    label="Clear selection"
+                    icon={<X />}
+                    size="sm"
+                    onClick={() => setSelected(new Set())}
+                  />
                 </div>
               </div>
             )}
@@ -470,7 +654,12 @@ export function ContactsPage() {
               tone="danger"
               actions={
                 <>
-                  <Button size="sm" variant="outlined" onClick={() => contacts.refetch()} loading={contacts.isFetching}>
+                  <Button
+                    size="sm"
+                    variant="outlined"
+                    onClick={() => contacts.refetch()}
+                    loading={contacts.isFetching}
+                  >
                     Try again
                   </Button>
                   {filtered && (
@@ -504,7 +693,11 @@ export function ContactsPage() {
                       compact
                       icon={<Search size={18} />}
                       title="No contacts match"
-                      description={q ? `Nothing matches “${q}”${activeFilters > 0 ? ' with these filters' : ''}.` : 'Nobody fits these filters.'}
+                      description={
+                        q
+                          ? `Nothing matches “${q}”${activeFilters > 0 ? ' with these filters' : ''}.`
+                          : 'Nobody fits these filters.'
+                      }
                       action={
                         <Button size="sm" variant="outlined" onClick={clearFilters}>
                           Clear filters
@@ -514,7 +707,14 @@ export function ContactsPage() {
                   }
                 />
               </Card>
-              {total > 0 && <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={(next) => update({ page: next })} />}
+              {total > 0 && (
+                <Pagination
+                  page={page}
+                  pageSize={PAGE_SIZE}
+                  total={total}
+                  onPageChange={(next) => update({ page: next })}
+                />
+              )}
             </>
           )}
         </div>
@@ -554,7 +754,9 @@ export function ContactsPage() {
         onCreated={(contact) => {
           setAdding(false)
           void invalidate(contactKeys.all, keys.lists, keys.tags, keys.segments)
-          toast.success(`${contact.email} added`, { action: { label: 'View', onClick: () => navigate(`/contacts/${contact.id}`) } })
+          toast.success(`${contact.email} added`, {
+            action: { label: 'View', onClick: () => navigate(`/contacts/${contact.id}`) },
+          })
         }}
       />
 
@@ -568,7 +770,10 @@ export function ContactsPage() {
             <Button variant="text" onClick={() => setBulk(null)} disabled={runBulk.isPending}>
               Cancel
             </Button>
-            <Button onClick={() => (pick && bulk ? runBulk.mutate(bulk) : setPickMissing(true))} loading={runBulk.isPending}>
+            <Button
+              onClick={() => (pick && bulk ? runBulk.mutate(bulk) : setPickMissing(true))}
+              loading={runBulk.isPending}
+            >
               {picker?.confirm}
             </Button>
           </>
@@ -579,18 +784,25 @@ export function ContactsPage() {
             label={pickingTag ? 'Tag' : 'List'}
             htmlFor={pickId}
             hint={picker?.note}
-            error={pickMissing && !pick ? (pickingTag ? 'Choose a tag.' : 'Choose a list.') : undefined}
+            error={
+              pickMissing && !pick ? (pickingTag ? 'Choose a tag.' : 'Choose a list.') : undefined
+            }
           >
             <Select
               id={pickId}
               value={pick}
               onChange={(event) => setPick(event.target.value)}
-              options={[{ value: '', label: pickingTag ? 'Choose a tag' : 'Choose a list' }, ...pickOptions]}
+              options={[
+                { value: '', label: pickingTag ? 'Choose a tag' : 'Choose a list' },
+                ...pickOptions,
+              ]}
             />
           </Field>
           {pickOptions.length === 0 && (
             <p className="text-body-sm text-[var(--ds-fg-muted)]">
-              {pickingTag ? 'There are no tags yet. Make one under Lists and segments, then come back.' : 'There are no lists yet. Make one under Lists and segments, then come back.'}
+              {pickingTag
+                ? 'There are no tags yet. Make one under Lists and segments, then come back.'
+                : 'There are no lists yet. Make one under Lists and segments, then come back.'}
             </p>
           )}
           {runBulk.isError && <Banner tone="danger">{errorMessage(runBulk.error)}</Banner>}
@@ -606,8 +818,9 @@ export function ContactsPage() {
         loading={runBulk.isPending}
       >
         <p>
-          They stop getting all email from you. Anything waiting to send to them is canceled, any automation they are in ends, and their addresses go
-          on the suppression list so an import cannot add them back by mistake.
+          They stop getting all email from you. Anything waiting to send to them is canceled, any
+          automation they are in ends, and their addresses go on the suppression list so an import
+          cannot add them back by mistake.
         </p>
         {runBulk.isError && <Banner tone="danger">{errorMessage(runBulk.error)}</Banner>}
       </ConfirmDialog>
@@ -621,7 +834,8 @@ export function ContactsPage() {
         loading={runBulk.isPending}
       >
         <p>
-          This removes them and their history for good. Anyone who had unsubscribed stays on the suppression list, so they still will not be emailed.
+          This removes them and their history for good. Anyone who had unsubscribed stays on the
+          suppression list, so they still will not be emailed.
         </p>
         {runBulk.isError && <Banner tone="danger">{errorMessage(runBulk.error)}</Banner>}
       </ConfirmDialog>

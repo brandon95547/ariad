@@ -32,12 +32,19 @@ function reasonOf(group: DuplicateGroup): { title: string; why: string } {
     return { title: 'Same name and company', why: 'These contacts share a name and a company.' }
   }
   return group.contacts.every(isGmail)
-    ? { title: 'Same Gmail inbox', why: 'Gmail ignores dots and anything after a plus sign, so these addresses all arrive in one inbox.' }
-    : { title: 'Same inbox', why: 'Anything after a plus sign in an address is ignored, so these all arrive in one inbox.' }
+    ? {
+        title: 'Same Gmail inbox',
+        why: 'Gmail ignores dots and anything after a plus sign, so these addresses all arrive in one inbox.',
+      }
+    : {
+        title: 'Same inbox',
+        why: 'Anything after a plus sign in an address is ignored, so these all arrive in one inbox.',
+      }
 }
 
 /** The one to keep unless told otherwise: someone who can still be emailed, and of those the oldest record. */
-const suggested = (group: DuplicateGroup) => (group.contacts.find(mailable) ?? group.contacts[0])?.id ?? ''
+const suggested = (group: DuplicateGroup) =>
+  (group.contacts.find(mailable) ?? group.contacts[0])?.id ?? ''
 
 /**
  * Lists and segments › Duplicates. Contacts that look like one person entered
@@ -51,7 +58,10 @@ export function DuplicatesPage() {
   const [merging, setMerging] = useState<DuplicateGroup | null>(null)
   const [shown, setShown] = useState(STEP)
 
-  const duplicates = useQuery({ queryKey: contactKeys.duplicates, queryFn: () => api.get<DuplicateGroup[]>('/contacts-duplicates') })
+  const duplicates = useQuery({
+    queryKey: contactKeys.duplicates,
+    queryFn: () => api.get<DuplicateGroup[]>('/contacts-duplicates'),
+  })
   const groups = duplicates.data ?? []
 
   const keepOf = (group: DuplicateGroup) => {
@@ -62,18 +72,28 @@ export function DuplicatesPage() {
   const merge = useMutation({
     mutationFn: (group: DuplicateGroup) => {
       const keepId = keepOf(group)
-      return api.post<Contact>('/contacts-merge', { keepId, mergeIds: group.contacts.filter((member) => member.id !== keepId).map((member) => member.id) })
+      return api.post<Contact>('/contacts-merge', {
+        keepId,
+        mergeIds: group.contacts
+          .filter((member) => member.id !== keepId)
+          .map((member) => member.id),
+      })
     },
     onSuccess: (kept, group) => {
       setMerging(null)
       void invalidate(contactKeys.all, keys.lists, keys.tags, keys.segments)
-      toast.success(`${plural(group.contacts.length, 'contact')} merged into ${contactName(kept)}`, {
-        action: { label: 'View', onClick: () => navigate(`/contacts/${kept.id}`) },
-      })
+      toast.success(
+        `${plural(group.contacts.length, 'contact')} merged into ${contactName(kept)}`,
+        {
+          action: { label: 'View', onClick: () => navigate(`/contacts/${kept.id}`) },
+        },
+      )
     },
   })
 
-  const kept = merging ? merging.contacts.find((member) => member.id === keepOf(merging)) : undefined
+  const kept = merging
+    ? merging.contacts.find((member) => member.id === keepOf(merging))
+    : undefined
   const others = merging ? merging.contacts.filter((member) => member.id !== kept?.id) : []
 
   return (
@@ -87,7 +107,12 @@ export function DuplicatesPage() {
         <Banner
           tone="danger"
           actions={
-            <Button size="sm" variant="outlined" onClick={() => duplicates.refetch()} loading={duplicates.isFetching}>
+            <Button
+              size="sm"
+              variant="outlined"
+              onClick={() => duplicates.refetch()}
+              loading={duplicates.isFetching}
+            >
               Try again
             </Button>
           }
@@ -118,7 +143,8 @@ export function DuplicatesPage() {
         <ul className="flex flex-col gap-3">
           {groups.slice(0, shown).map((group) => {
             const reason = reasonOf(group)
-            const mixed = group.contacts.some(mailable) && group.contacts.some((member) => !mailable(member))
+            const mixed =
+              group.contacts.some(mailable) && group.contacts.some((member) => !mailable(member))
             return (
               <li key={groupId(group)}>
                 <Card className="flex flex-col gap-4">
@@ -128,8 +154,8 @@ export function DuplicatesPage() {
                   </div>
                   {mixed && (
                     <Banner tone="warning" title="One of these has opted out or cannot be reached">
-                      If they are the same person, keep that one. The contact you keep decides whether they are emailed, and the others' status is
-                      discarded.
+                      If they are the same person, keep that one. The contact you keep decides
+                      whether they are emailed, and the others' status is discarded.
                     </Banner>
                   )}
                   <RadioGroup
@@ -190,12 +216,21 @@ export function DuplicatesPage() {
         loading={merge.isPending}
       >
         <p>
-          <span className="text-[var(--ds-fg)] [overflow-wrap:anywhere]">{kept?.email}</span> is kept
-          {kept ? `, and stays ${CONTACT_STATUS_LABELS[kept.status].toLowerCase()}` : ''}. Tags, lists and email history from{' '}
-          <span className="[overflow-wrap:anywhere]">{others.map((member) => member.email).join(', ')}</span> move onto it, and details it is missing
-          are filled in from them.
+          <span className="text-[var(--ds-fg)] [overflow-wrap:anywhere]">{kept?.email}</span> is
+          kept
+          {kept ? `, and stays ${CONTACT_STATUS_LABELS[kept.status].toLowerCase()}` : ''}. Tags,
+          lists and email history from{' '}
+          <span className="[overflow-wrap:anywhere]">
+            {others.map((member) => member.email).join(', ')}
+          </span>{' '}
+          move onto it, and details it is missing are filled in from them.
         </p>
-        <p>{others.length === 1 ? 'The other contact is deleted.' : `The other ${others.length} contacts are deleted.`} This cannot be undone.</p>
+        <p>
+          {others.length === 1
+            ? 'The other contact is deleted.'
+            : `The other ${others.length} contacts are deleted.`}{' '}
+          This cannot be undone.
+        </p>
         {merge.isError && <Banner tone="danger">{errorMessage(merge.error)}</Banner>}
       </ConfirmDialog>
     </div>

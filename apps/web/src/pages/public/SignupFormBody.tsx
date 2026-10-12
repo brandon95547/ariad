@@ -22,7 +22,10 @@ const COMFORTABLE = 'h-11 md:text-body'
 const CONFIRM_MESSAGE = 'Almost done. Check your inbox and click the link to confirm.'
 
 /** What the form says after a signup, from the status alone: all a redirect from the plain-HTML embed carries. */
-export function resultFor(form: PublicForm, status: FormSubmissionResult['status']): FormSubmissionResult {
+export function resultFor(
+  form: PublicForm,
+  status: FormSubmissionResult['status'],
+): FormSubmissionResult {
   return {
     status,
     message: status === 'confirmation_sent' ? CONFIRM_MESSAGE : form.successMessage,
@@ -49,7 +52,11 @@ const AUTOCOMPLETE: Record<string, string> = {
 
 function ErrorLine({ id, children }: { id?: string; children: string }) {
   return (
-    <p id={id} role="alert" className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]">
+    <p
+      id={id}
+      role="alert"
+      className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]"
+    >
       <AlertCircle size={13} aria-hidden className="mt-0.5 shrink-0" />
       <span>{children}</span>
     </p>
@@ -154,7 +161,9 @@ export function SignupFormBody({
     mutationFn: () =>
       submit({
         email,
-        fields: Object.fromEntries(Object.entries(values).filter(([, value]) => value.trim() !== '')),
+        fields: Object.fromEntries(
+          Object.entries(values).filter(([, value]) => value.trim() !== ''),
+        ),
         listIds: choosesLists ? listIds : undefined,
         consent,
         website,
@@ -189,10 +198,12 @@ export function SignupFormBody({
     if (!email.trim()) problems.email = 'Enter your email address.'
     else if (!isEmail(email)) problems.email = 'Enter a full email address, like name@example.com.'
     for (const field of form.fields) {
-      if (field.required && !values[field.key]?.trim()) problems[field.key] = `${field.label} is required.`
+      if (field.required && !values[field.key]?.trim())
+        problems[field.key] = `${field.label} is required.`
     }
     if (choosesLists && listIds.length === 0) problems.lists = 'Choose at least one.'
-    if (form.consentRequired && !consent) problems.consent = 'Tick the box to agree before subscribing.'
+    if (form.consentRequired && !consent)
+      problems.consent = 'Tick the box to agree before subscribing.'
     return problems
   }
 
@@ -204,7 +215,9 @@ export function SignupFormBody({
     if (Object.keys(problems).length > 0) {
       // To the first thing that needs fixing, once it has been marked.
       requestAnimationFrame(() => {
-        const first = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"], [data-invalid="true"] input')
+        const first = formRef.current?.querySelector<HTMLElement>(
+          '[aria-invalid="true"], [data-invalid="true"] input',
+        )
         first?.focus()
       })
       return
@@ -216,8 +229,14 @@ export function SignupFormBody({
     const confirming = result.status === 'confirmation_sent'
     return (
       <div className="flex flex-col gap-5" role="status">
-        <ResultMark tone={confirming ? 'info' : 'success'}>{confirming ? <MailCheck size={22} /> : <Check size={22} />}</ResultMark>
-        <PublicHeading title={confirming ? 'One more step' : 'You are subscribed'} level={headingLevel} focusOnMount>
+        <ResultMark tone={confirming ? 'info' : 'success'}>
+          {confirming ? <MailCheck size={22} /> : <Check size={22} />}
+        </ResultMark>
+        <PublicHeading
+          title={confirming ? 'One more step' : 'You are subscribed'}
+          level={headingLevel}
+          focusOnMount
+        >
           <p className="whitespace-pre-line">{result.message}</p>
         </PublicHeading>
       </div>
@@ -254,12 +273,23 @@ export function SignupFormBody({
         </Field>
 
         {form.fields.map((field) => (
-          <FormField key={field.key} field={field} value={values[field.key] ?? ''} error={errors[field.key]} onChange={setValue(field.key)} />
+          <FormField
+            key={field.key}
+            field={field}
+            value={values[field.key] ?? ''}
+            error={errors[field.key]}
+            onChange={setValue(field.key)}
+          />
         ))}
 
         {choosesLists && (
-          <fieldset className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0" data-invalid={errors.lists ? true : undefined}>
-            <legend className="mb-1.5 p-0 text-label text-[var(--ds-fg-secondary)]">What would you like to get?</legend>
+          <fieldset
+            className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0"
+            data-invalid={errors.lists ? true : undefined}
+          >
+            <legend className="mb-1.5 p-0 text-label text-[var(--ds-fg-secondary)]">
+              What would you like to get?
+            </legend>
             <div className="flex flex-col gap-2.5">
               {form.lists.map((list) => (
                 <Checkbox
@@ -268,7 +298,9 @@ export function SignupFormBody({
                   description={list.description ?? undefined}
                   checked={listIds.includes(list.id)}
                   onChange={(on) => {
-                    setListIds((current) => (on ? [...current, list.id] : current.filter((id) => id !== list.id)))
+                    setListIds((current) =>
+                      on ? [...current, list.id] : current.filter((id) => id !== list.id),
+                    )
                     clearError('lists')
                   }}
                 />
@@ -297,7 +329,14 @@ export function SignupFormBody({
         <div className="sr-only-ds" aria-hidden="true">
           <label>
             Website
-            <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(event) => setWebsite(event.target.value)} />
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={website}
+              onChange={(event) => setWebsite(event.target.value)}
+            />
           </label>
         </div>
 

@@ -40,7 +40,15 @@ import { toast } from '@/ui/Toast'
 import { BlockInspector, ThemeInspector } from './Inspector'
 import { EmailPreview } from './EmailPreview'
 import { MergeTagMenu } from './MergeTagMenu'
-import { RichText, format, insertText, isEditingText, makeLink, restoreSelection, saveSelection } from './RichText'
+import {
+  RichText,
+  format,
+  insertText,
+  isEditingText,
+  makeLink,
+  restoreSelection,
+  saveSelection,
+} from './RichText'
 
 /**
  * The email editor: a block builder, or hand-written HTML.
@@ -96,18 +104,29 @@ export function EmailEditor({
   const canvas = React.useRef<HTMLDivElement>(null)
 
   const { design } = value
-  const theme = React.useMemo(() => safeTheme(design?.theme ?? defaultDesign().theme), [design?.theme])
+  const theme = React.useMemo(
+    () => safeTheme(design?.theme ?? defaultDesign().theme),
+    [design?.theme],
+  )
 
-  const setDesign = (next: EmailDesign) => onChange({ design: next, html: renderDesign(next, { preheader, title: subject }) })
+  const setDesign = (next: EmailDesign) =>
+    onChange({ design: next, html: renderDesign(next, { preheader, title: subject }) })
   const setBlocks = (blocks: Block[]) => design && setDesign({ ...design, blocks })
 
   const update = (id: string, patch: Partial<Block>) =>
-    design && setBlocks(design.blocks.map((block) => (block.id === id ? ({ ...block, ...patch } as Block) : block)))
+    design &&
+    setBlocks(
+      design.blocks.map((block) => (block.id === id ? ({ ...block, ...patch } as Block) : block)),
+    )
 
   const insert = (type: BlockType, index?: number) => {
     if (!design) return
     const block = createBlock(type)
-    const at = index ?? (selected ? design.blocks.findIndex((entry) => entry.id === selected) + 1 : design.blocks.length)
+    const at =
+      index ??
+      (selected
+        ? design.blocks.findIndex((entry) => entry.id === selected) + 1
+        : design.blocks.length)
     setBlocks([...design.blocks.slice(0, at), block, ...design.blocks.slice(at)])
     setSelected(block.id)
   }
@@ -191,7 +210,10 @@ export function EmailEditor({
         ) : (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="email-html" className="block text-label text-[var(--ds-fg-secondary)]">
+              <label
+                htmlFor="email-html"
+                className="block text-label text-[var(--ds-fg-secondary)]"
+              >
                 HTML
               </label>
               <Textarea
@@ -205,12 +227,15 @@ export function EmailEditor({
               />
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-caption text-[var(--ds-fg-muted)]">
-                  The unsubscribe link and your mailing address are added to the bottom when it is sent.
+                  The unsubscribe link and your mailing address are added to the bottom when it is
+                  sent.
                 </p>
                 <MergeTagMenu
                   onPick={(token) => {
                     void navigator.clipboard?.writeText(token)
-                    toast.info(`Copied ${token}`, { description: 'Paste it where the value should appear.' })
+                    toast.info(`Copied ${token}`, {
+                      description: 'Paste it where the value should appear.',
+                    })
                   }}
                 />
               </div>
@@ -231,7 +256,10 @@ export function EmailEditor({
           title="Start over in the builder?"
           confirmLabel="Replace my HTML"
         >
-          <p>The builder cannot read hand-written HTML, so it starts from a blank design and the HTML you have now is replaced.</p>
+          <p>
+            The builder cannot read hand-written HTML, so it starts from a blank design and the HTML
+            you have now is replaced.
+          </p>
         </ConfirmDialog>
       </div>
     )
@@ -249,7 +277,10 @@ export function EmailEditor({
       </EditorBar>
 
       {view === 'preview' ? (
-        <EmailPreview html={renderDesign(design, { preheader, title: subject })} subject={subject} />
+        <EmailPreview
+          html={renderDesign(design, { preheader, title: subject })}
+          subject={subject}
+        />
       ) : (
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[11rem_minmax(0,1fr)] xl:grid-cols-[11rem_minmax(0,1fr)_17rem]">
           {/* Palette */}
@@ -282,7 +313,9 @@ export function EmailEditor({
                 </li>
               ))}
             </ul>
-            <p className="text-caption text-[var(--ds-fg-muted)] max-lg:hidden">Drag a block onto the email, or click to add it under the selected one.</p>
+            <p className="text-caption text-[var(--ds-fg-muted)] max-lg:hidden">
+              Drag a block onto the email, or click to add it under the selected one.
+            </p>
           </div>
 
           {/* Canvas */}
@@ -309,11 +342,15 @@ export function EmailEditor({
               onDragOver={onDragOver}
               onDrop={onDrop}
               onDragLeave={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropIndex(null)
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+                  setDropIndex(null)
               }}
             >
               {design.blocks.length === 0 && (
-                <p className="px-8 py-10 text-center" style={{ color: theme.muted, fontFamily: theme.font, fontSize: 15 }}>
+                <p
+                  className="px-8 py-10 text-center"
+                  style={{ color: theme.muted, fontFamily: theme.font, fontSize: 15 }}
+                >
                   This email is empty. Drag a block here, or click one to add it.
                 </p>
               )}
@@ -337,17 +374,28 @@ export function EmailEditor({
               ))}
               {dropIndex === design.blocks.length && design.blocks.length > 0 && <DropLine />}
             </div>
-            <p className="mx-auto mt-4 text-center text-caption" style={{ maxWidth: theme.width, color: theme.muted }}>
-              Your organization, mailing address and an unsubscribe link are added here when it is sent.
+            <p
+              className="mx-auto mt-4 text-center text-caption"
+              style={{ maxWidth: theme.width, color: theme.muted }}
+            >
+              Your organization, mailing address and an unsubscribe link are added here when it is
+              sent.
             </p>
           </div>
 
           {/* Inspector */}
           <div className="flex flex-col gap-4 lg:col-span-2 xl:sticky xl:top-4 xl:col-span-1">
             {selectedBlock ? (
-              <BlockInspector block={selectedBlock} onChange={(patch) => update(selectedBlock.id, patch)} onDone={() => setSelected(null)} />
+              <BlockInspector
+                block={selectedBlock}
+                onChange={(patch) => update(selectedBlock.id, patch)}
+                onDone={() => setSelected(null)}
+              />
             ) : (
-              <ThemeInspector theme={design.theme} onChange={(patch) => setDesign({ ...design, theme: { ...design.theme, ...patch } })} />
+              <ThemeInspector
+                theme={design.theme}
+                onChange={(patch) => setDesign({ ...design, theme: { ...design.theme, ...patch } })}
+              />
             )}
           </div>
         </div>
@@ -365,15 +413,23 @@ export function EmailEditor({
         danger={false}
       >
         <p>
-          You get the HTML this design produces, to change as you like. The builder cannot read it back afterwards, so this is one way:
-          returning to the builder means starting a new design.
+          You get the HTML this design produces, to change as you like. The builder cannot read it
+          back afterwards, so this is one way: returning to the builder means starting a new design.
         </p>
       </ConfirmDialog>
     </div>
   )
 }
 
-function EditorBar({ view, onView, children }: { view: View; onView: (view: View) => void; children?: React.ReactNode }) {
+function EditorBar({
+  view,
+  onView,
+  children,
+}: {
+  view: View
+  onView: (view: View) => void
+  children?: React.ReactNode
+}) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <SegmentedControl
@@ -428,7 +484,12 @@ function CanvasBlock({
   const element = React.useRef<HTMLDivElement>(null)
   const label = BLOCK_TYPES.find((entry) => entry.type === block.type)?.label ?? 'Block'
   const editable = block.type === 'text' || block.type === 'columns'
-  const body: React.CSSProperties = { fontFamily: theme.font, fontSize: 16, lineHeight: 1.6, color: theme.text }
+  const body: React.CSSProperties = {
+    fontFamily: theme.font,
+    fontSize: 16,
+    lineHeight: 1.6,
+    color: theme.text,
+  }
 
   return (
     <div
@@ -462,10 +523,28 @@ function CanvasBlock({
             <GripVertical size={14} aria-hidden />
           </span>
           {editable && <TextTools />}
-          <IconButton size="xs" label="Move up" icon={<ArrowUp />} onClick={() => onMove(-1)} disabled={first} />
-          <IconButton size="xs" label="Move down" icon={<ArrowDown />} onClick={() => onMove(1)} disabled={last} />
+          <IconButton
+            size="xs"
+            label="Move up"
+            icon={<ArrowUp />}
+            onClick={() => onMove(-1)}
+            disabled={first}
+          />
+          <IconButton
+            size="xs"
+            label="Move down"
+            icon={<ArrowDown />}
+            onClick={() => onMove(1)}
+            disabled={last}
+          />
           <IconButton size="xs" label="Duplicate" icon={<Copy />} onClick={onDuplicate} />
-          <IconButton size="xs" label="Delete block" icon={<Trash2 />} onClick={onRemove} className="text-[var(--ds-danger-text)]" />
+          <IconButton
+            size="xs"
+            label="Delete block"
+            icon={<Trash2 />}
+            onClick={onRemove}
+            className="text-[var(--ds-danger-text)]"
+          />
         </div>
       )}
 
@@ -477,21 +556,48 @@ function CanvasBlock({
             value={block.text}
             onChange={(text) => onChange({ text })}
             onFocus={onSelect}
-            style={{ fontFamily: theme.font, fontSize: { 1: 28, 2: 22, 3: 18 }[block.level], lineHeight: 1.25, fontWeight: 700, color: theme.text }}
+            style={{
+              fontFamily: theme.font,
+              fontSize: { 1: 28, 2: 22, 3: 18 }[block.level],
+              lineHeight: 1.25,
+              fontWeight: 700,
+              color: theme.text,
+            }}
           />
         </div>
       )}
 
       {block.type === 'text' && (
         <div style={{ padding: '0 32px', textAlign: block.align }}>
-          <RichText aria-label="Text" className="email-rich" value={block.html} onChange={(html) => onChange({ html })} onFocus={onSelect} style={body} />
+          <RichText
+            aria-label="Text"
+            className="email-rich"
+            value={block.html}
+            onChange={(html) => onChange({ html })}
+            onFocus={onSelect}
+            style={body}
+          />
         </div>
       )}
 
       {block.type === 'columns' && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2" style={{ padding: '0 32px' }}>
-          <RichText aria-label="Left column" className="email-rich" value={block.left} onChange={(left) => onChange({ left })} onFocus={onSelect} style={body} />
-          <RichText aria-label="Right column" className="email-rich" value={block.right} onChange={(right) => onChange({ right })} onFocus={onSelect} style={body} />
+          <RichText
+            aria-label="Left column"
+            className="email-rich"
+            value={block.left}
+            onChange={(left) => onChange({ left })}
+            onFocus={onSelect}
+            style={body}
+          />
+          <RichText
+            aria-label="Right column"
+            className="email-rich"
+            value={block.right}
+            onChange={(right) => onChange({ right })}
+            onFocus={onSelect}
+            style={body}
+          />
         </div>
       )}
 
@@ -499,7 +605,12 @@ function CanvasBlock({
         <div style={{ padding: '0 32px 16px' }}>
           <div
             className="grid h-36 place-items-center rounded-[8px] border border-dashed text-center"
-            style={{ borderColor: theme.muted, color: theme.muted, fontFamily: theme.font, fontSize: 14 }}
+            style={{
+              borderColor: theme.muted,
+              color: theme.muted,
+              fontFamily: theme.font,
+              fontSize: 14,
+            }}
           >
             <span className="flex flex-col items-center gap-2">
               <ImageIcon size={22} aria-hidden />
@@ -510,7 +621,11 @@ function CanvasBlock({
       )}
 
       {/* Everything not edited in place is drawn from the markup that is sent. */}
-      {(block.type === 'button' || block.type === 'divider' || block.type === 'spacer' || block.type === 'html' || (block.type === 'image' && block.src)) && (
+      {(block.type === 'button' ||
+        block.type === 'divider' ||
+        block.type === 'spacer' ||
+        block.type === 'html' ||
+        (block.type === 'image' && block.src)) && (
         <table
           role="presentation"
           width="100%"
@@ -545,9 +660,27 @@ function TextTools() {
 
   return (
     <>
-      <IconButton size="xs" label="Bold" icon={<Bold />} onMouseDown={keep} onClick={() => format('bold')} />
-      <IconButton size="xs" label="Italic" icon={<Italic />} onMouseDown={keep} onClick={() => format('italic')} />
-      <IconButton size="xs" label="Bulleted list" icon={<List />} onMouseDown={keep} onClick={() => format('insertUnorderedList')} />
+      <IconButton
+        size="xs"
+        label="Bold"
+        icon={<Bold />}
+        onMouseDown={keep}
+        onClick={() => format('bold')}
+      />
+      <IconButton
+        size="xs"
+        label="Italic"
+        icon={<Italic />}
+        onMouseDown={keep}
+        onClick={() => format('italic')}
+      />
+      <IconButton
+        size="xs"
+        label="Bulleted list"
+        icon={<List />}
+        onMouseDown={keep}
+        onClick={() => format('insertUnorderedList')}
+      />
       <IconButton
         ref={trigger}
         size="xs"
@@ -556,7 +689,9 @@ function TextTools() {
         onMouseDown={keep}
         onClick={() => {
           if (!isEditingText()) {
-            toast.info('Select some text first', { description: 'Then press Link to turn it into one.' })
+            toast.info('Select some text first', {
+              description: 'Then press Link to turn it into one.',
+            })
             return
           }
           range.current = saveSelection()
@@ -564,7 +699,13 @@ function TextTools() {
           setLinking(true)
         }}
       />
-      <Popover open={linking} onClose={() => setLinking(false)} anchorRef={trigger} align="end" label="Add a link">
+      <Popover
+        open={linking}
+        onClose={() => setLinking(false)}
+        anchorRef={trigger}
+        align="end"
+        label="Add a link"
+      >
         <form
           className="flex w-72 max-w-full flex-col gap-3 p-3"
           onSubmit={(event) => {
@@ -573,10 +714,20 @@ function TextTools() {
           }}
         >
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="email-link-url" className="block text-label text-[var(--ds-fg-secondary)]">
+            <label
+              htmlFor="email-link-url"
+              className="block text-label text-[var(--ds-fg-secondary)]"
+            >
               Link address
             </label>
-            <TextInput id="email-link-url" value={url} onChange={(event) => setUrl(event.target.value)} autoFocus inputMode="url" spellCheck={false} />
+            <TextInput
+              id="email-link-url"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              autoFocus
+              inputMode="url"
+              spellCheck={false}
+            />
           </div>
           <div className="flex justify-end gap-2">
             <Button

@@ -54,13 +54,32 @@ export function ListsPage() {
           <Link to={`/contacts?listId=${list.id}`} className={`${rowLink} self-start`}>
             {list.name}
           </Link>
-          {list.description && <span className="text-caption text-[var(--ds-fg-muted)]">{list.description}</span>}
+          {list.description && (
+            <span className="text-caption text-[var(--ds-fg-muted)]">{list.description}</span>
+          )}
         </div>
       ),
     },
-    { key: 'subscribed', header: 'Subscribed', align: 'right', cell: (list) => count(list.subscribedCount) },
-    { key: 'pending', header: 'Pending', align: 'right', hideBelow: 'sm', cell: (list) => count(list.pendingCount) },
-    { key: 'unsubscribed', header: 'Unsubscribed', align: 'right', hideBelow: 'md', cell: (list) => count(list.unsubscribedCount) },
+    {
+      key: 'subscribed',
+      header: 'Subscribed',
+      align: 'right',
+      cell: (list) => count(list.subscribedCount),
+    },
+    {
+      key: 'pending',
+      header: 'Pending',
+      align: 'right',
+      hideBelow: 'sm',
+      cell: (list) => count(list.pendingCount),
+    },
+    {
+      key: 'unsubscribed',
+      header: 'Unsubscribed',
+      align: 'right',
+      hideBelow: 'md',
+      cell: (list) => count(list.unsubscribedCount),
+    },
     {
       key: 'signup',
       header: 'Signing up',
@@ -84,8 +103,18 @@ export function ListsPage() {
                 label={`Actions for ${list.name}`}
                 icon={<MoreHorizontal size={16} />}
                 actions={[
-                  { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, onSelect: () => setEditor({ list }) },
-                  { id: 'contacts', label: 'View contacts', icon: <Users size={14} />, onSelect: () => navigate(`/contacts?listId=${list.id}`) },
+                  {
+                    id: 'edit',
+                    label: 'Edit',
+                    icon: <Pencil size={14} />,
+                    onSelect: () => setEditor({ list }),
+                  },
+                  {
+                    id: 'contacts',
+                    label: 'View contacts',
+                    icon: <Users size={14} />,
+                    onSelect: () => navigate(`/contacts?listId=${list.id}`),
+                  },
                   {
                     id: 'delete',
                     label: 'Delete',
@@ -143,7 +172,15 @@ export function ListsPage() {
       ) : (
         !lists.isError && (
           <Card padding="none" className="overflow-hidden">
-            <DataTable aria-label="Lists" gutter="md" columns={columns} rows={rows} rowKey={(list) => list.id} loading={lists.isPending} skeletonRows={3} />
+            <DataTable
+              aria-label="Lists"
+              gutter="md"
+              columns={columns}
+              rows={rows}
+              rowKey={(list) => list.id}
+              loading={lists.isPending}
+              skeletonRows={3}
+            />
           </Card>
         )
       )}
@@ -171,7 +208,8 @@ export function ListsPage() {
           {removing && removing.subscribedCount + removing.pendingCount > 0
             ? `The ${plural(removing.subscribedCount + removing.pendingCount, 'person', 'people')} on it stay in your contacts and on their other lists. Only this grouping goes.`
             : 'Nobody is on this list. Your contacts are not affected.'}{' '}
-          Campaigns already sent to it keep their history. Check any signup form, segment or automation that uses it afterward.
+          Campaigns already sent to it keep their history. Check any signup form, segment or
+          automation that uses it afterward.
         </p>
         {remove.isError && <Banner tone="danger">{errorMessage(remove.error)}</Banner>}
       </ConfirmDialog>
@@ -201,7 +239,9 @@ function ListDialog({
   const save = useMutation({
     mutationFn: () => {
       const body = { name, description, doubleOptIn, isPublic }
-      return list ? api.patch<ContactList>(`/lists/${list.id}`, body) : api.post<ContactList>('/lists', body)
+      return list
+        ? api.patch<ContactList>(`/lists/${list.id}`, body)
+        : api.post<ContactList>('/lists', body)
     },
     onSuccess: (saved) => onSaved(saved, !list),
   })
@@ -210,7 +250,9 @@ function ListDialog({
     if (!open) return
     setName(list?.name ?? '')
     setDescription(list?.description ?? '')
-    setDoubleOptIn(list ? list.doubleOptIn : (settings.data?.compliance.doubleOptInDefault ?? false))
+    setDoubleOptIn(
+      list ? list.doubleOptIn : (settings.data?.compliance.doubleOptInDefault ?? false),
+    )
     setIsPublic(list ? list.isPublic : true)
     save.reset()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -242,7 +284,11 @@ function ListDialog({
     >
       <form id={formId} onSubmit={submit} className="flex flex-col gap-5" noValidate>
         {general && <Banner tone="danger">{general}</Banner>}
-        <Field label="Name" hint="Subscribers see this on the preferences page." error={fields.name}>
+        <Field
+          label="Name"
+          hint="Subscribers see this on the preferences page."
+          error={fields.name}
+        >
           <TextInput
             value={name}
             onChange={(event) => {
@@ -252,8 +298,17 @@ function ListDialog({
             placeholder="Newsletter"
           />
         </Field>
-        <Field label="Description" optional hint="What people on this list get, in a sentence." error={fields.description}>
-          <Textarea rows={2} value={description} onChange={(event) => setDescription(event.target.value)} />
+        <Field
+          label="Description"
+          optional
+          hint="What people on this list get, in a sentence."
+          error={fields.description}
+        >
+          <Textarea
+            rows={2}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
         </Field>
         <Switch
           label="Double opt-in"

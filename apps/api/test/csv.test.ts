@@ -3,7 +3,9 @@ import { parseCsv, toCsv } from '../src/lib/csv.js'
 
 describe('reading CSV', () => {
   it('reads quoted fields with commas, quotes and line breaks in them', () => {
-    const { headers, rows } = parseCsv('name,note\r\n"Lovelace, Ada","said ""hello""\nthen left"\r\nGrace,plain\r\n')
+    const { headers, rows } = parseCsv(
+      'name,note\r\n"Lovelace, Ada","said ""hello""\nthen left"\r\nGrace,plain\r\n',
+    )
     expect(headers).toEqual(['name', 'note'])
     expect(rows).toEqual([
       ['Lovelace, Ada', 'said "hello"\nthen left'],
@@ -25,7 +27,13 @@ describe('reading CSV', () => {
 
 describe('writing CSV', () => {
   it('quotes what needs it and round-trips', () => {
-    const text = toCsv(['name', 'note'], [['Lovelace, Ada', 'said "hi"'], ['Grace', null]])
+    const text = toCsv(
+      ['name', 'note'],
+      [
+        ['Lovelace, Ada', 'said "hi"'],
+        ['Grace', null],
+      ],
+    )
     expect(text).toBe('name,note\r\n"Lovelace, Ada","said ""hi"""\r\nGrace,\r\n')
     expect(parseCsv(text).rows[0]).toEqual(['Lovelace, Ada', 'said "hi"'])
   })

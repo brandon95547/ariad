@@ -9,8 +9,13 @@ import { nowIso } from '../lib/crypto.js'
  * that predate it, without a migration.
  */
 export function getSettings(db: Db): Settings {
-  const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[]
-  const stored = Object.fromEntries(rows.map((row) => [row.key, parseJson<unknown>(row.value, null)]))
+  const rows = db.prepare('SELECT key, value FROM settings').all() as {
+    key: string
+    value: string
+  }[]
+  const stored = Object.fromEntries(
+    rows.map((row) => [row.key, parseJson<unknown>(row.value, null)]),
+  )
   const pick = <K extends keyof Settings>(key: K): Settings[K] => {
     const fallback = DEFAULT_SETTINGS[key]
     const value = stored[key]
@@ -42,7 +47,8 @@ export function updateSettings(db: Db, patch: DeepPartial<Settings>): Settings {
       const next = patch[key]
       if (next === undefined) continue
       const base = current[key]
-      const merged = typeof base === 'object' && base !== null ? { ...base, ...(next as object) } : next
+      const merged =
+        typeof base === 'object' && base !== null ? { ...base, ...(next as object) } : next
       upsert.run(key, JSON.stringify(merged), now)
     }
   })()

@@ -32,7 +32,10 @@ import { Card } from '@/ui/Surface'
 import { Tabs } from '@/ui/Tabs'
 import { toast } from '@/ui/Toast'
 
-export const CAMPAIGN_TONES: Record<CampaignStatus, 'neutral' | 'info' | 'accent' | 'warning' | 'success'> = {
+export const CAMPAIGN_TONES: Record<
+  CampaignStatus,
+  'neutral' | 'info' | 'accent' | 'warning' | 'success'
+> = {
   draft: 'neutral',
   scheduled: 'info',
   sending: 'accent',
@@ -89,10 +92,14 @@ export function CampaignsPage() {
 
   const campaigns = useQuery({
     queryKey: ['campaigns', { status, q, page }],
-    queryFn: () => api.get<Paged<CampaignSummary>>(`/campaigns${qs({ status: status === 'all' ? null : status, q, page, pageSize: 20 })}`),
+    queryFn: () =>
+      api.get<Paged<CampaignSummary>>(
+        `/campaigns${qs({ status: status === 'all' ? null : status, q, page, pageSize: 20 })}`,
+      ),
     placeholderData: (previous) => previous,
     // A campaign that is going out changes by the second.
-    refetchInterval: (query) => (query.state.data?.items.some((item) => item.status === 'sending') ? 5000 : false),
+    refetchInterval: (query) =>
+      query.state.data?.items.some((item) => item.status === 'sending') ? 5000 : false,
   })
 
   const duplicate = useMutation({
@@ -120,11 +127,18 @@ export function CampaignsPage() {
       cell: (row) => (
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate text-label text-[var(--ds-fg)]">{row.name}</span>
-          <span className="truncate text-caption text-[var(--ds-fg-muted)]">{row.subject || 'No subject yet'}</span>
+          <span className="truncate text-caption text-[var(--ds-fg-muted)]">
+            {row.subject || 'No subject yet'}
+          </span>
         </div>
       ),
     },
-    { key: 'status', header: 'Status', width: '8rem', cell: (row) => <CampaignStatusBadge status={row.status} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '8rem',
+      cell: (row) => <CampaignStatusBadge status={row.status} />,
+    },
     {
       key: 'recipients',
       header: 'Recipients',
@@ -149,7 +163,13 @@ export function CampaignsPage() {
       hideBelow: 'md',
       cell: (row) => formatRate(rate(row.stats.clicked, row.stats.delivered)),
     },
-    { key: 'when', header: 'When', width: '11rem', hideBelow: 'lg', cell: (row) => <span className="text-[var(--ds-fg-muted)]">{campaignWhen(row)}</span> },
+    {
+      key: 'when',
+      header: 'When',
+      width: '11rem',
+      hideBelow: 'lg',
+      cell: (row) => <span className="text-[var(--ds-fg-muted)]">{campaignWhen(row)}</span>,
+    },
     ...(canEdit
       ? [
           {
@@ -163,7 +183,12 @@ export function CampaignsPage() {
                   label={`Actions for ${row.name}`}
                   icon={<MoreHorizontal size={16} />}
                   actions={[
-                    { id: 'duplicate', label: 'Duplicate', icon: <Copy size={14} />, onSelect: () => duplicate.mutate(row.id) },
+                    {
+                      id: 'duplicate',
+                      label: 'Duplicate',
+                      icon: <Copy size={14} />,
+                      onSelect: () => duplicate.mutate(row.id),
+                    },
                     {
                       id: 'delete',
                       label: 'Delete',
@@ -204,7 +229,12 @@ export function CampaignsPage() {
       >
         {!nothingAtAll && (
           <div className="flex flex-col gap-4">
-            <Tabs aria-label="Campaign status" tabs={TABS} value={status} onChange={(value) => setParam({ status: value === 'all' ? null : value, page: null })} />
+            <Tabs
+              aria-label="Campaign status"
+              tabs={TABS}
+              value={status}
+              onChange={(value) => setParam({ status: value === 'all' ? null : value, page: null })}
+            />
             <SearchInput
               value={search}
               onChange={(value) => {
@@ -249,9 +279,20 @@ export function CampaignsPage() {
                 <EmptyState
                   compact
                   title="Nothing here"
-                  description={q ? `No campaign matches "${q}".` : `There are no ${TABS.find((tab) => tab.value === status)?.label.toLowerCase()} campaigns.`}
+                  description={
+                    q
+                      ? `No campaign matches "${q}".`
+                      : `There are no ${TABS.find((tab) => tab.value === status)?.label.toLowerCase()} campaigns.`
+                  }
                   action={
-                    <Button variant="outlined" size="sm" onClick={() => { setSearch(''); setParams({}, { replace: true }) }}>
+                    <Button
+                      variant="outlined"
+                      size="sm"
+                      onClick={() => {
+                        setSearch('')
+                        setParams({}, { replace: true })
+                      }}
+                    >
                       Show all campaigns
                     </Button>
                   }
@@ -260,7 +301,12 @@ export function CampaignsPage() {
             />
           </Card>
           {data && data.total > data.pageSize && (
-            <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={(next) => setParam({ page: String(next) })} />
+            <Pagination
+              page={data.page}
+              pageSize={data.pageSize}
+              total={data.total}
+              onPageChange={(next) => setParam({ page: String(next) })}
+            />
           )}
         </>
       )}
@@ -292,7 +338,11 @@ function NewCampaignDialog({ open, onClose }: { open: boolean; onClose: () => vo
   const client = useQueryClient()
   const [name, setName] = useState('')
   const [start, setStart] = useState('blank')
-  const templates = useQuery({ queryKey: ['templates'], queryFn: () => api.get<TemplateSummary[]>('/templates'), enabled: open })
+  const templates = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => api.get<TemplateSummary[]>('/templates'),
+    enabled: open,
+  })
 
   const create = useMutation({
     mutationFn: async () => {
@@ -332,7 +382,12 @@ function NewCampaignDialog({ open, onClose }: { open: boolean; onClose: () => vo
           <Button variant="text" onClick={onClose} disabled={create.isPending}>
             Cancel
           </Button>
-          <Button type="submit" form="new-campaign" loading={create.isPending} disabled={!name.trim()}>
+          <Button
+            type="submit"
+            form="new-campaign"
+            loading={create.isPending}
+            disabled={!name.trim()}
+          >
             Create campaign
           </Button>
         </>
@@ -341,14 +396,23 @@ function NewCampaignDialog({ open, onClose }: { open: boolean; onClose: () => vo
       <form id="new-campaign" onSubmit={submit} className="flex flex-col gap-5" noValidate>
         {create.isError && <Banner tone="danger">{errorMessage(create.error)}</Banner>}
         <Field label="Campaign name" hint="Only you see this. The subject line comes next.">
-          <TextInput value={name} onChange={(event) => setName(event.target.value)} placeholder="October newsletter" autoFocus />
+          <TextInput
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="October newsletter"
+            autoFocus
+          />
         </Field>
         <RadioGroup
           label="Start from"
           value={start}
           onChange={setStart}
           options={[
-            { value: 'blank', label: 'A blank email', description: 'A heading, a paragraph and a button to build on.' },
+            {
+              value: 'blank',
+              label: 'A blank email',
+              description: 'A heading, a paragraph and a button to build on.',
+            },
             ...(templates.data ?? []).map((template) => ({
               value: template.id,
               label: template.name,
@@ -357,7 +421,14 @@ function NewCampaignDialog({ open, onClose }: { open: boolean; onClose: () => vo
           ]}
         />
         <p className="text-caption text-[var(--ds-fg-muted)]">
-          Templates are managed on the <Link to="/templates" className="text-[var(--ds-accent-text)] underline underline-offset-2">Templates</Link> page.
+          Templates are managed on the{' '}
+          <Link
+            to="/templates"
+            className="text-[var(--ds-accent-text)] underline underline-offset-2"
+          >
+            Templates
+          </Link>{' '}
+          page.
         </p>
       </form>
     </Dialog>

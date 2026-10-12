@@ -8,14 +8,23 @@ import { Button } from '@/ui/Button'
 import { Field } from '@/ui/Controls'
 import { Banner } from '@/ui/Feedback'
 import { RadioGroup, Textarea } from '@/ui/Inputs'
-import { PublicFrame, PublicHeading, PublicLoading, ResultMark, publicLinkClass, useDocumentTitle } from './PublicFrame'
+import {
+  PublicFrame,
+  PublicHeading,
+  PublicLoading,
+  ResultMark,
+  publicLinkClass,
+  useDocumentTitle,
+} from './PublicFrame'
 
 export const preferencesKey = (token: string) => ['public', 'preferences', token] as const
 
 /** Test emails carry this in place of a contact's token: there is nobody to unsubscribe. */
 export const PREVIEW_TOKEN = 'preview'
 
-const Strong = ({ children }: { children: string }) => <strong className="font-medium text-[var(--ds-fg)]">{children}</strong>
+const Strong = ({ children }: { children: string }) => (
+  <strong className="font-medium text-[var(--ds-fg)]">{children}</strong>
+)
 
 /** What the link in a test email leads to. */
 export function PreviewNote({ what }: { what: string }) {
@@ -26,7 +35,8 @@ export function PreviewNote({ what }: { what: string }) {
       </ResultMark>
       <PublicHeading title="This is a preview link">
         <p>
-          It came from a test email, so it does nothing. In a real email, this is where the person who got it would {what}.
+          It came from a test email, so it does nothing. In a real email, this is where the person
+          who got it would {what}.
         </p>
       </PublicHeading>
     </div>
@@ -34,7 +44,15 @@ export function PreviewNote({ what }: { what: string }) {
 }
 
 /** A link that leads nowhere, or a server that did not answer: which one decides whether trying again can help. */
-export function LinkProblem({ error, onRetry, retrying }: { error: unknown; onRetry: () => void; retrying: boolean }) {
+export function LinkProblem({
+  error,
+  onRetry,
+  retrying,
+}: {
+  error: unknown
+  onRetry: () => void
+  retrying: boolean
+}) {
   const badLink = error instanceof ApiError && error.status >= 400 && error.status < 500
   return (
     <div className="flex flex-col gap-5">
@@ -43,7 +61,10 @@ export function LinkProblem({ error, onRetry, retrying }: { error: unknown; onRe
       </ResultMark>
       {badLink ? (
         <PublicHeading title="This link does not work">
-          <p>It may have been cut short when it was copied, or it belongs to an address that has since been removed.</p>
+          <p>
+            It may have been cut short when it was copied, or it belongs to an address that has
+            since been removed.
+          </p>
           <p>Try the link at the bottom of the most recent email you got.</p>
         </PublicHeading>
       ) : (
@@ -61,7 +82,15 @@ export function LinkProblem({ error, onRetry, retrying }: { error: unknown; onRe
 }
 
 /** Asked after the fact, and never required: leaving takes one tap, saying why is a favor. */
-function ReasonForm({ onSend, sending, error }: { onSend: (reason: string, comment: string) => void; sending: boolean; error: string | null }) {
+function ReasonForm({
+  onSend,
+  sending,
+  error,
+}: {
+  onSend: (reason: string, comment: string) => void
+  sending: boolean
+  error: string | null
+}) {
   const [reason, setReason] = useState('')
   const [comment, setComment] = useState('')
   return (
@@ -81,7 +110,12 @@ function ReasonForm({ onSend, sending, error }: { onSend: (reason: string, comme
       {reason && (
         <>
           <Field label="Anything to add?" optional>
-            <Textarea rows={2} value={comment} onChange={(event) => setComment(event.target.value)} maxLength={1000} />
+            <Textarea
+              rows={2}
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              maxLength={1000}
+            />
           </Field>
           {error && <Banner tone="danger">{error}</Banner>}
           <Button type="submit" variant="tonal" size="lg" fullWidth loading={sending}>
@@ -123,7 +157,8 @@ export function UnsubscribePage() {
   const store = (next: PublicPreferences) => client.setQueryData(preferencesKey(token), next)
 
   const unsubscribe = useMutation({
-    mutationFn: () => api.post<PublicPreferences>(`/public/unsubscribe/${path}${qs({ m: message })}`),
+    mutationFn: () =>
+      api.post<PublicPreferences>(`/public/unsubscribe/${path}${qs({ m: message })}`),
     onSuccess: (next) => {
       store(next)
       setOutcome('unsubscribed')
@@ -152,7 +187,13 @@ export function UnsubscribePage() {
   } else if (prefs.isPending) {
     body = <PublicLoading />
   } else if (prefs.isError) {
-    body = <LinkProblem error={prefs.error} onRetry={() => void prefs.refetch()} retrying={prefs.isFetching} />
+    body = (
+      <LinkProblem
+        error={prefs.error}
+        onRetry={() => void prefs.refetch()}
+        retrying={prefs.isFetching}
+      />
+    )
   } else if (prefs.data.status === 'unsubscribed') {
     const justNow = outcome === 'unsubscribed'
     body = (
@@ -161,9 +202,13 @@ export function UnsubscribePage() {
           <ResultMark tone="success">
             <Check size={22} />
           </ResultMark>
-          <PublicHeading title={justNow ? 'You are unsubscribed' : 'You are already unsubscribed'} focusOnMount={justNow}>
+          <PublicHeading
+            title={justNow ? 'You are unsubscribed' : 'You are already unsubscribed'}
+            focusOnMount={justNow}
+          >
             <p>
-              <Strong>{prefs.data.email}</Strong> will not get any more email from {sender}.{justNow ? ' This takes effect now.' : ''}
+              <Strong>{prefs.data.email}</Strong> will not get any more email from {sender}.
+              {justNow ? ' This takes effect now.' : ''}
             </p>
           </PublicHeading>
         </div>
@@ -185,7 +230,13 @@ export function UnsubscribePage() {
           {resubscribe.isError && <Banner tone="danger">{errorMessage(resubscribe.error)}</Banner>}
           <div className="flex flex-col gap-1.5">
             <p className="text-label text-[var(--ds-fg-secondary)]">Was this a mistake?</p>
-            <Button variant="outlined" size="lg" fullWidth onClick={() => resubscribe.mutate()} loading={resubscribe.isPending}>
+            <Button
+              variant="outlined"
+              size="lg"
+              fullWidth
+              onClick={() => resubscribe.mutate()}
+              loading={resubscribe.isPending}
+            >
               Re-subscribe
             </Button>
           </div>
@@ -203,7 +254,8 @@ export function UnsubscribePage() {
         </ResultMark>
         <PublicHeading title="You are subscribed again" focusOnMount>
           <p>
-            <Strong>{prefs.data.email}</Strong> will keep getting email from {sender}, the same as before.
+            <Strong>{prefs.data.email}</Strong> will keep getting email from {sender}, the same as
+            before.
           </p>
         </PublicHeading>
         {prefs.data.lists.length > 0 && (
@@ -222,7 +274,12 @@ export function UnsubscribePage() {
           </p>
         </PublicHeading>
         {unsubscribe.isError && <Banner tone="danger">{errorMessage(unsubscribe.error)}</Banner>}
-        <Button size="lg" fullWidth onClick={() => unsubscribe.mutate()} loading={unsubscribe.isPending}>
+        <Button
+          size="lg"
+          fullWidth
+          onClick={() => unsubscribe.mutate()}
+          loading={unsubscribe.isPending}
+        >
           Unsubscribe
         </Button>
         {prefs.data.status === 'subscribed' && prefs.data.lists.length > 0 && (

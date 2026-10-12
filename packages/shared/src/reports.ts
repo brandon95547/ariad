@@ -40,7 +40,12 @@ export interface QueueStatus {
 }
 
 export interface DashboardData {
-  contacts: { total: number; subscribed: number; newLast30Days: number; unsubscribedLast30Days: number }
+  contacts: {
+    total: number
+    subscribed: number
+    newLast30Days: number
+    unsubscribedLast30Days: number
+  }
   totals: CampaignStats
   rates: Rates
   series: DailyPoint[]

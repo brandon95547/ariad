@@ -49,7 +49,15 @@ export const DEFAULT_THEME: DesignTheme = {
 export type Block =
   | { id: string; type: 'heading'; text: string; level: 1 | 2 | 3; align: Align }
   | { id: string; type: 'text'; html: string; align: Align }
-  | { id: string; type: 'image'; src: string; alt: string; href: string; width: number; align: Align }
+  | {
+      id: string
+      type: 'image'
+      src: string
+      alt: string
+      href: string
+      width: number
+      align: Align
+    }
   | { id: string; type: 'button'; label: string; href: string; align: Align; fullWidth: boolean }
   | { id: string; type: 'divider' }
   | { id: string; type: 'spacer'; height: number }
@@ -109,7 +117,13 @@ export function defaultDesign(): EmailDesign {
     version: 1,
     theme: { ...DEFAULT_THEME },
     blocks: [
-      { ...createBlock('heading'), type: 'heading', text: 'Your headline', level: 1, align: 'left' },
+      {
+        ...createBlock('heading'),
+        type: 'heading',
+        text: 'Your headline',
+        level: 1,
+        align: 'left',
+      },
       createBlock('text'),
       createBlock('button'),
     ],
@@ -130,7 +144,8 @@ export function tidyHtml(html: string): string {
     .replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1="#"')
 }
 
-const color = (value: string, fallback: string) => (/^#[0-9a-f]{3,8}$/i.test(value) ? value : fallback)
+const color = (value: string, fallback: string) =>
+  /^#[0-9a-f]{3,8}$/i.test(value) ? value : fallback
 
 /** Gives bare tags the inline styles email clients need; they ignore stylesheets. */
 function styleRichText(html: string, theme: DesignTheme): string {
@@ -165,7 +180,9 @@ export function renderBlock(block: Block, theme: DesignTheme): string {
       return `<tr><td style="${pad}${body}text-align:${block.align};">${styleRichText(block.html, theme)}</td></tr>`
     case 'image': {
       if (!block.src) return ''
-      const width = Math.round(((theme.width - 64) * Math.min(100, Math.max(10, block.width))) / 100)
+      const width = Math.round(
+        ((theme.width - 64) * Math.min(100, Math.max(10, block.width))) / 100,
+      )
       const img = `<img src="${escapeHtml(block.src)}" alt="${escapeHtml(block.alt)}" width="${width}" style="display:inline-block;max-width:100%;height:auto;border:0;border-radius:${theme.radius}px;">`
       const inner = block.href ? `<a href="${escapeHtml(block.href)}">${img}</a>` : img
       return `<tr><td style="${pad}padding-bottom:16px;text-align:${block.align};">${inner}</td></tr>`
@@ -257,17 +274,50 @@ ${rows}
 export function withPreheader(html: string, preheader: string | null | undefined): string {
   const block = preheaderHtml(preheader)
   if (!block) return html
-  return /<body[^>]*>/i.test(html) ? html.replace(/<body[^>]*>/i, (tag) => `${tag}\n${block}`) : block + html
+  return /<body[^>]*>/i.test(html)
+    ? html.replace(/<body[^>]*>/i, (tag) => `${tag}\n${block}`)
+    : block + html
 }
 
 const blockSchema = z.discriminatedUnion('type', [
-  z.object({ id: z.string(), type: z.literal('heading'), text: z.string().max(500), level: z.union([z.literal(1), z.literal(2), z.literal(3)]), align: z.enum(['left', 'center', 'right']) }),
-  z.object({ id: z.string(), type: z.literal('text'), html: z.string().max(100_000), align: z.enum(['left', 'center', 'right']) }),
-  z.object({ id: z.string(), type: z.literal('image'), src: z.string().max(2000), alt: z.string().max(500), href: z.string().max(2000), width: z.number().min(10).max(100), align: z.enum(['left', 'center', 'right']) }),
-  z.object({ id: z.string(), type: z.literal('button'), label: z.string().max(200), href: z.string().max(2000), align: z.enum(['left', 'center', 'right']), fullWidth: z.boolean() }),
+  z.object({
+    id: z.string(),
+    type: z.literal('heading'),
+    text: z.string().max(500),
+    level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    align: z.enum(['left', 'center', 'right']),
+  }),
+  z.object({
+    id: z.string(),
+    type: z.literal('text'),
+    html: z.string().max(100_000),
+    align: z.enum(['left', 'center', 'right']),
+  }),
+  z.object({
+    id: z.string(),
+    type: z.literal('image'),
+    src: z.string().max(2000),
+    alt: z.string().max(500),
+    href: z.string().max(2000),
+    width: z.number().min(10).max(100),
+    align: z.enum(['left', 'center', 'right']),
+  }),
+  z.object({
+    id: z.string(),
+    type: z.literal('button'),
+    label: z.string().max(200),
+    href: z.string().max(2000),
+    align: z.enum(['left', 'center', 'right']),
+    fullWidth: z.boolean(),
+  }),
   z.object({ id: z.string(), type: z.literal('divider') }),
   z.object({ id: z.string(), type: z.literal('spacer'), height: z.number().min(4).max(200) }),
-  z.object({ id: z.string(), type: z.literal('columns'), left: z.string().max(50_000), right: z.string().max(50_000) }),
+  z.object({
+    id: z.string(),
+    type: z.literal('columns'),
+    left: z.string().max(50_000),
+    right: z.string().max(50_000),
+  }),
   z.object({ id: z.string(), type: z.literal('html'), html: z.string().max(200_000) }),
 ])
 

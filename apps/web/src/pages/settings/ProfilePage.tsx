@@ -20,7 +20,9 @@ export function ProfilePage() {
   const [again, setAgain] = useState('')
 
   const remember = (updated: User) =>
-    client.setQueryData<AuthState>(keys.auth, (state) => (state ? { ...state, user: updated } : state))
+    client.setQueryData<AuthState>(keys.auth, (state) =>
+      state ? { ...state, user: updated } : state,
+    )
 
   const rename = useMutation({
     mutationFn: () => api.patch<User>('/auth/me', { name }),
@@ -57,34 +59,75 @@ export function ProfilePage() {
 
   return (
     <div>
-      <FormSection title="You" description="How you appear to the rest of your team, and in the log of who did what.">
+      <FormSection
+        title="You"
+        description="How you appear to the rest of your team, and in the log of who did what."
+      >
         <form onSubmit={submitName} className="flex flex-col gap-5" noValidate>
           {rename.isError && <Banner tone="danger">{errorMessage(rename.error)}</Banner>}
           <Field label="Name">
-            <TextInput value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" />
+            <TextInput
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              autoComplete="name"
+            />
           </Field>
-          <Field label="Email" hint={`You sign in with this. Your role is ${ROLE_LABELS[user.role]}; an admin can change either under Team.`}>
+          <Field
+            label="Email"
+            hint={`You sign in with this. Your role is ${ROLE_LABELS[user.role]}; an admin can change either under Team.`}
+          >
             <TextInput value={user.email} disabled readOnly />
           </Field>
-          <Button type="submit" variant="outlined" loading={rename.isPending} disabled={!name.trim() || name.trim() === user.name} className="self-start">
+          <Button
+            type="submit"
+            variant="outlined"
+            loading={rename.isPending}
+            disabled={!name.trim() || name.trim() === user.name}
+            className="self-start"
+          >
             Save name
           </Button>
         </form>
       </FormSection>
 
-      <FormSection title="Password" description="Changing it does not sign you out here. Use at least 8 characters.">
+      <FormSection
+        title="Password"
+        description="Changing it does not sign you out here. Use at least 8 characters."
+      >
         <form onSubmit={submitPassword} className="flex flex-col gap-5" noValidate>
-          {changePassword.isError && <Banner tone="danger">{errorMessage(changePassword.error)}</Banner>}
+          {changePassword.isError && (
+            <Banner tone="danger">{errorMessage(changePassword.error)}</Banner>
+          )}
           <Field label="Current password">
-            <PasswordInput value={current} onChange={(event) => setCurrent(event.target.value)} autoComplete="current-password" />
+            <PasswordInput
+              value={current}
+              onChange={(event) => setCurrent(event.target.value)}
+              autoComplete="current-password"
+            />
           </Field>
           <Field label="New password" error={tooShort ? 'Use at least 8 characters.' : undefined}>
-            <PasswordInput value={next} onChange={(event) => setNext(event.target.value)} autoComplete="new-password" />
+            <PasswordInput
+              value={next}
+              onChange={(event) => setNext(event.target.value)}
+              autoComplete="new-password"
+            />
           </Field>
-          <Field label="New password again" error={mismatch ? 'The two new passwords do not match.' : undefined}>
-            <PasswordInput value={again} onChange={(event) => setAgain(event.target.value)} autoComplete="new-password" />
+          <Field
+            label="New password again"
+            error={mismatch ? 'The two new passwords do not match.' : undefined}
+          >
+            <PasswordInput
+              value={again}
+              onChange={(event) => setAgain(event.target.value)}
+              autoComplete="new-password"
+            />
           </Field>
-          <Button type="submit" loading={changePassword.isPending} disabled={!current || !next || !again || mismatch || tooShort} className="self-start">
+          <Button
+            type="submit"
+            loading={changePassword.isPending}
+            disabled={!current || !next || !again || mismatch || tooShort}
+            className="self-start"
+          >
             Change password
           </Button>
         </form>

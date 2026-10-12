@@ -53,7 +53,9 @@ export function ApiKeysPage() {
       cell: (row) => (
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate text-label text-[var(--ds-fg)]">{row.name}</span>
-          <span className="truncate font-mono text-caption text-[var(--ds-fg-muted)]">{row.prefix}…</span>
+          <span className="truncate font-mono text-caption text-[var(--ds-fg-muted)]">
+            {row.prefix}…
+          </span>
         </div>
       ),
     },
@@ -63,9 +65,19 @@ export function ApiKeysPage() {
       header: 'Last used',
       width: '9rem',
       hideBelow: 'sm',
-      cell: (row) => <span className="text-[var(--ds-fg-muted)]">{row.lastUsedAt ? formatRelative(row.lastUsedAt) : 'Never'}</span>,
+      cell: (row) => (
+        <span className="text-[var(--ds-fg-muted)]">
+          {row.lastUsedAt ? formatRelative(row.lastUsedAt) : 'Never'}
+        </span>
+      ),
     },
-    { key: 'created', header: 'Created', width: '8rem', hideBelow: 'md', cell: (row) => <span className="text-[var(--ds-fg-muted)]">{formatDate(row.createdAt)}</span> },
+    {
+      key: 'created',
+      header: 'Created',
+      width: '8rem',
+      hideBelow: 'md',
+      cell: (row) => <span className="text-[var(--ds-fg-muted)]">{formatDate(row.createdAt)}</span>,
+    },
     {
       key: 'state',
       header: <span className="sr-only-ds">Status</span>,
@@ -95,8 +107,8 @@ export function ApiKeysPage() {
         <div className="flex max-w-[40rem] flex-col gap-1">
           <h2 className="text-h3 text-[var(--ds-fg)]">API keys</h2>
           <p className="text-body-sm text-[var(--ds-fg-muted)]">
-            For scripts and other software that add contacts or read reports. A key can do whatever its role allows, so give each one the
-            least it needs.
+            For scripts and other software that add contacts or read reports. A key can do whatever
+            its role allows, so give each one the least it needs.
           </p>
         </div>
         {list.length > 0 && (
@@ -117,7 +129,10 @@ export function ApiKeysPage() {
           }
         >
           <div className="flex flex-col gap-3">
-            <p>This is the only time it is shown. Ariad keeps a fingerprint of it, not the key, so it cannot be shown again.</p>
+            <p>
+              This is the only time it is shown. Ariad keeps a fingerprint of it, not the key, so it
+              cannot be shown again.
+            </p>
             <CodeSnippet code={fresh.secret} wrap />
           </div>
         </Banner>
@@ -140,7 +155,14 @@ export function ApiKeysPage() {
         </Card>
       ) : (
         <Card padding="none" className="overflow-hidden">
-          <DataTable aria-label="API keys" columns={columns} rows={list} rowKey={(row) => row.id} loading={keys.isPending} skeletonRows={2} />
+          <DataTable
+            aria-label="API keys"
+            columns={columns}
+            rows={list}
+            rowKey={(row) => row.id}
+            loading={keys.isPending}
+            skeletonRows={2}
+          />
         </Card>
       )}
 
@@ -164,14 +186,25 @@ export function ApiKeysPage() {
         confirmLabel="Revoke key"
         loading={revoke.isPending}
       >
-        <p>Anything using it stops working straight away. A revoked key cannot be brought back; you would create a new one.</p>
+        <p>
+          Anything using it stops working straight away. A revoked key cannot be brought back; you
+          would create a new one.
+        </p>
         {revoke.isError && <Banner tone="danger">{errorMessage(revoke.error)}</Banner>}
       </ConfirmDialog>
     </div>
   )
 }
 
-function NewKeyDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (created: { key: ApiKey; secret: string }) => void }) {
+function NewKeyDialog({
+  open,
+  onClose,
+  onCreated,
+}: {
+  open: boolean
+  onClose: () => void
+  onCreated: (created: { key: ApiKey; secret: string }) => void
+}) {
   const formId = useId()
   const [name, setName] = useState('')
   const [role, setRole] = useState<KeyRole>('editor')
@@ -209,13 +242,22 @@ function NewKeyDialog({ open, onClose, onCreated }: { open: boolean; onClose: ()
       <form id={formId} onSubmit={submit} className="flex flex-col gap-5" noValidate>
         {create.isError && <Banner tone="danger">{errorMessage(create.error)}</Banner>}
         <Field label="Name" hint="What will use it, so you know what breaks if it is revoked.">
-          <TextInput value={name} onChange={(event) => setName(event.target.value)} placeholder="Website signup sync" autoFocus />
+          <TextInput
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Website signup sync"
+            autoFocus
+          />
         </Field>
         <RadioGroup
           label="Can act as"
           value={role}
           onChange={setRole}
-          options={(['viewer', 'editor', 'admin'] as const).map((entry) => ({ value: entry, label: ROLE_LABELS[entry], description: ROLE_DESCRIPTIONS[entry] }))}
+          options={(['viewer', 'editor', 'admin'] as const).map((entry) => ({
+            value: entry,
+            label: ROLE_LABELS[entry],
+            description: ROLE_DESCRIPTIONS[entry],
+          }))}
         />
       </form>
     </Dialog>

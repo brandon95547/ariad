@@ -7,12 +7,21 @@ import { api, errorMessage } from '@/lib/api'
 import { Button } from '@/ui/Button'
 import { Banner } from '@/ui/Feedback'
 import { Checkbox } from '@/ui/Inputs'
-import { PublicFrame, PublicHeading, PublicLoading, ResultMark, publicLinkClass, useDocumentTitle } from './PublicFrame'
+import {
+  PublicFrame,
+  PublicHeading,
+  PublicLoading,
+  ResultMark,
+  publicLinkClass,
+  useDocumentTitle,
+} from './PublicFrame'
 import { LinkProblem, PREVIEW_TOKEN, PreviewNote, preferencesKey } from './UnsubscribePage'
 
-const subscribedTo = (prefs: PublicPreferences) => prefs.lists.filter((list) => list.subscribed).map((list) => list.id)
+const subscribedTo = (prefs: PublicPreferences) =>
+  prefs.lists.filter((list) => list.subscribed).map((list) => list.id)
 
-const sameSet = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((id) => b.includes(id))
+const sameSet = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((id) => b.includes(id))
 
 /**
  * Where "Email preferences" in an email leads: which of the public lists this
@@ -44,7 +53,8 @@ export function PreferencesPage() {
   }
 
   const save = useMutation({
-    mutationFn: () => api.post<PublicPreferences>(`/public/preferences/${path}`, { listIds: chosen ?? [] }),
+    mutationFn: () =>
+      api.post<PublicPreferences>(`/public/preferences/${path}`, { listIds: chosen ?? [] }),
     onSuccess: (next) => {
       store(next)
       setSaved(true)
@@ -71,7 +81,13 @@ export function PreferencesPage() {
   } else if (prefs.isPending) {
     body = <PublicLoading />
   } else if (prefs.isError) {
-    body = <LinkProblem error={prefs.error} onRetry={() => void prefs.refetch()} retrying={prefs.isFetching} />
+    body = (
+      <LinkProblem
+        error={prefs.error}
+        onRetry={() => void prefs.refetch()}
+        retrying={prefs.isFetching}
+      />
+    )
   } else if (prefs.data.status !== 'subscribed') {
     const { status, email } = prefs.data
     body = (
@@ -81,15 +97,28 @@ export function PreferencesPage() {
         </ResultMark>
         <PublicHeading title="You are not subscribed">
           <p>
-            <strong className="font-medium text-[var(--ds-fg)]">{email}</strong> is not getting email from {sender}
+            <strong className="font-medium text-[var(--ds-fg)]">{email}</strong> is not getting
+            email from {sender}
             {status === 'pending' ? ' yet.' : ', so there is nothing to change here.'}
           </p>
-          {status === 'pending' && <p>To finish subscribing, open the confirmation email you were sent and press the button in it.</p>}
+          {status === 'pending' && (
+            <p>
+              To finish subscribing, open the confirmation email you were sent and press the button
+              in it.
+            </p>
+          )}
         </PublicHeading>
         {status === 'unsubscribed' && (
           <>
-            {resubscribe.isError && <Banner tone="danger">{errorMessage(resubscribe.error)}</Banner>}
-            <Button size="lg" fullWidth onClick={() => resubscribe.mutate()} loading={resubscribe.isPending}>
+            {resubscribe.isError && (
+              <Banner tone="danger">{errorMessage(resubscribe.error)}</Banner>
+            )}
+            <Button
+              size="lg"
+              fullWidth
+              onClick={() => resubscribe.mutate()}
+              loading={resubscribe.isPending}
+            >
               Subscribe again
             </Button>
           </>
@@ -104,13 +133,15 @@ export function PreferencesPage() {
       <form onSubmit={submit} className="flex flex-col gap-6">
         <PublicHeading title="Email preferences">
           <p>
-            What {sender} sends to <strong className="font-medium text-[var(--ds-fg)]">{prefs.data.email}</strong>.
+            What {sender} sends to{' '}
+            <strong className="font-medium text-[var(--ds-fg)]">{prefs.data.email}</strong>.
           </p>
         </PublicHeading>
 
         {prefs.data.lists.length === 0 ? (
           <p className="text-body text-[var(--ds-fg-secondary)]">
-            {sender.slice(0, 1).toUpperCase() + sender.slice(1)} sends one kind of email, so there is nothing to choose between. You are subscribed to it.
+            {sender.slice(0, 1).toUpperCase() + sender.slice(1)} sends one kind of email, so there
+            is nothing to choose between. You are subscribed to it.
           </p>
         ) : (
           <>
@@ -132,11 +163,14 @@ export function PreferencesPage() {
 
             {picked.length === 0 && (
               <p className="text-body-sm text-[var(--ds-fg-muted)]">
-                With nothing ticked you leave these lists, but {sender} can still send you other email. To stop all of it, unsubscribe.
+                With nothing ticked you leave these lists, but {sender} can still send you other
+                email. To stop all of it, unsubscribe.
               </p>
             )}
             {save.isError && <Banner tone="danger">{errorMessage(save.error)}</Banner>}
-            {saved && !dirty && <Banner tone="success">Saved. Your choices take effect now.</Banner>}
+            {saved && !dirty && (
+              <Banner tone="success">Saved. Your choices take effect now.</Banner>
+            )}
 
             <Button type="submit" size="lg" fullWidth loading={save.isPending} disabled={!dirty}>
               Save preferences

@@ -63,7 +63,13 @@ export function recordEvent(
 export function listEvents(db: Db, contactId: string, limit = 200): ContactEvent[] {
   const rows = db
     .prepare('SELECT * FROM contact_events WHERE contact_id = ? ORDER BY id DESC LIMIT ?')
-    .all(contactId, limit) as { id: number; type: ContactEventType; summary: string; detail: string | null; created_at: string }[]
+    .all(contactId, limit) as {
+    id: number
+    type: ContactEventType
+    summary: string
+    detail: string | null
+    created_at: string
+  }[]
   return rows.map((row) => ({
     id: String(row.id),
     type: row.type,
@@ -146,7 +152,12 @@ export function getContact(db: Db, id: string): Contact {
 
 /* ---- Suppression -------------------------------------------------------- */
 
-export function suppress(db: Db, email: string, reason: SuppressionReason, note?: string | null): void {
+export function suppress(
+  db: Db,
+  email: string,
+  reason: SuppressionReason,
+  note?: string | null,
+): void {
   // A bounce or complaint is not downgraded to "manual" by a later entry.
   db.prepare(
     /* sql */ `INSERT INTO suppressions (email, reason, note, created_at) VALUES (?, ?, ?, ?)
@@ -156,8 +167,7 @@ export function suppress(db: Db, email: string, reason: SuppressionReason, note?
 
 export function suppressionOf(db: Db, email: string): SuppressionReason | null {
   const row = db.prepare('SELECT reason FROM suppressions WHERE email = ?').get(email) as
-    | { reason: SuppressionReason }
-    | undefined
+    { reason: SuppressionReason } | undefined
   return row?.reason ?? null
 }
 
@@ -214,7 +224,13 @@ export function upsertContact(db: Db, fields: ContactFields, options: UpsertOpti
     // A suppressed address is still recorded, so the import shows where it
     // went — but it arrives in the state the suppression put it in.
     const status: ContactStatus =
-      suppressed === 'bounced' ? 'bounced' : suppressed === 'complained' ? 'complained' : suppressed ? 'unsubscribed' : wanted
+      suppressed === 'bounced'
+        ? 'bounced'
+        : suppressed === 'complained'
+          ? 'complained'
+          : suppressed
+            ? 'unsubscribed'
+            : wanted
     db.prepare(
       /* sql */ `INSERT INTO contacts
         (id, email, first_name, last_name, company, phone, birthday, status, source, custom, token,
@@ -251,7 +267,11 @@ export function upsertContact(db: Db, fields: ContactFields, options: UpsertOpti
 
   const overwrite = options.overwrite ?? true
   const choose = (next: string | null | undefined, current: string | null) =>
-    next === undefined || next === null || next === '' ? current : overwrite || !current ? next : current
+    next === undefined || next === null || next === ''
+      ? current
+      : overwrite || !current
+        ? next
+        : current
   const custom = { ...parseJson<Record<string, string>>(existing.custom, {}) }
   for (const [key, value] of Object.entries(fields.custom ?? {})) {
     if (value !== '' && (overwrite || !custom[key])) custom[key] = value
@@ -259,7 +279,11 @@ export function upsertContact(db: Db, fields: ContactFields, options: UpsertOpti
 
   const blocked = existing.status !== 'subscribed' && existing.status !== 'pending'
   const status: ContactStatus =
-    blocked || suppressed ? existing.status : existing.status === 'pending' && wanted === 'subscribed' ? 'subscribed' : existing.status
+    blocked || suppressed
+      ? existing.status
+      : existing.status === 'pending' && wanted === 'subscribed'
+        ? 'subscribed'
+        : existing.status
   const confirming = existing.status === 'pending' && status === 'subscribed'
 
   db.prepare(
@@ -287,7 +311,11 @@ export function upsertContact(db: Db, fields: ContactFields, options: UpsertOpti
     confirming: confirming ? 1 : 0,
     now,
   })
-  return { row: getContactRow(db, existing.id), created: false, blocked: blocked || Boolean(suppressed) }
+  return {
+    row: getContactRow(db, existing.id),
+    created: false,
+    blocked: blocked || Boolean(suppressed),
+  }
 }
 
 /**
@@ -318,40 +346,65 @@ export function addToList(
                  status = excluded.status, subscribed_at = excluded.subscribed_at, unsubscribed_at = NULL`,
   ).run({ listId, contactId, status, at: status === 'subscribed' ? now : null })
 
-  const list = db.prepare('SELECT name FROM lists WHERE id = ?').get(listId) as { name: string } | undefined
+  const list = db.prepare('SELECT name FROM lists WHERE id = ?').get(listId) as
+    { name: string } | undefined
   if (status === 'subscribed') {
     recordEvent(db, contactId, 'list_added', `Subscribed to ${list?.name ?? 'a list'}`, { listId })
     if (!options.quiet) fireTrigger(ctx, { type: 'list_subscribed', listId, contactId })
   }
 }
 
-export function removeFromList(db: Db, contactId: string, listId: string, mode: 'unsubscribe' | 'remove'): void {
-  const list = db.prepare('SELECT name FROM lists WHERE id = ?').get(listId) as { name: string } | undefined
+export function removeFromList(
+  db: Db,
+  contactId: string,
+  listId: string,
+  mode: 'unsubscribe' | 'remove',
+): void {
+  const list = db.prepare('SELECT name FROM lists WHERE id = ?').get(listId) as
+    { name: string } | undefined
   if (mode === 'remove') {
-    db.prepare('DELETE FROM list_members WHERE list_id = ? AND contact_id = ?').run(listId, contactId)
+    db.prepare('DELETE FROM list_members WHERE list_id = ? AND contact_id = ?').run(
+      listId,
+      contactId,
+    )
   } else {
     db.prepare(
       "UPDATE list_members SET status = 'unsubscribed', unsubscribed_at = ? WHERE list_id = ? AND contact_id = ?",
     ).run(nowIso(), listId, contactId)
   }
-  recordEvent(db, contactId, 'list_removed', `${mode === 'remove' ? 'Removed from' : 'Unsubscribed from'} ${list?.name ?? 'a list'}`, { listId })
+  recordEvent(
+    db,
+    contactId,
+    'list_removed',
+    `${mode === 'remove' ? 'Removed from' : 'Unsubscribed from'} ${list?.name ?? 'a list'}`,
+    { listId },
+  )
 }
 
-export function addTag(ctx: Ctx, contactId: string, tagId: string, options: { quiet?: boolean } = {}): void {
+export function addTag(
+  ctx: Ctx,
+  contactId: string,
+  tagId: string,
+  options: { quiet?: boolean } = {},
+): void {
   const { db } = ctx
   const result = db
     .prepare('INSERT OR IGNORE INTO contact_tags (contact_id, tag_id, created_at) VALUES (?, ?, ?)')
     .run(contactId, tagId, nowIso())
   if (result.changes === 0) return
-  const tag = db.prepare('SELECT name FROM tags WHERE id = ?').get(tagId) as { name: string } | undefined
+  const tag = db.prepare('SELECT name FROM tags WHERE id = ?').get(tagId) as
+    { name: string } | undefined
   recordEvent(db, contactId, 'tag_added', `Tagged ${tag?.name ?? ''}`.trim(), { tagId })
   if (!options.quiet) fireTrigger(ctx, { type: 'tag_added', tagId, contactId })
 }
 
 export function removeTag(db: Db, contactId: string, tagId: string): void {
-  const result = db.prepare('DELETE FROM contact_tags WHERE contact_id = ? AND tag_id = ?').run(contactId, tagId)
+  const result = db
+    .prepare('DELETE FROM contact_tags WHERE contact_id = ? AND tag_id = ?')
+    .run(contactId, tagId)
   if (result.changes === 0) return
-  const tag = db.prepare('SELECT name FROM tags WHERE id = ?').get(tagId) as { name: string } | undefined
+  const tag = db.prepare('SELECT name FROM tags WHERE id = ?').get(tagId) as
+    { name: string } | undefined
   recordEvent(db, contactId, 'tag_removed', `Tag removed: ${tag?.name ?? ''}`.trim(), { tagId })
 }
 
@@ -363,14 +416,26 @@ export function setMemberships(
 ): void {
   const { db } = ctx
   if (next.tagIds) {
-    const current = (db.prepare('SELECT tag_id FROM contact_tags WHERE contact_id = ?').all(contactId) as { tag_id: string }[]).map((row) => row.tag_id)
+    const current = (
+      db.prepare('SELECT tag_id FROM contact_tags WHERE contact_id = ?').all(contactId) as {
+        tag_id: string
+      }[]
+    ).map((row) => row.tag_id)
     for (const tagId of next.tagIds) if (!current.includes(tagId)) addTag(ctx, contactId, tagId)
     for (const tagId of current) if (!next.tagIds.includes(tagId)) removeTag(db, contactId, tagId)
   }
   if (next.listIds) {
-    const current = (db.prepare("SELECT list_id FROM list_members WHERE contact_id = ? AND status <> 'unsubscribed'").all(contactId) as { list_id: string }[]).map((row) => row.list_id)
-    for (const listId of next.listIds) if (!current.includes(listId)) addToList(ctx, contactId, listId)
-    for (const listId of current) if (!next.listIds.includes(listId)) removeFromList(db, contactId, listId, 'remove')
+    const current = (
+      db
+        .prepare(
+          "SELECT list_id FROM list_members WHERE contact_id = ? AND status <> 'unsubscribed'",
+        )
+        .all(contactId) as { list_id: string }[]
+    ).map((row) => row.list_id)
+    for (const listId of next.listIds)
+      if (!current.includes(listId)) addToList(ctx, contactId, listId)
+    for (const listId of current)
+      if (!next.listIds.includes(listId)) removeFromList(db, contactId, listId, 'remove')
   }
 }
 
@@ -395,9 +460,15 @@ export function unsubscribeContact(
   suppress(db, row.email, 'unsubscribed', options.via)
   // Anything still waiting to go to them is withdrawn, and any automation
   // they were partway through ends here.
-  db.prepare("UPDATE messages SET status = 'canceled', last_error = 'Contact unsubscribed' WHERE contact_id = ? AND status = 'queued' AND kind <> 'system'").run(contactId)
-  db.prepare("UPDATE automation_runs SET status = 'exited', note = 'Unsubscribed', finished_at = ? WHERE contact_id = ? AND status = 'active'").run(now, contactId)
-  recordEvent(db, contactId, 'unsubscribed', `Unsubscribed (${options.via})`, { reason: options.reason ?? null })
+  db.prepare(
+    "UPDATE messages SET status = 'canceled', last_error = 'Contact unsubscribed' WHERE contact_id = ? AND status = 'queued' AND kind <> 'system'",
+  ).run(contactId)
+  db.prepare(
+    "UPDATE automation_runs SET status = 'exited', note = 'Unsubscribed', finished_at = ? WHERE contact_id = ? AND status = 'active'",
+  ).run(now, contactId)
+  recordEvent(db, contactId, 'unsubscribed', `Unsubscribed (${options.via})`, {
+    reason: options.reason ?? null,
+  })
 }
 
 /** A person deciding, on the record, that this contact may be emailed again. */
@@ -420,18 +491,25 @@ export function markUndeliverable(
 ): void {
   const row = getContactRow(db, contactId)
   const now = nowIso()
-  db.prepare('UPDATE contacts SET status = ?, updated_at = ? WHERE id = ?').run(kind, now, contactId)
-  suppress(db, row.email, kind, detail.slice(0, 300))
-  db.prepare("UPDATE messages SET status = 'canceled', last_error = ? WHERE contact_id = ? AND status = 'queued'").run(
-    kind === 'bounced' ? 'Address bounced' : 'Marked as spam',
-    contactId,
-  )
-  db.prepare("UPDATE automation_runs SET status = 'exited', note = ?, finished_at = ? WHERE contact_id = ? AND status = 'active'").run(
-    kind === 'bounced' ? 'Bounced' : 'Complained',
+  db.prepare('UPDATE contacts SET status = ?, updated_at = ? WHERE id = ?').run(
+    kind,
     now,
     contactId,
   )
-  recordEvent(db, contactId, kind, kind === 'bounced' ? 'Email bounced' : 'Marked an email as spam', { detail })
+  suppress(db, row.email, kind, detail.slice(0, 300))
+  db.prepare(
+    "UPDATE messages SET status = 'canceled', last_error = ? WHERE contact_id = ? AND status = 'queued'",
+  ).run(kind === 'bounced' ? 'Address bounced' : 'Marked as spam', contactId)
+  db.prepare(
+    "UPDATE automation_runs SET status = 'exited', note = ?, finished_at = ? WHERE contact_id = ? AND status = 'active'",
+  ).run(kind === 'bounced' ? 'Bounced' : 'Complained', now, contactId)
+  recordEvent(
+    db,
+    contactId,
+    kind,
+    kind === 'bounced' ? 'Email bounced' : 'Marked an email as spam',
+    { detail },
+  )
 }
 
 /* ---- Duplicates --------------------------------------------------------- */
@@ -449,14 +527,22 @@ export function canonicalMailbox(email: string): string {
 }
 
 /** Folds the others into `keepId`: blanks filled, memberships and history moved. */
-export function mergeContacts(ctx: Ctx, keepId: string, mergeIds: string[], userName: string): Contact {
+export function mergeContacts(
+  ctx: Ctx,
+  keepId: string,
+  mergeIds: string[],
+  userName: string,
+): Contact {
   const { db } = ctx
   const keep = getContactRow(db, keepId)
   db.transaction(() => {
     for (const id of mergeIds) {
       if (id === keepId) continue
       const other = getContactRow(db, id)
-      const custom = { ...parseJson<Record<string, string>>(other.custom, {}), ...parseJson<Record<string, string>>(keep.custom, {}) }
+      const custom = {
+        ...parseJson<Record<string, string>>(other.custom, {}),
+        ...parseJson<Record<string, string>>(keep.custom, {}),
+      }
       db.prepare(
         /* sql */ `UPDATE contacts SET
           first_name = COALESCE(NULLIF(first_name, ''), @firstName), last_name = COALESCE(NULLIF(last_name, ''), @lastName),
@@ -473,13 +559,19 @@ export function mergeContacts(ctx: Ctx, keepId: string, mergeIds: string[], user
         custom: JSON.stringify(custom),
         now: nowIso(),
       })
-      db.prepare('INSERT OR IGNORE INTO contact_tags (contact_id, tag_id, created_at) SELECT ?, tag_id, created_at FROM contact_tags WHERE contact_id = ?').run(keepId, id)
-      db.prepare('INSERT OR IGNORE INTO list_members (list_id, contact_id, status, subscribed_at, unsubscribed_at) SELECT list_id, ?, status, subscribed_at, unsubscribed_at FROM list_members WHERE contact_id = ?').run(keepId, id)
+      db.prepare(
+        'INSERT OR IGNORE INTO contact_tags (contact_id, tag_id, created_at) SELECT ?, tag_id, created_at FROM contact_tags WHERE contact_id = ?',
+      ).run(keepId, id)
+      db.prepare(
+        'INSERT OR IGNORE INTO list_members (list_id, contact_id, status, subscribed_at, unsubscribed_at) SELECT list_id, ?, status, subscribed_at, unsubscribed_at FROM list_members WHERE contact_id = ?',
+      ).run(keepId, id)
       db.prepare('UPDATE messages SET contact_id = ? WHERE contact_id = ?').run(keepId, id)
       db.prepare('UPDATE message_events SET contact_id = ? WHERE contact_id = ?').run(keepId, id)
       db.prepare('UPDATE contact_events SET contact_id = ? WHERE contact_id = ?').run(keepId, id)
       db.prepare('DELETE FROM contacts WHERE id = ?').run(id)
-      recordEvent(db, keepId, 'merged', `Merged with ${other.email} by ${userName}`, { email: other.email })
+      recordEvent(db, keepId, 'merged', `Merged with ${other.email} by ${userName}`, {
+        email: other.email,
+      })
     }
   })()
   return getContact(db, keepId)

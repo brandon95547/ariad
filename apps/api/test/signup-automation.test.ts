@@ -21,7 +21,9 @@ describe('signup form, double opt-in and a welcome automation', () => {
     api = client(app)
     await setupOwner(api)
     await api.post('/sending-accounts', smtpAccount(catcher))
-    await api.patch('/settings', { organization: { address1: '1 Main St', city: 'Charlotte', region: 'NC', postalCode: '28202' } })
+    await api.patch('/settings', {
+      organization: { address1: '1 Main St', city: 'Charlotte', region: 'NC', postalCode: '28202' },
+    })
     listId = (await api.post('/lists', { name: 'Newsletter', doubleOptIn: true })).body.id
   })
 
@@ -31,14 +33,22 @@ describe('signup form, double opt-in and a welcome automation', () => {
   })
 
   it('builds a welcome automation and refuses to turn on an empty one', async () => {
-    const empty = await api.post('/automations', { name: 'Welcome', trigger: { type: 'list_subscribed', listId } })
+    const empty = await api.post('/automations', {
+      name: 'Welcome',
+      trigger: { type: 'list_subscribed', listId },
+    })
     expect(empty.status).toBe(201)
     automationId = empty.body.id
     expect((await api.post(`/automations/${automationId}/activate`)).status).toBe(409)
 
     const filled = await api.patch(`/automations/${automationId}`, {
       steps: [
-        { id: 's1', type: 'email', subject: 'Welcome, {{first_name|friend}}', html: '<p>Glad you are here, {{first_name|friend}}.</p>' },
+        {
+          id: 's1',
+          type: 'email',
+          subject: 'Welcome, {{first_name|friend}}',
+          html: '<p>Glad you are here, {{first_name|friend}}.</p>',
+        },
         { id: 's2', type: 'delay', amount: 2, unit: 'days' },
         { id: 's3', type: 'email', subject: 'A second note', html: '<p>Two days on.</p>' },
       ],
@@ -61,33 +71,57 @@ describe('signup form, double opt-in and a welcome automation', () => {
 
     const view = await visitor().get(`/public/forms/${formId}`)
     expect(view.status).toBe(200)
-    expect(view.body).toMatchObject({ title: 'Get the newsletter', organization: 'Northwind', consentRequired: true })
+    expect(view.body).toMatchObject({
+      title: 'Get the newsletter',
+      organization: 'Northwind',
+      consentRequired: true,
+    })
     expect(view.body.lists).toEqual([{ id: listId, name: 'Newsletter', description: null }])
     expect(view.body.tagIds).toBeUndefined()
   })
 
   it('insists on consent and on required fields', async () => {
-    const noConsent = await visitor().post(`/public/forms/${formId}/subscribe`, { email: 'new@example.test', fields: { firstName: 'Nia' } })
+    const noConsent = await visitor().post(`/public/forms/${formId}/subscribe`, {
+      email: 'new@example.test',
+      fields: { firstName: 'Nia' },
+    })
     expect(noConsent.status).toBe(400)
-    const noName = await visitor().post(`/public/forms/${formId}/subscribe`, { email: 'new@example.test', consent: true })
+    const noName = await visitor().post(`/public/forms/${formId}/subscribe`, {
+      email: 'new@example.test',
+      consent: true,
+    })
     expect(noName.status).toBe(400)
     expect(noName.body.error.message).toBe('First name is required.')
   })
 
   it('tells a bot it worked and does nothing', async () => {
-    const response = await visitor().post(`/public/forms/${formId}/subscribe`, { email: 'bot@example.test', fields: { firstName: 'B' }, consent: true, website: 'http://spam' })
+    const response = await visitor().post(`/public/forms/${formId}/subscribe`, {
+      email: 'bot@example.test',
+      fields: { firstName: 'B' },
+      consent: true,
+      website: 'http://spam',
+    })
     expect(response.status).toBe(200)
     expect((await api.get('/contacts?q=bot@')).body.total).toBe(0)
   })
 
   it('holds a signup as pending and emails a confirmation link', async () => {
     catcher.mail.length = 0
-    const response = await visitor().post(`/public/forms/${formId}/subscribe`, { email: 'Nia@Example.test', fields: { firstName: 'Nia' }, consent: true })
+    const response = await visitor().post(`/public/forms/${formId}/subscribe`, {
+      email: 'Nia@Example.test',
+      fields: { firstName: 'Nia' },
+      consent: true,
+    })
     expect(response.body.status).toBe('confirmation_sent')
     await app.worker.tick()
 
     const nia = (await api.get('/contacts?q=nia@')).body.items[0]
-    expect(nia).toMatchObject({ email: 'nia@example.test', firstName: 'Nia', status: 'pending', confirmedAt: null })
+    expect(nia).toMatchObject({
+      email: 'nia@example.test',
+      firstName: 'Nia',
+      status: 'pending',
+      confirmedAt: null,
+    })
     expect(nia.lists).toMatchObject([{ status: 'pending' }])
 
     // Exactly one email so far: the confirmation. The welcome has not started.
@@ -108,7 +142,10 @@ describe('signup form, double opt-in and a welcome automation', () => {
     const nia = (await api.get('/contacts?q=nia@')).body.items[0]
     expect(nia.status).toBe('subscribed')
     expect(nia.confirmedAt).toBeTruthy()
-    expect(nia).toMatchObject({ consentSource: 'Form: Footer signup', consentText: 'I agree to receive emails and understand I can unsubscribe at any time.' })
+    expect(nia).toMatchObject({
+      consentSource: 'Form: Footer signup',
+      consentText: 'I agree to receive emails and understand I can unsubscribe at any time.',
+    })
     expect(nia.lists).toMatchObject([{ status: 'subscribed' }])
 
     await app.worker.tick()
@@ -125,12 +162,16 @@ describe('signup form, double opt-in and a welcome automation', () => {
   })
 
   it('waits out the delay, then sends the next email', async () => {
-    const run = app.ctx.db.prepare('SELECT * FROM automation_runs WHERE automation_id = ?').get(automationId) as { id: string; status: string; step_index: number; next_run_at: string }
+    const run = app.ctx.db
+      .prepare('SELECT * FROM automation_runs WHERE automation_id = ?')
+      .get(automationId) as { id: string; status: string; step_index: number; next_run_at: string }
     expect(run).toMatchObject({ status: 'active', step_index: 2 })
     expect(new Date(run.next_run_at).getTime() - Date.now()).toBeGreaterThan(1.9 * 86_400_000)
 
     // Two days pass.
-    app.ctx.db.prepare('UPDATE automation_runs SET next_run_at = ? WHERE id = ?').run(new Date(Date.now() - 1000).toISOString(), run.id)
+    app.ctx.db
+      .prepare('UPDATE automation_runs SET next_run_at = ? WHERE id = ?')
+      .run(new Date(Date.now() - 1000).toISOString(), run.id)
     catcher.mail.length = 0
     await app.worker.tick()
     expect(catcher.mail).toHaveLength(1)
@@ -144,26 +185,48 @@ describe('signup form, double opt-in and a welcome automation', () => {
     const second = (await api.post('/lists', { name: 'Product updates' })).body.id
     const nia = (await api.get('/contacts?q=nia@')).body.items[0]
     await api.patch(`/contacts/${nia.id}`, { listIds: [listId, second] })
-    const token = (app.ctx.db.prepare('SELECT token FROM contacts WHERE id = ?').get(nia.id) as { token: string }).token
+    const token = (
+      app.ctx.db.prepare('SELECT token FROM contacts WHERE id = ?').get(nia.id) as { token: string }
+    ).token
 
     const before = await visitor().get(`/public/preferences/${token}`)
-    expect(before.body.lists.map((list: { subscribed: boolean }) => list.subscribed)).toEqual([true, true])
+    expect(before.body.lists.map((list: { subscribed: boolean }) => list.subscribed)).toEqual([
+      true,
+      true,
+    ])
 
     const after = await visitor().post(`/public/preferences/${token}`, { listIds: [second] })
-    expect(after.body.lists).toMatchObject([{ name: 'Newsletter', subscribed: false }, { name: 'Product updates', subscribed: true }])
+    expect(after.body.lists).toMatchObject([
+      { name: 'Newsletter', subscribed: false },
+      { name: 'Product updates', subscribed: true },
+    ])
     expect((await api.get(`/contacts/${nia.id}`)).body.status).toBe('subscribed')
   })
 
   it('makes someone who unsubscribed confirm by email before they are back', async () => {
     const nia = (await api.get('/contacts?q=nia@')).body.items[0]
-    const token = (app.ctx.db.prepare('SELECT token FROM contacts WHERE id = ?').get(nia.id) as { token: string }).token
+    const token = (
+      app.ctx.db.prepare('SELECT token FROM contacts WHERE id = ?').get(nia.id) as { token: string }
+    ).token
     await visitor().post(`/public/unsubscribe/${token}`, { reason: 'too_many' })
-    expect((await api.get(`/contacts/${nia.id}`)).body).toMatchObject({ status: 'unsubscribed', unsubscribeReason: 'I get too many emails' })
+    expect((await api.get(`/contacts/${nia.id}`)).body).toMatchObject({
+      status: 'unsubscribed',
+      unsubscribeReason: 'I get too many emails',
+    })
 
     // A form without double opt-in still cannot re-subscribe them directly.
-    const open = (await api.post('/forms', { name: 'Quick', listIds: [listId], doubleOptIn: false, consentRequired: false })).body.id
+    const open = (
+      await api.post('/forms', {
+        name: 'Quick',
+        listIds: [listId],
+        doubleOptIn: false,
+        consentRequired: false,
+      })
+    ).body.id
     catcher.mail.length = 0
-    const again = await visitor().post(`/public/forms/${open}/subscribe`, { email: 'nia@example.test' })
+    const again = await visitor().post(`/public/forms/${open}/subscribe`, {
+      email: 'nia@example.test',
+    })
     expect(again.status).toBe(200)
     expect((await api.get(`/contacts/${nia.id}`)).body.status).toBe('unsubscribed')
 

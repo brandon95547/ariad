@@ -7,7 +7,14 @@ import { useFields, useLists, useTags } from '@/lib/queries'
 import { Button } from '@/ui/Button'
 import { Dialog } from '@/ui/Dialog'
 import { Banner } from '@/ui/Feedback'
-import { EMPTY_DRAFT, MembershipFields, ProfileFields, draftBody, inlineLink, type ContactDraft } from './parts'
+import {
+  EMPTY_DRAFT,
+  MembershipFields,
+  ProfileFields,
+  draftBody,
+  inlineLink,
+  type ContactDraft,
+} from './parts'
 
 /**
  * Adds one contact by hand. They are subscribed straight away, and Ariad
@@ -44,8 +51,11 @@ export function AddContactDialog({
   const error = create.error
   const fieldErrors = error instanceof ApiError ? error.fields : {}
   const existingId =
-    error instanceof ApiError && error.code === 'duplicate_contact' ? (error.details as { id?: string } | null)?.id : undefined
-  const general = create.isError && Object.keys(fieldErrors).length === 0 ? errorMessage(error) : null
+    error instanceof ApiError && error.code === 'duplicate_contact'
+      ? (error.details as { id?: string } | null)?.id
+      : undefined
+  const general =
+    create.isError && Object.keys(fieldErrors).length === 0 ? errorMessage(error) : null
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -80,7 +90,12 @@ export function AddContactDialog({
             )}
           </Banner>
         )}
-        <ProfileFields draft={draft} onChange={setDraft} fields={fields.data ?? []} errors={fieldErrors} />
+        <ProfileFields
+          draft={draft}
+          onChange={setDraft}
+          fields={fields.data ?? []}
+          errors={fieldErrors}
+        />
         <div className="flex flex-col gap-4 border-t border-[var(--ds-border-subtle)] pt-5">
           <h3 className="text-overline text-[var(--ds-fg-muted)] uppercase">Lists and tags</h3>
           <MembershipFields

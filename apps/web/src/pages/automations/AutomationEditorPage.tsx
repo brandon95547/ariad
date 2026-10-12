@@ -1,7 +1,20 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, Clock, Mail, Pause, Pencil, Play, Plus, Save, Tag, Trash2, Zap } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  Clock,
+  Mail,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  Save,
+  Tag,
+  Trash2,
+  Zap,
+} from 'lucide-react'
 import {
   TRIGGER_LABELS,
   roleAtLeast,
@@ -14,6 +27,7 @@ import {
   type Paged,
   type SignupForm,
 } from '@ariad/shared'
+import { UnsavedGuard } from '@/components/UnsavedGuard'
 import { EmailEditor } from '@/features/email/EmailEditor'
 import { MergeTagMenu, insertAtCursor } from '@/features/email/MergeTagMenu'
 import { ApiError, api, errorMessage } from '@/lib/api'
@@ -46,16 +60,25 @@ const DEFAULT_TRIGGERS: Record<AutomationTriggerType, AutomationTrigger> = {
   form_submitted: { type: 'form_submitted', formId: null },
   tag_added: { type: 'tag_added', tagId: '' },
   date: { type: 'date', field: 'birthday', offsetDays: 0, hour: 9 },
-  campaign_followup: { type: 'campaign_followup', campaignId: null, condition: 'not_opened', afterDays: 3 },
+  campaign_followup: {
+    type: 'campaign_followup',
+    campaignId: null,
+    condition: 'not_opened',
+    afterDays: 3,
+  },
   manual: { type: 'manual' },
 }
 
-const hourLabel = (hour: number) => `${hour % 12 === 0 ? 12 : hour % 12}:00 ${hour < 12 ? 'AM' : 'PM'}`
+const hourLabel = (hour: number) =>
+  `${hour % 12 === 0 ? 12 : hour % 12}:00 ${hour < 12 ? 'AM' : 'PM'}`
 
 /** One automation: what starts it, and the steps a contact then goes through. */
 export function AutomationEditorPage() {
   const { id = '' } = useParams()
-  const automation = useQuery({ queryKey: ['automation', id], queryFn: () => api.get<Automation>(`/automations/${id}`) })
+  const automation = useQuery({
+    queryKey: ['automation', id],
+    queryFn: () => api.get<Automation>(`/automations/${id}`),
+  })
 
   if (automation.isPending) {
     return (
@@ -70,7 +93,11 @@ export function AutomationEditorPage() {
     return (
       <Page>
         <PageHeader title="Automation" back={{ to: '/automations', label: 'Automations' }} />
-        {missing ? <EmptyState title="This automation no longer exists" /> : <Banner tone="danger">{errorMessage(automation.error)}</Banner>}
+        {missing ? (
+          <EmptyState title="This automation no longer exists" />
+        ) : (
+          <Banner tone="danger">{errorMessage(automation.error)}</Banner>
+        )}
       </Page>
     )
   }
@@ -87,13 +114,6 @@ function Editor({ automation }: { automation: Automation }) {
   const patch = (next: Partial<Draft>) => setDraft((current) => ({ ...current, ...next }))
   const accounts = useAccounts()
 
-  useEffect(() => {
-    if (!dirty) return
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty])
-
   const settle = (updated: Automation) => {
     client.setQueryData(['automation', automation.id], updated)
     void client.invalidateQueries({ queryKey: ['automations'] })
@@ -105,7 +125,8 @@ function Editor({ automation }: { automation: Automation }) {
       setSaved(body)
       settle(updated)
     },
-    onError: (error) => toast.error('Your changes were not saved', { description: errorMessage(error) }),
+    onError: (error) =>
+      toast.error('Your changes were not saved', { description: errorMessage(error) }),
   })
 
   const toggle = useMutation({
@@ -114,7 +135,9 @@ function Editor({ automation }: { automation: Automation }) {
       if (dirty) {
         await save.mutateAsync(draft)
       }
-      return api.post<Automation>(`/automations/${automation.id}/${automation.status === 'active' ? 'pause' : 'activate'}`)
+      return api.post<Automation>(
+        `/automations/${automation.id}/${automation.status === 'active' ? 'pause' : 'activate'}`,
+      )
     },
     onSuccess: (updated) => {
       settle(updated)
@@ -129,8 +152,13 @@ function Editor({ automation }: { automation: Automation }) {
   })
 
   const setStep = (id: string, next: Partial<AutomationStep>) =>
-    patch({ steps: draft.steps.map((step) => (step.id === id ? ({ ...step, ...next } as AutomationStep) : step)) })
-  const addStep = (step: AutomationStep, at: number) => patch({ steps: [...draft.steps.slice(0, at), step, ...draft.steps.slice(at)] })
+    patch({
+      steps: draft.steps.map((step) =>
+        step.id === id ? ({ ...step, ...next } as AutomationStep) : step,
+      ),
+    })
+  const addStep = (step: AutomationStep, at: number) =>
+    patch({ steps: [...draft.steps.slice(0, at), step, ...draft.steps.slice(at)] })
   const removeStep = (id: string) => patch({ steps: draft.steps.filter((step) => step.id !== id) })
   const moveStep = (index: number, delta: -1 | 1) => {
     const steps = [...draft.steps]
@@ -146,7 +174,14 @@ function Editor({ automation }: { automation: Automation }) {
   /* ---- One email step, full page ---------------------------------------- */
 
   if (editingStep && editingStep.type === 'email') {
-    return <EmailStepEditor step={editingStep} onChange={(next) => setStep(editingStep.id, next)} onDone={() => setEditing(null)} automationName={draft.name} />
+    return (
+      <EmailStepEditor
+        step={editingStep}
+        onChange={(next) => setStep(editingStep.id, next)}
+        onDone={() => setEditing(null)}
+        automationName={draft.name}
+      />
+    )
   }
 
   /* ---- The flow --------------------------------------------------------- */
@@ -161,21 +196,38 @@ function Editor({ automation }: { automation: Automation }) {
             <Badge tone={badge.tone} dot={automation.status === 'active'}>
               {badge.label}
             </Badge>
-            <span>{save.isPending ? 'Saving…' : dirty ? 'Unsaved changes' : 'All changes saved'}</span>
+            <span>
+              {save.isPending ? 'Saving…' : dirty ? 'Unsaved changes' : 'All changes saved'}
+            </span>
           </span>
         }
         actions={
           canEdit ? (
             <>
-              <Button variant="outlined" startIcon={<Save />} onClick={() => save.mutate(draft)} disabled={!dirty} loading={save.isPending}>
+              <Button
+                variant="outlined"
+                startIcon={<Save />}
+                onClick={() => save.mutate(draft)}
+                disabled={!dirty}
+                loading={save.isPending}
+              >
                 Save
               </Button>
               {automation.status === 'active' ? (
-                <Button variant="outlined" startIcon={<Pause />} onClick={() => toggle.mutate()} loading={toggle.isPending}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Pause />}
+                  onClick={() => toggle.mutate()}
+                  loading={toggle.isPending}
+                >
                   Pause
                 </Button>
               ) : (
-                <Button startIcon={<Play />} onClick={() => toggle.mutate()} loading={toggle.isPending}>
+                <Button
+                  startIcon={<Play />}
+                  onClick={() => toggle.mutate()}
+                  loading={toggle.isPending}
+                >
                   Turn on
                 </Button>
               )}
@@ -184,9 +236,20 @@ function Editor({ automation }: { automation: Automation }) {
         }
       />
 
+      <UnsavedGuard
+        dirty={dirty && canEdit}
+        onSave={() =>
+          save.mutateAsync(draft).then(
+            () => true,
+            () => false,
+          )
+        }
+      />
+
       {automation.status === 'active' && (
         <Banner tone="info" title="This automation is on">
-          Changes you save apply to contacts from their next step on. Someone already waiting keeps the wait they were given.
+          Changes you save apply to contacts from their next step on. Someone already waiting keeps
+          the wait they were given.
         </Banner>
       )}
 
@@ -194,7 +257,11 @@ function Editor({ automation }: { automation: Automation }) {
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Name">
-              <TextInput value={draft.name} onChange={(event) => patch({ name: event.target.value })} disabled={!canEdit} />
+              <TextInput
+                value={draft.name}
+                onChange={(event) => patch({ name: event.target.value })}
+                disabled={!canEdit}
+              />
             </Field>
             <Field label="Send from" htmlFor="automation-account">
               <Select
@@ -204,7 +271,9 @@ function Editor({ automation }: { automation: Automation }) {
                 disabled={!canEdit}
                 options={[
                   { value: '', label: 'Default account' },
-                  ...(accounts.data ?? []).filter((account) => account.enabled).map((account) => ({ value: account.id, label: account.label })),
+                  ...(accounts.data ?? [])
+                    .filter((account) => account.enabled)
+                    .map((account) => ({ value: account.id, label: account.label })),
                 ]}
               />
             </Field>
@@ -213,35 +282,77 @@ function Editor({ automation }: { automation: Automation }) {
           <ol className="flex flex-col">
             <li>
               <FlowCard icon={<Zap />} tone="accent" title="Starts">
-                <TriggerEditor trigger={draft.trigger} onChange={(trigger) => patch({ trigger })} disabled={!canEdit} />
+                <TriggerEditor
+                  trigger={draft.trigger}
+                  onChange={(trigger) => patch({ trigger })}
+                  disabled={!canEdit}
+                />
               </FlowCard>
             </li>
 
             {draft.steps.map((step, index) => (
               <li key={step.id}>
-                <Connector>{canEdit && <AddStep onAdd={(next) => addStep(next, index)} />}</Connector>
+                <Connector>
+                  {canEdit && <AddStep onAdd={(next) => addStep(next, index)} />}
+                </Connector>
                 <FlowCard
-                  icon={step.type === 'email' ? <Mail /> : step.type === 'delay' ? <Clock /> : <Tag />}
-                  title={step.type === 'email' ? 'Send an email' : step.type === 'delay' ? 'Wait' : step.type === 'add_tag' ? 'Add a tag' : 'Remove a tag'}
+                  icon={
+                    step.type === 'email' ? <Mail /> : step.type === 'delay' ? <Clock /> : <Tag />
+                  }
+                  title={
+                    step.type === 'email'
+                      ? 'Send an email'
+                      : step.type === 'delay'
+                        ? 'Wait'
+                        : step.type === 'add_tag'
+                          ? 'Add a tag'
+                          : 'Remove a tag'
+                  }
                   actions={
                     canEdit ? (
                       <>
-                        <IconButton size="sm" label="Move up" icon={<ArrowUp />} onClick={() => moveStep(index, -1)} disabled={index === 0} />
-                        <IconButton size="sm" label="Move down" icon={<ArrowDown />} onClick={() => moveStep(index, 1)} disabled={index === draft.steps.length - 1} />
-                        <IconButton size="sm" label="Remove step" icon={<Trash2 />} onClick={() => removeStep(step.id)} />
+                        <IconButton
+                          size="sm"
+                          label="Move up"
+                          icon={<ArrowUp />}
+                          onClick={() => moveStep(index, -1)}
+                          disabled={index === 0}
+                        />
+                        <IconButton
+                          size="sm"
+                          label="Move down"
+                          icon={<ArrowDown />}
+                          onClick={() => moveStep(index, 1)}
+                          disabled={index === draft.steps.length - 1}
+                        />
+                        <IconButton
+                          size="sm"
+                          label="Remove step"
+                          icon={<Trash2 />}
+                          onClick={() => removeStep(step.id)}
+                        />
                       </>
                     ) : undefined
                   }
                 >
-                  <StepBody step={step} onChange={(next) => setStep(step.id, next)} onEdit={() => setEditing(step.id)} disabled={!canEdit} />
+                  <StepBody
+                    step={step}
+                    onChange={(next) => setStep(step.id, next)}
+                    onEdit={() => setEditing(step.id)}
+                    disabled={!canEdit}
+                  />
                 </FlowCard>
               </li>
             ))}
 
             <li>
-              <Connector>{canEdit && <AddStep onAdd={(next) => addStep(next, draft.steps.length)} />}</Connector>
+              <Connector>
+                {canEdit && <AddStep onAdd={(next) => addStep(next, draft.steps.length)} />}
+              </Connector>
               <p className="pl-1 text-body-sm text-[var(--ds-fg-muted)]">
-                {draft.steps.length === 0 ? 'Add a step: an automation with nothing in it does nothing.' : 'The contact is finished here.'}
+                {draft.steps.length === 0
+                  ? 'Add a step: an automation with nothing in it does nothing.'
+                  : 'The contact is finished here.'}
               </p>
             </li>
           </ol>
@@ -275,7 +386,9 @@ function FlowCard({
           <span
             className={cn(
               'grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-md)] [&>svg]:size-4',
-              tone === 'accent' ? 'bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)]' : 'bg-[var(--ds-surface-raised)] text-[var(--ds-fg-secondary)]',
+              tone === 'accent'
+                ? 'bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)]'
+                : 'bg-[var(--ds-surface-raised)] text-[var(--ds-fg-secondary)]',
             )}
             aria-hidden
           >
@@ -312,24 +425,79 @@ function AddStep({ onAdd }: { onAdd: (step: AutomationStep) => void }) {
   const id = () => `s_${Math.random().toString(36).slice(2, 10)}`
   return (
     <>
-      <Button ref={trigger} size="xs" variant="outlined" startIcon={<Plus />} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
+      <Button
+        ref={trigger}
+        size="xs"
+        variant="outlined"
+        startIcon={<Plus />}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
         Add step
       </Button>
-      <Popover open={open} onClose={() => setOpen(false)} anchorRef={trigger} label="Add a step" role="menu" className="popover--menu">
-        <button type="button" role="menuitem" className="menu-item" onClick={() => add(emailStep('', 'A heading', '<p>Hi {{first_name|there}},</p><p>Write your message here.</p>'))}>
-          <span className="menu-item__mark" aria-hidden><Mail size={14} /></span>
+      <Popover
+        open={open}
+        onClose={() => setOpen(false)}
+        anchorRef={trigger}
+        label="Add a step"
+        role="menu"
+        className="popover--menu"
+      >
+        <button
+          type="button"
+          role="menuitem"
+          className="menu-item"
+          onClick={() =>
+            add(
+              emailStep(
+                '',
+                'A heading',
+                '<p>Hi {{first_name|there}},</p><p>Write your message here.</p>',
+              ),
+            )
+          }
+        >
+          <span className="menu-item__mark" aria-hidden>
+            <Mail size={14} />
+          </span>
           Send an email
         </button>
-        <button type="button" role="menuitem" className="menu-item" onClick={() => add(delayStep(1, 'days'))}>
-          <span className="menu-item__mark" aria-hidden><Clock size={14} /></span>
+        <button
+          type="button"
+          role="menuitem"
+          className="menu-item"
+          onClick={() => add(delayStep(1, 'days'))}
+        >
+          <span className="menu-item__mark" aria-hidden>
+            <Clock size={14} />
+          </span>
           Wait
         </button>
-        <button type="button" role="menuitem" className="menu-item" disabled={!firstTag} title={firstTag ? undefined : 'Create a tag first'} onClick={() => add({ id: id(), type: 'add_tag', tagId: firstTag })}>
-          <span className="menu-item__mark" aria-hidden><Tag size={14} /></span>
+        <button
+          type="button"
+          role="menuitem"
+          className="menu-item"
+          disabled={!firstTag}
+          title={firstTag ? undefined : 'Create a tag first'}
+          onClick={() => add({ id: id(), type: 'add_tag', tagId: firstTag })}
+        >
+          <span className="menu-item__mark" aria-hidden>
+            <Tag size={14} />
+          </span>
           Add a tag
         </button>
-        <button type="button" role="menuitem" className="menu-item" disabled={!firstTag} title={firstTag ? undefined : 'Create a tag first'} onClick={() => add({ id: id(), type: 'remove_tag', tagId: firstTag })}>
-          <span className="menu-item__mark" aria-hidden><Tag size={14} /></span>
+        <button
+          type="button"
+          role="menuitem"
+          className="menu-item"
+          disabled={!firstTag}
+          title={firstTag ? undefined : 'Create a tag first'}
+          onClick={() => add({ id: id(), type: 'remove_tag', tagId: firstTag })}
+        >
+          <span className="menu-item__mark" aria-hidden>
+            <Tag size={14} />
+          </span>
           Remove a tag
         </button>
       </Popover>
@@ -355,7 +523,12 @@ function StepBody({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-caption text-[var(--ds-fg-muted)]">Subject</span>
-          <span className={cn('truncate text-body-sm', step.subject ? 'text-[var(--ds-fg)]' : 'text-[var(--ds-danger-text)]')}>
+          <span
+            className={cn(
+              'truncate text-body-sm',
+              step.subject ? 'text-[var(--ds-fg)]' : 'text-[var(--ds-danger-text)]',
+            )}
+          >
             {step.subject || 'No subject yet'}
           </span>
         </div>
@@ -376,7 +549,14 @@ function StepBody({
             value={String(step.amount)}
             inputMode="numeric"
             disabled={disabled}
-            onChange={(event) => onChange({ amount: Math.max(1, Math.min(365, Number(event.target.value.replace(/\D/g, '')) || 1)) })}
+            onChange={(event) =>
+              onChange({
+                amount: Math.max(
+                  1,
+                  Math.min(365, Number(event.target.value.replace(/\D/g, '')) || 1),
+                ),
+              })
+            }
           />
         </Field>
         <Field label="Unit" htmlFor={`unit-${step.id}`} className="w-36">
@@ -384,7 +564,9 @@ function StepBody({
             id={`unit-${step.id}`}
             value={step.unit}
             disabled={disabled}
-            onChange={(event) => onChange({ unit: event.target.value as 'minutes' | 'hours' | 'days' })}
+            onChange={(event) =>
+              onChange({ unit: event.target.value as 'minutes' | 'hours' | 'days' })
+            }
             options={[
               { value: 'minutes', label: step.amount === 1 ? 'minute' : 'minutes' },
               { value: 'hours', label: step.amount === 1 ? 'hour' : 'hours' },
@@ -409,11 +591,23 @@ function StepBody({
   )
 }
 
-function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTrigger; onChange: (trigger: AutomationTrigger) => void; disabled: boolean }) {
+function TriggerEditor({
+  trigger,
+  onChange,
+  disabled,
+}: {
+  trigger: AutomationTrigger
+  onChange: (trigger: AutomationTrigger) => void
+  disabled: boolean
+}) {
   const lists = useLists()
   const tags = useTags()
   const fields = useFields()
-  const forms = useQuery({ queryKey: ['forms'], queryFn: () => api.get<SignupForm[]>('/forms'), enabled: trigger.type === 'form_submitted' })
+  const forms = useQuery({
+    queryKey: ['forms'],
+    queryFn: () => api.get<SignupForm[]>('/forms'),
+    enabled: trigger.type === 'form_submitted',
+  })
   const campaigns = useQuery({
     queryKey: ['campaigns', { status: 'sent', pageSize: 50 }],
     queryFn: () => api.get<Paged<CampaignSummary>>('/campaigns?status=sent&pageSize=50'),
@@ -428,8 +622,13 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
           id="trigger-type"
           value={trigger.type}
           disabled={disabled}
-          onChange={(event) => onChange(DEFAULT_TRIGGERS[event.target.value as AutomationTriggerType])}
-          options={(Object.keys(TRIGGER_LABELS) as AutomationTriggerType[]).map((type) => ({ value: type, label: TRIGGER_LABELS[type].label }))}
+          onChange={(event) =>
+            onChange(DEFAULT_TRIGGERS[event.target.value as AutomationTriggerType])
+          }
+          options={(Object.keys(TRIGGER_LABELS) as AutomationTriggerType[]).map((type) => ({
+            value: type,
+            label: TRIGGER_LABELS[type].label,
+          }))}
         />
       </Field>
 
@@ -440,19 +639,29 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
             value={trigger.listId ?? ''}
             disabled={disabled}
             onChange={(event) => onChange({ ...trigger, listId: event.target.value || null })}
-            options={[{ value: '', label: 'Any list' }, ...(lists.data ?? []).map((list) => ({ value: list.id, label: list.name }))]}
+            options={[
+              { value: '', label: 'Any list' },
+              ...(lists.data ?? []).map((list) => ({ value: list.id, label: list.name })),
+            ]}
           />
         </Field>
       )}
 
       {trigger.type === 'tag_added' && (
-        <Field label="Which tag" htmlFor="trigger-tag" error={trigger.tagId ? undefined : 'Choose the tag that starts this.'}>
+        <Field
+          label="Which tag"
+          htmlFor="trigger-tag"
+          error={trigger.tagId ? undefined : 'Choose the tag that starts this.'}
+        >
           <Select
             id="trigger-tag"
             value={trigger.tagId}
             disabled={disabled}
             onChange={(event) => onChange({ ...trigger, tagId: event.target.value })}
-            options={[{ value: '', label: 'Choose a tag', disabled: true }, ...(tags.data ?? []).map((tag) => ({ value: tag.id, label: tag.name }))]}
+            options={[
+              { value: '', label: 'Choose a tag', disabled: true },
+              ...(tags.data ?? []).map((tag) => ({ value: tag.id, label: tag.name })),
+            ]}
           />
         </Field>
       )}
@@ -464,7 +673,10 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
             value={trigger.formId ?? ''}
             disabled={disabled}
             onChange={(event) => onChange({ ...trigger, formId: event.target.value || null })}
-            options={[{ value: '', label: 'Any form' }, ...(forms.data ?? []).map((form) => ({ value: form.id, label: form.name }))]}
+            options={[
+              { value: '', label: 'Any form' },
+              ...(forms.data ?? []).map((form) => ({ value: form.id, label: form.name })),
+            ]}
           />
         </Field>
       )}
@@ -480,7 +692,10 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
               options={[
                 { value: 'birthday', label: 'Birthday' },
                 { value: 'created_at', label: 'The day they joined (anniversary)' },
-                ...dateFields.map((field) => ({ value: `custom.${field.key}`, label: field.label })),
+                ...dateFields.map((field) => ({
+                  value: `custom.${field.key}`,
+                  label: field.label,
+                })),
               ]}
             />
           </Field>
@@ -488,11 +703,21 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
             <Field label="Send" htmlFor="trigger-date-when">
               <Select
                 id="trigger-date-when"
-                value={trigger.offsetDays === 0 ? 'on' : trigger.offsetDays < 0 ? 'before' : 'after'}
+                value={
+                  trigger.offsetDays === 0 ? 'on' : trigger.offsetDays < 0 ? 'before' : 'after'
+                }
                 disabled={disabled}
                 onChange={(event) => {
                   const days = Math.max(1, Math.abs(trigger.offsetDays))
-                  onChange({ ...trigger, offsetDays: event.target.value === 'on' ? 0 : event.target.value === 'before' ? -days : days })
+                  onChange({
+                    ...trigger,
+                    offsetDays:
+                      event.target.value === 'on'
+                        ? 0
+                        : event.target.value === 'before'
+                          ? -days
+                          : days,
+                  })
                 }}
                 options={[
                   { value: 'on', label: 'On the day' },
@@ -507,7 +732,10 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
                 inputMode="numeric"
                 disabled={disabled || trigger.offsetDays === 0}
                 onChange={(event) => {
-                  const days = Math.max(1, Math.min(60, Number(event.target.value.replace(/\D/g, '')) || 1))
+                  const days = Math.max(
+                    1,
+                    Math.min(60, Number(event.target.value.replace(/\D/g, '')) || 1),
+                  )
                   onChange({ ...trigger, offsetDays: trigger.offsetDays < 0 ? -days : days })
                 }}
               />
@@ -518,12 +746,16 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
                 value={String(trigger.hour)}
                 disabled={disabled}
                 onChange={(event) => onChange({ ...trigger, hour: Number(event.target.value) })}
-                options={Array.from({ length: 24 }, (_unused, hour) => ({ value: String(hour), label: hourLabel(hour) }))}
+                options={Array.from({ length: 24 }, (_unused, hour) => ({
+                  value: String(hour),
+                  label: hourLabel(hour),
+                }))}
               />
             </Field>
           </div>
           <p className="text-caption text-[var(--ds-fg-muted)]">
-            Every year, in the time zone set under Settings. Contacts without that date on their record are skipped.
+            Every year, in the time zone set under Settings. Contacts without that date on their
+            record are skipped.
           </p>
         </>
       )}
@@ -536,7 +768,13 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
               value={trigger.campaignId ?? ''}
               disabled={disabled}
               onChange={(event) => onChange({ ...trigger, campaignId: event.target.value || null })}
-              options={[{ value: '', label: 'Every campaign' }, ...(campaigns.data?.items ?? []).map((campaign) => ({ value: campaign.id, label: campaign.name }))]}
+              options={[
+                { value: '', label: 'Every campaign' },
+                ...(campaigns.data?.items ?? []).map((campaign) => ({
+                  value: campaign.id,
+                  label: campaign.name,
+                })),
+              ]}
             />
           </Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_7rem]">
@@ -545,7 +783,12 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
                 id="trigger-condition"
                 value={trigger.condition}
                 disabled={disabled}
-                onChange={(event) => onChange({ ...trigger, condition: event.target.value as typeof trigger.condition })}
+                onChange={(event) =>
+                  onChange({
+                    ...trigger,
+                    condition: event.target.value as typeof trigger.condition,
+                  })
+                }
                 options={[
                   { value: 'not_opened', label: 'People who did not open it' },
                   { value: 'opened', label: 'People who opened it' },
@@ -560,7 +803,15 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
                 value={String(trigger.afterDays)}
                 inputMode="numeric"
                 disabled={disabled}
-                onChange={(event) => onChange({ ...trigger, afterDays: Math.max(0, Math.min(90, Number(event.target.value.replace(/\D/g, '')) || 0)) })}
+                onChange={(event) =>
+                  onChange({
+                    ...trigger,
+                    afterDays: Math.max(
+                      0,
+                      Math.min(90, Number(event.target.value.replace(/\D/g, '')) || 0),
+                    ),
+                  })
+                }
               />
             </Field>
           </div>
@@ -569,7 +820,14 @@ function TriggerEditor({ trigger, onChange, disabled }: { trigger: AutomationTri
 
       {trigger.type === 'manual' && (
         <p className="text-body-sm text-[var(--ds-fg-muted)]">
-          Nothing starts this by itself. Add a contact from their own page, under <Link to="/contacts" className="text-[var(--ds-accent-text)] underline underline-offset-2">Contacts</Link>.
+          Nothing starts this by itself. Add a contact from their own page, under{' '}
+          <Link
+            to="/contacts"
+            className="text-[var(--ds-accent-text)] underline underline-offset-2"
+          >
+            Contacts
+          </Link>
+          .
         </p>
       )}
     </div>
@@ -602,25 +860,53 @@ function EmailStepEditor({
         </div>
       </header>
       <div className="grid max-w-[44rem] grid-cols-1 gap-5">
-        <Field label="Subject line" error={step.subject.trim() ? undefined : 'An email needs a subject before the automation can be turned on.'}>
-          <TextInput ref={subject} value={step.subject} onChange={(event) => onChange({ subject: event.target.value })} />
+        <Field
+          label="Subject line"
+          error={
+            step.subject.trim()
+              ? undefined
+              : 'An email needs a subject before the automation can be turned on.'
+          }
+        >
+          <TextInput
+            ref={subject}
+            value={step.subject}
+            onChange={(event) => onChange({ subject: event.target.value })}
+          />
         </Field>
         <div className="-mt-2 flex">
-          <MergeTagMenu onPick={(token) => onChange({ subject: insertAtCursor(subject.current, step.subject, token) })} />
+          <MergeTagMenu
+            onPick={(token) =>
+              onChange({ subject: insertAtCursor(subject.current, step.subject, token) })
+            }
+          />
         </div>
         <Field label="Preview text" optional>
-          <TextInput value={step.preheader ?? ''} onChange={(event) => onChange({ preheader: event.target.value || null })} />
+          <TextInput
+            value={step.preheader ?? ''}
+            onChange={(event) => onChange({ preheader: event.target.value || null })}
+          />
         </Field>
       </div>
-      <EmailEditor value={{ html: step.html, design: step.design }} onChange={(body) => onChange(body)} subject={step.subject} preheader={step.preheader} />
-      <p className="text-caption text-[var(--ds-fg-muted)]">Done takes you back to the automation. Save it there to keep these changes.</p>
+      <EmailEditor
+        value={{ html: step.html, design: step.design }}
+        onChange={(body) => onChange(body)}
+        subject={step.subject}
+        preheader={step.preheader}
+      />
+      <p className="text-caption text-[var(--ds-fg-muted)]">
+        Done takes you back to the automation. Save it there to keep these changes.
+      </p>
     </Page>
   )
 }
 
 /* ---- Who has been through it -------------------------------------------- */
 
-const RUN_BADGE: Record<AutomationRun['status'], { tone: 'accent' | 'success' | 'neutral' | 'danger'; label: string }> = {
+const RUN_BADGE: Record<
+  AutomationRun['status'],
+  { tone: 'accent' | 'success' | 'neutral' | 'danger'; label: string }
+> = {
   active: { tone: 'accent', label: 'In progress' },
   completed: { tone: 'success', label: 'Finished' },
   exited: { tone: 'neutral', label: 'Left early' },
@@ -639,7 +925,10 @@ function Activity({ automation }: { automation: Automation }) {
       key: 'email',
       header: 'Contact',
       cell: (row) => (
-        <Link to={`/contacts/${row.contactId}`} className="text-[var(--ds-fg)] underline-offset-2 hover:underline">
+        <Link
+          to={`/contacts/${row.contactId}`}
+          className="text-[var(--ds-fg)] underline-offset-2 hover:underline"
+        >
           {row.email}
         </Link>
       ),
@@ -660,8 +949,13 @@ function Activity({ automation }: { automation: Automation }) {
       width: '9rem',
       hideBelow: 'sm',
       cell: (row) => (
-        <span className="text-[var(--ds-fg-muted)]" title={row.nextRunAt ? formatDateTime(row.nextRunAt) : undefined}>
-          {row.status === 'active' && row.nextRunAt ? formatRelative(row.nextRunAt) : (row.note ?? '—')}
+        <span
+          className="text-[var(--ds-fg-muted)]"
+          title={row.nextRunAt ? formatDateTime(row.nextRunAt) : undefined}
+        >
+          {row.status === 'active' && row.nextRunAt
+            ? formatRelative(row.nextRunAt)
+            : (row.note ?? '—')}
         </span>
       ),
     },
@@ -671,9 +965,21 @@ function Activity({ automation }: { automation: Automation }) {
     <div className="flex min-w-0 flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
         <StatTile label="In progress" value={formatNumber(stats.active)} />
-        <StatTile label="Finished" value={formatNumber(stats.completed)} hint={stats.exited ? `${formatNumber(stats.exited)} left early` : undefined} />
+        <StatTile
+          label="Finished"
+          value={formatNumber(stats.completed)}
+          hint={stats.exited ? `${formatNumber(stats.exited)} left early` : undefined}
+        />
         <StatTile label="Emails sent" value={formatNumber(stats.emailsSent)} />
-        <StatTile label="Opened" value={formatRate(rate(stats.opened, stats.emailsSent))} hint={stats.emailsSent ? `${formatRate(rate(stats.clicked, stats.emailsSent))} clicked` : undefined} />
+        <StatTile
+          label="Opened"
+          value={formatRate(rate(stats.opened, stats.emailsSent))}
+          hint={
+            stats.emailsSent
+              ? `${formatRate(rate(stats.clicked, stats.emailsSent))} clicked`
+              : undefined
+          }
+        />
       </div>
       <h2 className="text-h4 text-[var(--ds-fg)]">Recent contacts</h2>
       {runs.isError && <Banner tone="danger">{errorMessage(runs.error)}</Banner>}
@@ -689,7 +995,11 @@ function Activity({ automation }: { automation: Automation }) {
             <EmptyState
               compact
               title="Nobody yet"
-              description={automation.status === 'active' ? 'Contacts appear here as they meet the trigger.' : 'Turn the automation on and contacts appear here as they meet the trigger.'}
+              description={
+                automation.status === 'active'
+                  ? 'Contacts appear here as they meet the trigger.'
+                  : 'Turn the automation on and contacts appear here as they meet the trigger.'
+              }
             />
           }
         />

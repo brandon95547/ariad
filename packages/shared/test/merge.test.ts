@@ -23,12 +23,17 @@ describe('merge tags', () => {
 
   it('escapes values going into HTML, and not those going into a subject', () => {
     const name = { first_name: '<b>Tom & Jerry</b>' }
-    expect(renderMerge('{{first_name}}', name, { html: true })).toBe('&lt;b&gt;Tom &amp; Jerry&lt;/b&gt;')
+    expect(renderMerge('{{first_name}}', name, { html: true })).toBe(
+      '&lt;b&gt;Tom &amp; Jerry&lt;/b&gt;',
+    )
     expect(renderMerge('{{first_name}}', name)).toBe('<b>Tom & Jerry</b>')
   })
 
   it('lists the tags a template uses', () => {
-    expect(findMergeTags('{{first_name|x}} {{custom.plan}} {{first_name}}')).toEqual(['first_name', 'custom.plan'])
+    expect(findMergeTags('{{first_name|x}} {{custom.plan}} {{first_name}}')).toEqual([
+      'first_name',
+      'custom.plan',
+    ])
   })
 })
 
@@ -41,6 +46,8 @@ describe('the plain-text part', () => {
   })
 
   it('does not repeat a link whose text is its own address', () => {
-    expect(htmlToText('<a href="https://example.com">https://example.com</a>')).toBe('https://example.com')
+    expect(htmlToText('<a href="https://example.com">https://example.com</a>')).toBe(
+      'https://example.com',
+    )
   })
 })

@@ -23,7 +23,10 @@ const TYPE_LABELS: Record<CustomFieldType, string> = {
   boolean: 'Yes or no',
   select: 'Choice from a list',
 }
-const TYPE_OPTIONS = (Object.keys(TYPE_LABELS) as CustomFieldType[]).map((value) => ({ value, label: TYPE_LABELS[value] }))
+const TYPE_OPTIONS = (Object.keys(TYPE_LABELS) as CustomFieldType[]).map((value) => ({
+  value,
+  label: TYPE_LABELS[value],
+}))
 
 const mergeTag = (key: string) => `{{custom.${key}}}`
 
@@ -63,13 +66,27 @@ export function FieldsPage() {
   const rows = fields.data ?? []
 
   const columns: Column<CustomField>[] = [
-    { key: 'label', header: 'Field', cell: (field) => <span className="text-label text-[var(--ds-fg)]">{field.label}</span> },
+    {
+      key: 'label',
+      header: 'Field',
+      cell: (field) => <span className="text-label text-[var(--ds-fg)]">{field.label}</span>,
+    },
     {
       key: 'tag',
       header: 'Merge tag',
-      cell: (field) => <code className="font-mono text-code text-[var(--ds-fg-secondary)] [overflow-wrap:anywhere]">{mergeTag(field.key)}</code>,
+      cell: (field) => (
+        <code className="font-mono text-code text-[var(--ds-fg-secondary)] [overflow-wrap:anywhere]">
+          {mergeTag(field.key)}
+        </code>
+      ),
     },
-    { key: 'type', header: 'Type', hideBelow: 'sm', className: 'whitespace-nowrap', cell: (field) => TYPE_LABELS[field.type] },
+    {
+      key: 'type',
+      header: 'Type',
+      hideBelow: 'sm',
+      className: 'whitespace-nowrap',
+      cell: (field) => TYPE_LABELS[field.type],
+    },
     {
       key: 'options',
       header: 'Options',
@@ -88,7 +105,12 @@ export function FieldsPage() {
                 label={`Actions for ${field.label}`}
                 icon={<MoreHorizontal size={16} />}
                 actions={[
-                  { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, onSelect: () => setEditor({ field }) },
+                  {
+                    id: 'edit',
+                    label: 'Edit',
+                    icon: <Pencil size={14} />,
+                    onSelect: () => setEditor({ field }),
+                  },
                   {
                     id: 'delete',
                     label: 'Delete',
@@ -179,8 +201,9 @@ export function FieldsPage() {
         loading={remove.isPending}
       >
         <p>
-          The field stops appearing on contacts and in imports. Emails that use {removing ? mergeTag(removing.key) : 'its merge tag'} will leave that
-          spot blank, and a segment that uses it matches nobody until you edit it.
+          The field stops appearing on contacts and in imports. Emails that use{' '}
+          {removing ? mergeTag(removing.key) : 'its merge tag'} will leave that spot blank, and a
+          segment that uses it matches nobody until you edit it.
         </p>
         {remove.isError && <Banner tone="danger">{errorMessage(remove.error)}</Banner>}
       </ConfirmDialog>
@@ -217,7 +240,9 @@ function FieldDialog({
   const save = useMutation({
     mutationFn: () => {
       const body = { label, type, options: type === 'select' ? optionList : [] }
-      return field ? api.patch<CustomField>(`/fields/${field.id}`, body) : api.post<CustomField>('/fields', { ...body, key })
+      return field
+        ? api.patch<CustomField>(`/fields/${field.id}`, body)
+        : api.post<CustomField>('/fields', { ...body, key })
     },
     onSuccess: (saved) => onSaved(saved, !field),
   })
@@ -236,8 +261,10 @@ function FieldDialog({
 
   const errors = save.error instanceof ApiError ? save.error.fields : {}
   // "There is already a field with the key…" is about the key, so it is said at the key.
-  const taken = save.error instanceof ApiError && save.error.status === 409 ? save.error.message : undefined
-  const general = save.isError && !taken && Object.keys(errors).length === 0 ? errorMessage(save.error) : null
+  const taken =
+    save.error instanceof ApiError && save.error.status === 409 ? save.error.message : undefined
+  const general =
+    save.isError && !taken && Object.keys(errors).length === 0 ? errorMessage(save.error) : null
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -266,7 +293,11 @@ function FieldDialog({
     >
       <form id={formId} onSubmit={submit} className="flex flex-col gap-5" noValidate>
         {general && <Banner tone="danger">{general}</Banner>}
-        <Field label="Label" hint="What the field is called on a contact and in the import." error={errors.label}>
+        <Field
+          label="Label"
+          hint="What the field is called on a contact and in the import."
+          error={errors.label}
+        >
           <TextInput
             value={label}
             onChange={(event) => {
@@ -282,11 +313,14 @@ function FieldDialog({
           hint={
             field ? (
               <>
-                Used in emails as <code className="font-mono text-code">{mergeTag(field.key)}</code>. The key cannot change once the field exists.
+                Used in emails as <code className="font-mono text-code">{mergeTag(field.key)}</code>
+                . The key cannot change once the field exists.
               </>
             ) : (
               <>
-                Used in emails as <code className="font-mono text-code">{mergeTag(key || 'key')}</code>. It cannot be changed later.
+                Used in emails as{' '}
+                <code className="font-mono text-code">{mergeTag(key || 'key')}</code>. It cannot be
+                changed later.
               </>
             )
           }
@@ -309,18 +343,36 @@ function FieldDialog({
         <Field
           label="Type"
           htmlFor={`${formId}-type`}
-          hint={field && type !== field.type ? 'What is already saved for each contact stays as it was typed.' : undefined}
+          hint={
+            field && type !== field.type
+              ? 'What is already saved for each contact stays as it was typed.'
+              : undefined
+          }
           error={errors.type}
         >
-          <Select id={`${formId}-type`} value={type} onChange={(event) => setType(event.target.value as CustomFieldType)} options={TYPE_OPTIONS} />
+          <Select
+            id={`${formId}-type`}
+            value={type}
+            onChange={(event) => setType(event.target.value as CustomFieldType)}
+            options={TYPE_OPTIONS}
+          />
         </Field>
         {type === 'select' && (
           <Field
             label="Options"
             hint="One per line."
-            error={noOptions && optionList.length === 0 ? 'Add at least one option to choose from.' : errors.options}
+            error={
+              noOptions && optionList.length === 0
+                ? 'Add at least one option to choose from.'
+                : errors.options
+            }
           >
-            <Textarea rows={4} value={options} onChange={(event) => setOptions(event.target.value)} placeholder={'Free\nPro\nTeam'} />
+            <Textarea
+              rows={4}
+              value={options}
+              onChange={(event) => setOptions(event.target.value)}
+              placeholder={'Free\nPro\nTeam'}
+            />
           </Field>
         )}
       </form>

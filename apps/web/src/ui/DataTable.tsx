@@ -42,7 +42,7 @@ export interface Column<T> {
   /** On the body cells. */
   className?: string
   /** Hidden under this breakpoint. Drop what a decision needs least, first. */
-  hideBelow?: 'sm' | 'md' | 'lg'
+  hideBelow?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
 export interface SortState {
@@ -50,8 +50,8 @@ export interface SortState {
   dir: 'asc' | 'desc'
 }
 
-type Tier = 'base' | 'sm' | 'md' | 'lg'
-const TIERS: readonly Tier[] = ['base', 'sm', 'md', 'lg']
+type Tier = 'base' | 'sm' | 'md' | 'lg' | 'xl'
+const TIERS: readonly Tier[] = ['base', 'sm', 'md', 'lg', 'xl']
 
 /**
  * Padding toward a neighbor, then toward the table's own edge, at each width.
@@ -62,18 +62,23 @@ const padStart: Record<Tier, readonly [string, string]> = {
   sm: ['sm:pl-[var(--dt-pad)]', 'sm:pl-[var(--dt-gutter)]'],
   md: ['md:pl-[var(--dt-pad)]', 'md:pl-[var(--dt-gutter)]'],
   lg: ['lg:pl-[var(--dt-pad)]', 'lg:pl-[var(--dt-gutter)]'],
+  xl: ['xl:pl-[var(--dt-pad)]', 'xl:pl-[var(--dt-gutter)]'],
 }
 const padEnd: Record<Tier, readonly [string, string]> = {
   base: ['pr-[var(--dt-pad)]', 'pr-[var(--dt-gutter)]'],
   sm: ['sm:pr-[var(--dt-pad)]', 'sm:pr-[var(--dt-gutter)]'],
   md: ['md:pr-[var(--dt-pad)]', 'md:pr-[var(--dt-gutter)]'],
   lg: ['lg:pr-[var(--dt-pad)]', 'lg:pr-[var(--dt-gutter)]'],
+  xl: ['xl:pr-[var(--dt-pad)]', 'xl:pr-[var(--dt-gutter)]'],
 }
 
 const hidden: Record<NonNullable<Column<unknown>['hideBelow']>, string> = {
   sm: 'hidden sm:table-cell',
   md: 'hidden md:table-cell',
   lg: 'hidden lg:table-cell',
+  // The sidebar arrives at `lg` and takes 268px with it, so the content column
+  // is narrower at 1024 than at 768. A column that needs real room waits for xl.
+  xl: 'hidden xl:table-cell',
 }
 
 const alignment = { left: 'text-left', right: 'text-right', center: 'text-center' }

@@ -66,22 +66,34 @@ export function ReportsPage() {
     placeholderData: keepPreviousData,
   })
   const data = reports.data
-  const setRange = (value: RangeValue) => setSearch(value === '30' ? {} : { days: value }, { replace: true })
+  const setRange = (value: RangeValue) =>
+    setSearch(value === '30' ? {} : { days: value }, { replace: true })
 
   const campaigns = useMemo(() => (data ? sortCampaigns(data.campaigns, sort) : []), [data, sort])
   const chart = useMemo(() => {
     const series = data?.series ?? []
     return [
       { name: 'Sent', points: series.map((point) => ({ x: formatDay(point.day), y: point.sent })) },
-      { name: 'Opens', points: series.map((point) => ({ x: formatDay(point.day), y: point.opens })) },
-      { name: 'Clicks', points: series.map((point) => ({ x: formatDay(point.day), y: point.clicks })) },
+      {
+        name: 'Opens',
+        points: series.map((point) => ({ x: formatDay(point.day), y: point.opens })),
+      },
+      {
+        name: 'Clicks',
+        points: series.map((point) => ({ x: formatDay(point.day), y: point.clicks })),
+      },
     ]
   }, [data])
 
   const sent = data ? sentTotal(data.totals) : 0
-  const quiet = Boolean(data) && sent === 0 && data!.campaigns.length === 0 && !data!.series.some((point) => point.opens + point.clicks > 0)
+  const quiet =
+    Boolean(data) &&
+    sent === 0 &&
+    data!.campaigns.length === 0 &&
+    !data!.series.some((point) => point.opens + point.clicks > 0)
   const longer = RANGES[RANGES.indexOf(range) + 1]
-  const ofDelivered = (value: number | null) => (value === null ? 'Nothing delivered' : `${formatRate(value)} of delivered`)
+  const ofDelivered = (value: number | null) =>
+    value === null ? 'Nothing delivered' : `${formatRate(value)} of delivered`
 
   const columns: Column<CampaignSummary>[] = [
     {
@@ -92,19 +104,62 @@ export function ReportsPage() {
       cell: (campaign) => (
         <div className="flex min-w-0 items-center gap-2">
           {/* Wraps where a phone leaves it little room: half a campaign's name tells one from another worse than two lines of it. */}
-          <Link to={`/campaigns/${campaign.id}`} className="min-w-0 rounded-[var(--radius-xs)] text-label text-[var(--ds-fg)] [overflow-wrap:anywhere] hover:underline">
+          <Link
+            to={`/campaigns/${campaign.id}`}
+            className="min-w-0 rounded-[var(--radius-xs)] text-label text-[var(--ds-fg)] [overflow-wrap:anywhere] hover:underline"
+          >
             {campaign.name}
           </Link>
           {campaign.status !== 'sent' && <CampaignStatusBadge status={campaign.status} />}
         </div>
       ),
     },
-    { key: 'sent', header: 'Sent', sortable: true, hideBelow: 'sm', className: 'whitespace-nowrap', cell: (campaign) => formatDate(campaign.startedAt) },
-    { key: 'recipients', header: 'Recipients', sortable: true, align: 'right', hideBelow: 'md', cell: (campaign) => formatNumber(campaign.stats.recipients) },
-    { key: 'delivered', header: 'Delivered', sortable: true, align: 'right', hideBelow: 'lg', cell: (campaign) => formatNumber(campaign.stats.delivered) },
-    { key: 'open', header: 'Open rate', sortable: true, align: 'right', cell: (campaign) => formatRate(ratesFrom(campaign.stats).openRate) },
-    { key: 'click', header: 'Click rate', sortable: true, align: 'right', cell: (campaign) => formatRate(ratesFrom(campaign.stats).clickRate) },
-    { key: 'bounce', header: 'Bounce rate', sortable: true, align: 'right', hideBelow: 'lg', cell: (campaign) => formatRate(ratesFrom(campaign.stats).bounceRate) },
+    {
+      key: 'sent',
+      header: 'Sent',
+      sortable: true,
+      hideBelow: 'sm',
+      className: 'whitespace-nowrap',
+      cell: (campaign) => formatDate(campaign.startedAt),
+    },
+    {
+      key: 'recipients',
+      header: 'Recipients',
+      sortable: true,
+      align: 'right',
+      hideBelow: 'md',
+      cell: (campaign) => formatNumber(campaign.stats.recipients),
+    },
+    {
+      key: 'delivered',
+      header: 'Delivered',
+      sortable: true,
+      align: 'right',
+      hideBelow: 'lg',
+      cell: (campaign) => formatNumber(campaign.stats.delivered),
+    },
+    {
+      key: 'open',
+      header: 'Open rate',
+      sortable: true,
+      align: 'right',
+      cell: (campaign) => formatRate(ratesFrom(campaign.stats).openRate),
+    },
+    {
+      key: 'click',
+      header: 'Click rate',
+      sortable: true,
+      align: 'right',
+      cell: (campaign) => formatRate(ratesFrom(campaign.stats).clickRate),
+    },
+    {
+      key: 'bounce',
+      header: 'Bounce rate',
+      sortable: true,
+      align: 'right',
+      hideBelow: 'lg',
+      cell: (campaign) => formatRate(ratesFrom(campaign.stats).bounceRate),
+    },
     {
       key: 'unsubscribe',
       header: 'Unsubscribe rate',
@@ -118,7 +173,13 @@ export function ReportsPage() {
   return (
     <Page>
       <PageHeader title="Reports" description={`How your email did over ${range.words}.`}>
-        <SegmentedControl label="Period" value={range.value} onChange={setRange} options={RANGES} className="sm:max-w-[22rem]" />
+        <SegmentedControl
+          label="Period"
+          value={range.value}
+          onChange={setRange}
+          options={RANGES}
+          className="sm:max-w-[22rem]"
+        />
       </PageHeader>
 
       {reports.isError && <Banner tone="danger">{errorMessage(reports.error)}</Banner>}
@@ -163,22 +224,47 @@ export function ReportsPage() {
               <StatTile
                 label="Delivered"
                 value={formatCompact(data.totals.delivered)}
-                hint={sent > 0 ? `${formatRate(rate(data.totals.delivered, sent))} of sent` : 'Nothing sent'}
+                hint={
+                  sent > 0
+                    ? `${formatRate(rate(data.totals.delivered, sent))} of sent`
+                    : 'Nothing sent'
+                }
               />
-              <StatTile label="Opened" value={formatCompact(data.totals.opened)} hint={ofDelivered(data.rates.openRate)} />
-              <StatTile label="Clicked" value={formatCompact(data.totals.clicked)} hint={ofDelivered(data.rates.clickRate)} />
+              <StatTile
+                label="Opened"
+                value={formatCompact(data.totals.opened)}
+                hint={ofDelivered(data.rates.openRate)}
+              />
+              <StatTile
+                label="Clicked"
+                value={formatCompact(data.totals.clicked)}
+                hint={ofDelivered(data.rates.clickRate)}
+              />
               <StatTile
                 label="Bounced"
                 value={formatCompact(data.totals.bounced)}
-                hint={data.rates.bounceRate === null ? 'Nothing sent' : `${formatRate(data.rates.bounceRate)} of sent`}
+                hint={
+                  data.rates.bounceRate === null
+                    ? 'Nothing sent'
+                    : `${formatRate(data.rates.bounceRate)} of sent`
+                }
               />
-              <StatTile label="Unsubscribed" value={formatCompact(data.totals.unsubscribed)} hint={ofDelivered(data.rates.unsubscribeRate)} />
-              <StatTile label="Complaints" value={formatCompact(data.totals.complained)} hint={ofDelivered(data.rates.complaintRate)} />
+              <StatTile
+                label="Unsubscribed"
+                value={formatCompact(data.totals.unsubscribed)}
+                hint={ofDelivered(data.rates.unsubscribeRate)}
+              />
+              <StatTile
+                label="Complaints"
+                value={formatCompact(data.totals.complained)}
+                hint={ofDelivered(data.rates.complaintRate)}
+              />
             </div>
             <p className="max-w-[80ch] text-caption text-[var(--ds-fg-muted)]">
-              Open rate is the people who opened at least once, divided by the emails delivered. It is an estimate, because some mail apps block
-              the image an open is counted with and others load it before anyone has looked. Delivered means the receiving server accepted the
-              email and it has not bounced since.
+              Open rate is the people who opened at least once, divided by the emails delivered. It
+              is an estimate, because some mail apps block the image an open is counted with and
+              others load it before anyone has looked. Delivered means the receiving server accepted
+              the email and it has not bounced since.
             </p>
           </div>
 
@@ -190,7 +276,11 @@ export function ReportsPage() {
             />
           </Panel>
 
-          <Panel title="Campaign performance" description={`Campaigns that started in ${range.words}`} flush>
+          <Panel
+            title="Campaign performance"
+            description={`Campaigns that started in ${range.words}`}
+            flush
+          >
             <DataTable
               aria-label="Campaign performance"
               gutter="md"

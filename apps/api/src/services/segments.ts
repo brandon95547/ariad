@@ -43,7 +43,8 @@ function need(rule: SegmentRule): string {
 
 function numberOf(rule: SegmentRule): number {
   const value = Number(need(rule))
-  if (!Number.isFinite(value)) throw AppError.badRequest(`The "${rule.field}" condition needs a number.`)
+  if (!Number.isFinite(value))
+    throw AppError.badRequest(`The "${rule.field}" condition needs a number.`)
   return value
 }
 
@@ -56,7 +57,10 @@ function textRule(column: string, rule: SegmentRule): Compiled {
     case 'contains':
       return { sql: `${column} LIKE ? ESCAPE '\\'`, params: [`%${likeTerm(need(rule))}%`] }
     case 'not_contains':
-      return { sql: `COALESCE(${column}, '') NOT LIKE ? ESCAPE '\\'`, params: [`%${likeTerm(need(rule))}%`] }
+      return {
+        sql: `COALESCE(${column}, '') NOT LIKE ? ESCAPE '\\'`,
+        params: [`%${likeTerm(need(rule))}%`],
+      }
     case 'starts_with':
       return { sql: `${column} LIKE ? ESCAPE '\\'`, params: [`${likeTerm(need(rule))}%`] }
     case 'ends_with':
@@ -134,7 +138,10 @@ function compileRule(rule: SegmentRule, customTypes: ReadonlyMap<string, string>
       const op = { eq: '=', gt: '>', lt: '<' }[rule.op as 'eq' | 'gt' | 'lt']
       return { sql: `CAST(${column} AS REAL) ${op} ?`, params: [numberOf(rule)] }
     }
-    if (type === 'date' && ['in_last_days', 'not_in_last_days', 'before', 'after'].includes(rule.op)) {
+    if (
+      type === 'date' &&
+      ['in_last_days', 'not_in_last_days', 'before', 'after'].includes(rule.op)
+    ) {
       return dateRule(column, rule)
     }
     return textRule(column, rule)
@@ -144,7 +151,10 @@ function compileRule(rule: SegmentRule, customTypes: ReadonlyMap<string, string>
 }
 
 export function customFieldTypes(db: Db): Map<string, string> {
-  const rows = db.prepare('SELECT key, type FROM custom_fields').all() as { key: string; type: string }[]
+  const rows = db.prepare('SELECT key, type FROM custom_fields').all() as {
+    key: string
+    type: string
+  }[]
   return new Map(rows.map((row) => [row.key, row.type]))
 }
 
@@ -160,13 +170,14 @@ export function compileSegment(db: Db, definition: SegmentDefinition): Compiled 
 
 export function loadSegment(db: Db, id: string): SegmentDefinition {
   const row = db.prepare('SELECT match, rules FROM segments WHERE id = ?').get(id) as
-    | { match: 'all' | 'any'; rules: string }
-    | undefined
+    { match: 'all' | 'any'; rules: string } | undefined
   if (!row) throw AppError.notFound('segment')
   return { match: row.match, rules: JSON.parse(row.rules) as SegmentRule[] }
 }
 
 export function countSegment(db: Db, definition: SegmentDefinition): number {
   const { sql, params } = compileSegment(db, definition)
-  return (db.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${sql}`).get(...params) as { n: number }).n
+  return (
+    db.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${sql}`).get(...params) as { n: number }
+  ).n
 }

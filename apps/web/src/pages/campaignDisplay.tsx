@@ -1,4 +1,9 @@
-import { CAMPAIGN_STATUS_LABELS, type CampaignStats, type CampaignStatus, type QueueStatus } from '@ariad/shared'
+import {
+  CAMPAIGN_STATUS_LABELS,
+  type CampaignStats,
+  type CampaignStatus,
+  type QueueStatus,
+} from '@ariad/shared'
 import { Badge } from '@/ui/Badge'
 import type { Tone } from '@/ui/Display'
 

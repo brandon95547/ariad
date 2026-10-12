@@ -1,7 +1,15 @@
 import { useEffect, useId, useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { AlertCircle, ClipboardList, ExternalLink, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+  AlertCircle,
+  ClipboardList,
+  ExternalLink,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { roleAtLeast, type SignupForm } from '@ariad/shared'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ApiError, api, errorMessage } from '@/lib/api'
@@ -45,7 +53,10 @@ export function FormsPage() {
     },
   })
 
-  const listNames = useMemo(() => new Map((lists.data ?? []).map((list) => [list.id, list.name])), [lists.data])
+  const listNames = useMemo(
+    () => new Map((lists.data ?? []).map((list) => [list.id, list.name])),
+    [lists.data],
+  )
   const rows = forms.data ?? []
   const publicUrl = settings.data?.effectivePublicUrl ?? window.location.origin
 
@@ -71,8 +82,13 @@ export function FormsPage() {
       header: 'Adds people to',
       hideBelow: 'md',
       cell: (form) => {
-        const names = form.listIds.map((id) => listNames.get(id)).filter((name): name is string => Boolean(name))
-        if (names.length === 0) return <span className="text-[var(--ds-fg-muted)]">{lists.isPending ? '' : 'No list'}</span>
+        const names = form.listIds
+          .map((id) => listNames.get(id))
+          .filter((name): name is string => Boolean(name))
+        if (names.length === 0)
+          return (
+            <span className="text-[var(--ds-fg-muted)]">{lists.isPending ? '' : 'No list'}</span>
+          )
         return (
           <span className="line-clamp-2">
             {names.slice(0, 2).join(', ')}
@@ -85,7 +101,12 @@ export function FormsPage() {
       key: 'optin',
       header: 'Confirmation',
       hideBelow: 'lg',
-      cell: (form) => (form.doubleOptIn ? <Badge tone="accent">Double opt-in</Badge> : <Badge tone="neutral">Single opt-in</Badge>),
+      cell: (form) =>
+        form.doubleOptIn ? (
+          <Badge tone="accent">Double opt-in</Badge>
+        ) : (
+          <Badge tone="neutral">Single opt-in</Badge>
+        ),
     },
     {
       key: 'enabled',
@@ -99,8 +120,19 @@ export function FormsPage() {
           <Badge tone="neutral">Off</Badge>
         ),
     },
-    { key: 'submissions', header: 'Signups', align: 'right', cell: (form) => formatNumber(form.submissions) },
-    { key: 'created', header: 'Created', hideBelow: 'md', className: 'whitespace-nowrap', cell: (form) => formatDate(form.createdAt) },
+    {
+      key: 'submissions',
+      header: 'Signups',
+      align: 'right',
+      cell: (form) => formatNumber(form.submissions),
+    },
+    {
+      key: 'created',
+      header: 'Created',
+      hideBelow: 'md',
+      className: 'whitespace-nowrap',
+      cell: (form) => formatDate(form.createdAt),
+    },
     {
       key: 'actions',
       header: <span className="sr-only-ds">Actions</span>,
@@ -111,12 +143,18 @@ export function FormsPage() {
           label={`Actions for ${form.name}`}
           icon={<MoreHorizontal size={16} />}
           actions={[
-            { id: 'edit', label: canEdit ? 'Edit' : 'Open', icon: <Pencil size={14} />, onSelect: () => navigate(`/forms/${form.id}`) },
+            {
+              id: 'edit',
+              label: canEdit ? 'Edit' : 'Open',
+              icon: <Pencil size={14} />,
+              onSelect: () => navigate(`/forms/${form.id}`),
+            },
             {
               id: 'view',
               label: 'View hosted page',
               icon: <ExternalLink size={14} />,
-              onSelect: () => window.open(`${publicUrl}/subscribe/${form.id}`, '_blank', 'noopener'),
+              onSelect: () =>
+                window.open(`${publicUrl}/subscribe/${form.id}`, '_blank', 'noopener'),
               disabled: !form.enabled,
               title: form.enabled ? undefined : 'The form is off, so its page says it is closed.',
             },
@@ -215,8 +253,8 @@ export function FormsPage() {
         loading={remove.isPending}
       >
         <p>
-          Its hosted page and anything embedded on your site stop taking signups straight away. The people who already signed up stay on
-          their lists.
+          Its hosted page and anything embedded on your site stop taking signups straight away. The
+          people who already signed up stay on their lists.
         </p>
         {remove.isError && <Banner tone="danger">{errorMessage(remove.error)}</Banner>}
       </ConfirmDialog>
@@ -257,7 +295,8 @@ function NewFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
   const fields = create.error instanceof ApiError ? create.error.fields : {}
-  const general = create.isError && !fields.name && !fields.listIds ? errorMessage(create.error) : null
+  const general =
+    create.isError && !fields.name && !fields.listIds ? errorMessage(create.error) : null
   const noLists = lists.data?.length === 0
   const listError = missing.listIds ?? fields.listIds
 
@@ -294,13 +333,20 @@ function NewFormDialog({
         {noLists && (
           <Banner tone="info" title="Make a list first">
             A form adds people to a list, and there are none yet.{' '}
-            <Link to="/audience/lists" className="text-[var(--ds-accent-text)] underline underline-offset-2 hover:text-[var(--ds-fg)]">
+            <Link
+              to="/audience/lists"
+              className="text-[var(--ds-accent-text)] underline underline-offset-2 hover:text-[var(--ds-fg)]"
+            >
               Create a list
             </Link>
             , then come back.
           </Banner>
         )}
-        <Field label="Name" hint="Only you see this. It tells your forms apart." error={missing.name ?? fields.name}>
+        <Field
+          label="Name"
+          hint="Only you see this. It tells your forms apart."
+          error={missing.name ?? fields.name}
+        >
           <TextInput
             value={name}
             onChange={(event) => {
@@ -328,16 +374,23 @@ function NewFormDialog({
                     description={list.description ?? undefined}
                     checked={listIds.includes(list.id)}
                     onChange={(on) => {
-                      setListIds((current) => (on ? [...current, list.id] : current.filter((id) => id !== list.id)))
+                      setListIds((current) =>
+                        on ? [...current, list.id] : current.filter((id) => id !== list.id),
+                      )
                       setMissing((current) => ({ ...current, listIds: undefined }))
                     }}
                   />
                 ))}
               </div>
             )}
-            <p className="text-caption text-[var(--ds-fg-muted)]">Everyone who signs up joins the ones you tick. You can change this later.</p>
+            <p className="text-caption text-[var(--ds-fg-muted)]">
+              Everyone who signs up joins the ones you tick. You can change this later.
+            </p>
             {listError && (
-              <p role="alert" className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]">
+              <p
+                role="alert"
+                className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]"
+              >
                 <AlertCircle size={13} aria-hidden className="mt-0.5 shrink-0" />
                 <span>{listError}</span>
               </p>

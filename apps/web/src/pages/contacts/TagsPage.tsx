@@ -60,7 +60,12 @@ export function TagsPage() {
         </span>
       ),
     },
-    { key: 'contacts', header: 'Contacts', align: 'right', cell: (tag) => <span data-tabular>{formatNumber(tag.contactCount)}</span> },
+    {
+      key: 'contacts',
+      header: 'Contacts',
+      align: 'right',
+      cell: (tag) => <span data-tabular>{formatNumber(tag.contactCount)}</span>,
+    },
     ...(canEdit
       ? [
           {
@@ -73,8 +78,18 @@ export function TagsPage() {
                 label={`Actions for ${tag.name}`}
                 icon={<MoreHorizontal size={16} />}
                 actions={[
-                  { id: 'edit', label: 'Rename or recolor', icon: <Pencil size={14} />, onSelect: () => setEditor({ tag }) },
-                  { id: 'contacts', label: 'View contacts', icon: <Users size={14} />, onSelect: () => navigate(`/contacts?tagId=${tag.id}`) },
+                  {
+                    id: 'edit',
+                    label: 'Rename or recolor',
+                    icon: <Pencil size={14} />,
+                    onSelect: () => setEditor({ tag }),
+                  },
+                  {
+                    id: 'contacts',
+                    label: 'View contacts',
+                    icon: <Users size={14} />,
+                    onSelect: () => navigate(`/contacts?tagId=${tag.id}`),
+                  },
                   {
                     id: 'delete',
                     label: 'Delete',
@@ -132,7 +147,15 @@ export function TagsPage() {
       ) : (
         !tags.isError && (
           <Card padding="none" className="overflow-hidden">
-            <DataTable aria-label="Tags" gutter="md" columns={columns} rows={rows} rowKey={(tag) => tag.id} loading={tags.isPending} skeletonRows={4} />
+            <DataTable
+              aria-label="Tags"
+              gutter="md"
+              columns={columns}
+              rows={rows}
+              rowKey={(tag) => tag.id}
+              loading={tags.isPending}
+              skeletonRows={4}
+            />
           </Card>
         )
       )}
@@ -185,7 +208,10 @@ function TagDialog({
   const [color, setColor] = useState<string>(TAG_COLORS[0])
 
   const save = useMutation({
-    mutationFn: () => (tag ? api.patch<Tag>(`/tags/${tag.id}`, { name, color }) : api.post<Tag>('/tags', { name, color })),
+    mutationFn: () =>
+      tag
+        ? api.patch<Tag>(`/tags/${tag.id}`, { name, color })
+        : api.post<Tag>('/tags', { name, color }),
     onSuccess: (saved) => onSaved(saved, !tag),
   })
 
@@ -199,13 +225,18 @@ function TagDialog({
 
   const fields = save.error instanceof ApiError ? save.error.fields : {}
   // "There is already a tag called…" is about the name, so it is said at the name.
-  const taken = save.error instanceof ApiError && save.error.status === 409 ? save.error.message : undefined
-  const general = save.isError && !taken && Object.keys(fields).length === 0 ? errorMessage(save.error) : null
+  const taken =
+    save.error instanceof ApiError && save.error.status === 409 ? save.error.message : undefined
+  const general =
+    save.isError && !taken && Object.keys(fields).length === 0 ? errorMessage(save.error) : null
 
   // A color from before the palette, kept as a choice so that renaming a tag does not also recolor it.
   const known = TAG_COLORS.some((swatch) => swatch.toLowerCase() === color.toLowerCase())
   const swatches = [
-    ...TAG_COLORS.map((swatch, index) => ({ value: swatch as string, name: COLOR_NAMES[index] ?? `Color ${index + 1}` })),
+    ...TAG_COLORS.map((swatch, index) => ({
+      value: swatch as string,
+      name: COLOR_NAMES[index] ?? `Color ${index + 1}`,
+    })),
     ...(known ? [] : [{ value: color, name: 'Current color' }]),
   ]
 
@@ -249,7 +280,11 @@ function TagDialog({
           <span id={`${formId}-color`} className="text-label text-[var(--ds-fg-secondary)]">
             Color
           </span>
-          <div role="radiogroup" aria-labelledby={`${formId}-color`} className="flex flex-wrap gap-2 coarse:gap-3">
+          <div
+            role="radiogroup"
+            aria-labelledby={`${formId}-color`}
+            className="flex flex-wrap gap-2 coarse:gap-3"
+          >
             {swatches.map((swatch) => {
               const chosen = swatch.value.toLowerCase() === color.toLowerCase()
               return (

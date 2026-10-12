@@ -193,7 +193,16 @@ export const listInputSchema = z.object({
 export type ListInput = z.input<typeof listInputSchema>
 export const listUpdateSchema = patchOf(listInputSchema)
 
-export const TAG_COLORS = ['#706fd3', '#33d9b2', '#ff5252', '#ccae62', '#218c74', '#ff793f', '#34ace0', '#ffb142'] as const
+export const TAG_COLORS = [
+  '#706fd3',
+  '#33d9b2',
+  '#ff5252',
+  '#ccae62',
+  '#218c74',
+  '#ff793f',
+  '#34ace0',
+  '#ffb142',
+] as const
 
 export const tagInputSchema = z.object({
   name: z.string().trim().min(1, 'Give the tag a name.').max(60),
@@ -211,7 +220,10 @@ export const customFieldInputSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .regex(/^[a-z][a-z0-9_]{0,39}$/, 'Lowercase letters, numbers and underscores, starting with a letter.'),
+    .regex(
+      /^[a-z][a-z0-9_]{0,39}$/,
+      'Lowercase letters, numbers and underscores, starting with a letter.',
+    ),
   type: z.enum(['text', 'number', 'date', 'boolean', 'select']).default('text'),
   options: z.array(z.string().trim().min(1).max(80)).max(50).default([]),
 })
@@ -232,22 +244,29 @@ export const IMPORT_TARGETS = [
   { key: 'tags', label: 'Tags (comma separated)' },
 ] as const
 
-export const importContactsSchema = z.object({
-  /** The file's text. Parsed on the server so the rules are in one place. */
-  csv: z.string().min(1).max(25_000_000),
-  /** Header name → target. Custom fields are `custom.<key>`. */
-  mapping: z.record(z.string(), z.string()),
-  listIds: z.array(z.string()).default([]),
-  tagIds: z.array(z.string()).default([]),
-  /** Overwrite the fields of contacts that already exist. */
-  updateExisting: z.boolean().default(true),
-  status: z.enum(['subscribed', 'pending', 'unsubscribed']).default('subscribed'),
-  consentSource: z.string().trim().max(200).default('Imported from CSV'),
-  /** The importer's statement that these people agreed to be emailed. */
-  consentConfirmed: z.boolean().refine((value) => value, {
+export const importContactsSchema = z
+  .object({
+    /** The file's text. Parsed on the server so the rules are in one place. */
+    csv: z.string().min(1).max(25_000_000),
+    /** Header name → target. Custom fields are `custom.<key>`. */
+    mapping: z.record(z.string(), z.string()),
+    listIds: z.array(z.string()).default([]),
+    tagIds: z.array(z.string()).default([]),
+    /** Overwrite the fields of contacts that already exist. */
+    updateExisting: z.boolean().default(true),
+    status: z.enum(['subscribed', 'pending', 'unsubscribed']).default('subscribed'),
+    consentSource: z.string().trim().max(200).default('Imported from CSV'),
+    /**
+     * The importer's statement that these people agreed to be emailed. Asked for
+     * whenever the import makes people mailable; not asked of a list brought in
+     * as unsubscribed, which is a statement of the opposite.
+     */
+    consentConfirmed: z.boolean().default(false),
+  })
+  .refine((input) => input.status === 'unsubscribed' || input.consentConfirmed, {
+    path: ['consentConfirmed'],
     message: 'Confirm that these contacts agreed to hear from you.',
-  }),
-})
+  })
 export type ImportContactsInput = z.input<typeof importContactsSchema>
 
 export interface ImportSummary {
@@ -264,7 +283,10 @@ export interface ImportSummary {
 export interface DuplicateGroup {
   reason: 'same_mailbox' | 'same_name_and_phone' | 'same_name_and_company'
   key: string
-  contacts: Pick<Contact, 'id' | 'email' | 'firstName' | 'lastName' | 'company' | 'status' | 'createdAt'>[]
+  contacts: Pick<
+    Contact,
+    'id' | 'email' | 'firstName' | 'lastName' | 'company' | 'status' | 'createdAt'
+  >[]
 }
 
 export const mergeContactsSchema = z.object({

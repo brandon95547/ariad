@@ -80,7 +80,8 @@ function toAccount(ctx: Ctx, row: AccountRow): SendingAccount {
 }
 
 export function getAccountRow(ctx: Ctx, id: string): AccountRow {
-  const row = ctx.db.prepare('SELECT * FROM sending_accounts WHERE id = ?').get(id) as AccountRow | undefined
+  const row = ctx.db.prepare('SELECT * FROM sending_accounts WHERE id = ?').get(id) as
+    AccountRow | undefined
   if (!row) throw AppError.notFound('sending account')
   return row
 }
@@ -111,7 +112,9 @@ export function getAccount(ctx: Ctx, id: string): SendingAccount {
 /** The account to use when nothing names one: the default, if it can send. */
 export function defaultAccountRow(ctx: Ctx): AccountRow | undefined {
   return ctx.db
-    .prepare('SELECT * FROM sending_accounts WHERE enabled = 1 ORDER BY is_default DESC, created_at ASC LIMIT 1')
+    .prepare(
+      'SELECT * FROM sending_accounts WHERE enabled = 1 ORDER BY is_default DESC, created_at ASC LIMIT 1',
+    )
     .get() as AccountRow | undefined
 }
 
@@ -175,7 +178,8 @@ export async function createAccount(
     .get(values.username, values.host, values.fromEmail)
   if (taken) throw AppError.conflict(`${values.fromEmail} is already connected.`)
 
-  const isFirst = (ctx.db.prepare('SELECT COUNT(*) AS n FROM sending_accounts').get() as { n: number }).n === 0
+  const isFirst =
+    (ctx.db.prepare('SELECT COUNT(*) AS n FROM sending_accounts').get() as { n: number }).n === 0
 
   ctx.db
     .prepare(
@@ -204,7 +208,14 @@ export async function createAccount(
     })
   if (isFirst) setDefault(ctx, id)
 
-  writeLog(ctx.db, 'info', 'accounts', `Sending account added: ${values.fromEmail}`, { kind: input.kind, host: values.host }, userName)
+  writeLog(
+    ctx.db,
+    'info',
+    'accounts',
+    `Sending account added: ${values.fromEmail}`,
+    { kind: input.kind, host: values.host },
+    userName,
+  )
   const verify = await verifyAccount(ctx, mailer, id)
   return { account: getAccount(ctx, id), verify }
 }
@@ -263,7 +274,14 @@ export async function updateAccount(
     })
   mailer.forget(id)
 
-  writeLog(ctx.db, 'info', 'accounts', `Sending account updated: ${next.from_email}`, null, userName)
+  writeLog(
+    ctx.db,
+    'info',
+    'accounts',
+    `Sending account updated: ${next.from_email}`,
+    null,
+    userName,
+  )
   const verify = connectionChanged ? await verifyAccount(ctx, mailer, id) : null
   return { account: getAccount(ctx, id), verify }
 }
@@ -272,7 +290,9 @@ export function deleteAccount(ctx: Ctx, mailer: Mailer, id: string, userName: st
   const row = getAccountRow(ctx, id)
   const waiting = (
     ctx.db
-      .prepare("SELECT COUNT(*) AS n FROM messages WHERE account_id = ? AND status IN ('queued','sending')")
+      .prepare(
+        "SELECT COUNT(*) AS n FROM messages WHERE account_id = ? AND status IN ('queued','sending')",
+      )
       .get(id) as { n: number }
   ).n
   if (waiting > 0) {
@@ -299,11 +319,23 @@ export async function verifyAccount(ctx: Ctx, mailer: Mailer, id: string): Promi
     .prepare(
       'UPDATE sending_accounts SET status = ?, last_error = ?, last_verified_at = ?, paused_until = CASE WHEN ? THEN NULL ELSE paused_until END WHERE id = ?',
     )
-    .run(result.ok ? 'ok' : 'error', result.ok ? null : result.message, nowIso(), result.ok ? 1 : 0, id)
+    .run(
+      result.ok ? 'ok' : 'error',
+      result.ok ? null : result.message,
+      nowIso(),
+      result.ok ? 1 : 0,
+      id,
+    )
   if (!result.ok) {
-    writeLog(ctx.db, 'error', 'accounts', `Could not sign in to ${row.from_email}: ${result.message}`, {
-      detail: result.detail,
-    })
+    writeLog(
+      ctx.db,
+      'error',
+      'accounts',
+      `Could not sign in to ${row.from_email}: ${result.message}`,
+      {
+        detail: result.detail,
+      },
+    )
   }
   return result
 }

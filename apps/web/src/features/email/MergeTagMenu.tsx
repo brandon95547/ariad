@@ -38,7 +38,11 @@ export function MergeTagMenu({
   const groups = React.useMemo(() => {
     const all = [
       ...MERGE_TAGS.map((tag) => ({ tag: tag.tag, label: tag.label, group: tag.group as string })),
-      ...(fields.data ?? []).map((field) => ({ tag: `custom.${field.key}`, label: field.label, group: 'Custom fields' })),
+      ...(fields.data ?? []).map((field) => ({
+        tag: `custom.${field.key}`,
+        label: field.label,
+        group: 'Custom fields',
+      })),
     ]
     const byGroup = new Map<string, typeof all>()
     for (const entry of all) byGroup.set(entry.group, [...(byGroup.get(entry.group) ?? []), entry])
@@ -66,10 +70,20 @@ export function MergeTagMenu({
       >
         {iconOnly ? <Braces size={14} /> : 'Personalize'}
       </Button>
-      <Popover open={open} onClose={() => setOpen(false)} anchorRef={trigger} label="Personalize" role="menu" className="popover--menu">
+      <Popover
+        open={open}
+        onClose={() => setOpen(false)}
+        anchorRef={trigger}
+        label="Personalize"
+        role="menu"
+        className="popover--menu"
+      >
         {groups.map(([group, tags]) => (
           <div key={group} role="group" aria-label={group}>
-            <div role="presentation" className="px-2 pt-2 pb-1 text-overline text-[var(--ds-fg-muted)] uppercase">
+            <div
+              role="presentation"
+              className="px-2 pt-2 pb-1 text-overline text-[var(--ds-fg-muted)] uppercase"
+            >
               {group}
             </div>
             {tags.map((tag) => (
@@ -84,7 +98,9 @@ export function MergeTagMenu({
                 }}
               >
                 <span className="menu-item__text">{tag.label}</span>
-                <span className="ml-auto font-mono text-caption text-[var(--ds-fg-muted)]">{tag.tag}</span>
+                <span className="ml-auto font-mono text-caption text-[var(--ds-fg-muted)]">
+                  {tag.tag}
+                </span>
               </button>
             ))}
           </div>
@@ -95,7 +111,11 @@ export function MergeTagMenu({
 }
 
 /** Puts text where the caret is in an input, and leaves the caret after it. */
-export function insertAtCursor(input: HTMLInputElement | HTMLTextAreaElement | null, value: string, text: string): string {
+export function insertAtCursor(
+  input: HTMLInputElement | HTMLTextAreaElement | null,
+  value: string,
+  text: string,
+): string {
   if (!input) return value + text
   const start = input.selectionStart ?? value.length
   const end = input.selectionEnd ?? value.length

@@ -56,12 +56,26 @@ export function toUser(row: UserRow): User {
 
 export type { UserRow }
 
-export function startSession(app: FastifyInstance, request: FastifyRequest, reply: FastifyReply, userId: string): void {
+export function startSession(
+  app: FastifyInstance,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  userId: string,
+): void {
   const token = randomToken(32)
   const now = nowIso()
   app.ctx.db
-    .prepare('INSERT INTO sessions (id, user_id, created_at, expires_at, user_agent, ip) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(sha256(token), userId, now, isoIn(SESSION_DAYS * 86_400_000), String(request.headers['user-agent'] ?? '').slice(0, 300), request.ip)
+    .prepare(
+      'INSERT INTO sessions (id, user_id, created_at, expires_at, user_agent, ip) VALUES (?, ?, ?, ?, ?, ?)',
+    )
+    .run(
+      sha256(token),
+      userId,
+      now,
+      isoIn(SESSION_DAYS * 86_400_000),
+      String(request.headers['user-agent'] ?? '').slice(0, 300),
+      request.ip,
+    )
   app.ctx.db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?').run(now, userId)
   reply.setCookie(SESSION_COOKIE, token, {
     path: '/',
@@ -74,7 +88,11 @@ export function startSession(app: FastifyInstance, request: FastifyRequest, repl
   })
 }
 
-export function endSession(app: FastifyInstance, request: FastifyRequest, reply: FastifyReply): void {
+export function endSession(
+  app: FastifyInstance,
+  request: FastifyRequest,
+  reply: FastifyReply,
+): void {
   const token = request.cookies[SESSION_COOKIE]
   if (token) app.ctx.db.prepare('DELETE FROM sessions WHERE id = ?').run(sha256(token))
   reply.clearCookie(SESSION_COOKIE, { path: '/' })
@@ -98,7 +116,8 @@ export const authPlugin = fp(
     app.addHook('onRequest', async (request) => {
       const header = request.headers.authorization
       if (header?.startsWith('Bearer ')) {
-        const key = byKey.get(sha256(header.slice(7).trim())) as { id: string; name: string; role: Role } | undefined
+        const key = byKey.get(sha256(header.slice(7).trim())) as
+          { id: string; name: string; role: Role } | undefined
         if (key) {
           touchKey.run(nowIso(), key.id)
           request.actor = { kind: 'key', id: key.id, name: `API key: ${key.name}`, role: key.role }
@@ -107,7 +126,8 @@ export const authPlugin = fp(
       }
       const token = request.cookies[SESSION_COOKIE]
       if (!token) return
-      const user = bySession.get(sha256(token), nowIso()) as { id: string; name: string; role: Role } | undefined
+      const user = bySession.get(sha256(token), nowIso()) as
+        { id: string; name: string; role: Role } | undefined
       if (user) request.actor = { kind: 'user', ...user }
     })
 

@@ -26,7 +26,10 @@ export const RichText = React.forwardRef<
     style?: React.CSSProperties
     onFocus?: () => void
   }
->(function RichText({ value, onChange, plain, className, style, onFocus, 'aria-label': ariaLabel }, ref) {
+>(function RichText(
+  { value, onChange, plain, className, style, onFocus, 'aria-label': ariaLabel },
+  ref,
+) {
   const element = React.useRef<HTMLDivElement>(null)
 
   React.useImperativeHandle(ref, () => ({ focus: () => element.current?.focus() }), [])
@@ -73,7 +76,8 @@ export const RichText = React.forwardRef<
       }}
       // A dragged block must not be dropped into the text as its id.
       onDrop={(event) => {
-        if ([...event.dataTransfer.types].some((type) => type.startsWith('application/x-ariad'))) event.preventDefault()
+        if ([...event.dataTransfer.types].some((type) => type.startsWith('application/x-ariad')))
+          event.preventDefault()
       }}
     />
   )
@@ -115,7 +119,11 @@ export function makeLink(url: string): void {
   const selection = window.getSelection()
   if (selection && selection.isCollapsed) {
     // Nothing selected: the address becomes its own link text.
-    document.execCommand('insertHTML', false, `<a href="${url.replace(/"/g, '&quot;')}">${url.replace(/</g, '&lt;')}</a>`)
+    document.execCommand(
+      'insertHTML',
+      false,
+      `<a href="${url.replace(/"/g, '&quot;')}">${url.replace(/</g, '&lt;')}</a>`,
+    )
   } else {
     document.execCommand('createLink', false, url)
   }

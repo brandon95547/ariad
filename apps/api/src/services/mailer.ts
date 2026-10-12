@@ -131,7 +131,10 @@ function rawMessage(error: unknown): string {
 }
 
 /** What went wrong, in terms of what the person should change. */
-export function explainSmtpError(error: unknown, account: Pick<SmtpCredentials, 'kind' | 'host' | 'port' | 'security'>): string {
+export function explainSmtpError(
+  error: unknown,
+  account: Pick<SmtpCredentials, 'kind' | 'host' | 'port' | 'security'>,
+): string {
   const e = error as SmtpError
   const text = `${e.response ?? ''} ${e.message ?? ''}`.toLowerCase()
   const where = `${account.host}:${account.port}`
@@ -148,7 +151,11 @@ export function explainSmtpError(error: unknown, account: Pick<SmtpCredentials, 
   if (e.code === 'EDNS' || text.includes('enotfound') || text.includes('getaddrinfo')) {
     return `The host name "${account.host}" could not be found. Check the spelling.`
   }
-  if (text.includes('wrong version number') || text.includes('ssl routines') || text.includes('tls_validate_record_header')) {
+  if (
+    text.includes('wrong version number') ||
+    text.includes('ssl routines') ||
+    text.includes('tls_validate_record_header')
+  ) {
     return account.security === 'ssl'
       ? `The server at ${where} did not answer with TLS. Port 465 uses SSL/TLS; port 587 and 25 use STARTTLS.`
       : `The security setting does not match port ${account.port}. Port 465 uses SSL/TLS; port 587 and 25 use STARTTLS.`
@@ -156,13 +163,22 @@ export function explainSmtpError(error: unknown, account: Pick<SmtpCredentials, 
   if (text.includes('starttls') || (e.code === 'ETLS' && account.security === 'starttls')) {
     return `The server at ${where} does not offer STARTTLS. Try SSL/TLS on port 465.`
   }
-  if (text.includes('certificate') || text.includes('self-signed') || text.includes('self signed')) {
+  if (
+    text.includes('certificate') ||
+    text.includes('self-signed') ||
+    text.includes('self signed')
+  ) {
     return `The server's TLS certificate could not be verified (${e.message ?? 'certificate error'}).`
   }
   if (e.code === 'ETIMEDOUT' || text.includes('timeout') || text.includes('timed out')) {
     return `No answer from ${where}. Check the host and port. Some networks and hosting providers block outgoing SMTP.`
   }
-  if (e.code === 'ECONNECTION' || e.code === 'ESOCKET' || text.includes('econnrefused') || text.includes('econnreset')) {
+  if (
+    e.code === 'ECONNECTION' ||
+    e.code === 'ESOCKET' ||
+    text.includes('econnrefused') ||
+    text.includes('econnreset')
+  ) {
     return `Could not connect to ${where}. Check the host and port.`
   }
   return rawMessage(error)
@@ -203,19 +219,30 @@ export function classifySendError(
   if (e.code === 'EAUTH' || code === 535 || code === 534 || code === 530) {
     return { kind: 'account', message: explainSmtpError(error, account) }
   }
-  if (['ECONNECTION', 'ETIMEDOUT', 'ESOCKET', 'EDNS', 'ETLS', 'ECONNREFUSED', 'ECONNRESET'].includes(e.code ?? '') && !code) {
+  if (
+    ['ECONNECTION', 'ETIMEDOUT', 'ESOCKET', 'EDNS', 'ETLS', 'ECONNREFUSED', 'ECONNRESET'].includes(
+      e.code ?? '',
+    ) &&
+    !code
+  ) {
     return { kind: 'account', message: explainSmtpError(error, account) }
   }
   // Checked before the generic 5xx rules: Gmail reports "you have hit your
   // daily limit" as a 550, and treating that as a bad address would suppress
   // a perfectly good contact.
   if (QUOTA.test(raw)) {
-    return { kind: 'throttle', message: raw, pauseMs: /daily|quota|5\.4\.5/i.test(raw) ? 3_600_000 : 600_000 }
+    return {
+      kind: 'throttle',
+      message: raw,
+      pauseMs: /daily|quota|5\.4\.5/i.test(raw) ? 3_600_000 : 600_000,
+    }
   }
   if (code >= 400 && code < 500) return { kind: 'retry', message: raw }
   if (code >= 500) {
     const enhanced = /\b5\.(\d)\.(\d+)\b/.exec(raw)
-    const badAddress = (enhanced && enhanced[1] === '1' && ['1', '2', '3', '6', '10'].includes(enhanced[2]!)) || BAD_MAILBOX.test(raw)
+    const badAddress =
+      (enhanced && enhanced[1] === '1' && ['1', '2', '3', '6', '10'].includes(enhanced[2]!)) ||
+      BAD_MAILBOX.test(raw)
     return badAddress ? { kind: 'bounce', message: raw } : { kind: 'fail', message: raw }
   }
   if (e.code === 'EENVELOPE') return { kind: 'bounce', message: raw }

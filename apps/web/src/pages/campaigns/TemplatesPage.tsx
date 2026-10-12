@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { Copy, FileText, Megaphone, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
-import { defaultDesign, renderDesign, roleAtLeast, type Campaign, type Template, type TemplateSummary } from '@ariad/shared'
+import {
+  defaultDesign,
+  renderDesign,
+  roleAtLeast,
+  type Campaign,
+  type Template,
+  type TemplateSummary,
+} from '@ariad/shared'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { api, errorMessage } from '@/lib/api'
 import { formatRelative } from '@/lib/format'
@@ -21,9 +28,16 @@ import { toast } from '@/ui/Toast'
  * drawing of one.
  */
 function Thumbnail({ id }: { id: string }) {
-  const template = useQuery({ queryKey: ['template', id], queryFn: () => api.get<Template>(`/templates/${id}`), staleTime: 60_000 })
+  const template = useQuery({
+    queryKey: ['template', id],
+    queryFn: () => api.get<Template>(`/templates/${id}`),
+    staleTime: 60_000,
+  })
   return (
-    <div className="relative h-44 overflow-hidden rounded-t-[var(--radius-xl)] border-b border-[var(--ds-border-subtle)] bg-[var(--c-email-stage)]" aria-hidden>
+    <div
+      className="relative h-44 overflow-hidden rounded-t-[var(--radius-xl)] border-b border-[var(--ds-border-subtle)] bg-[var(--c-email-stage)]"
+      aria-hidden
+    >
       {template.data ? (
         <iframe
           title=""
@@ -45,13 +59,20 @@ export function TemplatesPage() {
   const navigate = useNavigate()
   const canEdit = roleAtLeast(useAuthState().data?.user?.role ?? 'viewer', 'editor')
   const [removing, setRemoving] = useState<TemplateSummary | null>(null)
-  const templates = useQuery({ queryKey: ['templates'], queryFn: () => api.get<TemplateSummary[]>('/templates') })
+  const templates = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => api.get<TemplateSummary[]>('/templates'),
+  })
   const refresh = () => client.invalidateQueries({ queryKey: ['templates'] })
 
   const create = useMutation({
     mutationFn: () => {
       const design = defaultDesign()
-      return api.post<Template>('/templates', { name: 'Untitled template', design, html: renderDesign(design) })
+      return api.post<Template>('/templates', {
+        name: 'Untitled template',
+        design,
+        html: renderDesign(design),
+      })
     },
     onSuccess: (template) => {
       void refresh()
@@ -120,7 +141,11 @@ export function TemplatesPage() {
         </div>
       ) : templates.data && templates.data.length === 0 ? (
         <Card padding="none">
-          <EmptyState icon={<FileText />} title="No templates yet" description="Save any email as a template and it will be here to start the next one from." />
+          <EmptyState
+            icon={<FileText />}
+            title="No templates yet"
+            description="Save any email as a template and it will be here to start the next one from."
+          />
         </Card>
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -135,14 +160,18 @@ export function TemplatesPage() {
                         {template.builtin ? (
                           <h2 className="text-h4 text-[var(--ds-fg)]">{template.name}</h2>
                         ) : (
-                          <Link to={`/templates/${template.id}`} className="text-h4 text-[var(--ds-fg)] underline-offset-2 hover:underline">
+                          <Link
+                            to={`/templates/${template.id}`}
+                            className="text-h4 text-[var(--ds-fg)] underline-offset-2 hover:underline"
+                          >
                             {template.name}
                           </Link>
                         )}
                         {template.builtin && <Badge tone="neutral">Starter</Badge>}
                       </div>
                       <p className="text-body-sm text-[var(--ds-fg-muted)]">
-                        {template.description ?? (template.builtin ? '' : `Edited ${formatRelative(template.updatedAt)}`)}
+                        {template.description ??
+                          (template.builtin ? '' : `Edited ${formatRelative(template.updatedAt)}`)}
                       </p>
                     </div>
                     {canEdit && (
@@ -150,8 +179,22 @@ export function TemplatesPage() {
                         label={`Actions for ${template.name}`}
                         icon={<MoreHorizontal size={16} />}
                         actions={[
-                          ...(template.builtin ? [] : [{ id: 'edit', label: 'Edit', icon: <Pencil size={14} />, onSelect: () => navigate(`/templates/${template.id}`) }]),
-                          { id: 'duplicate', label: template.builtin ? 'Make a copy to edit' : 'Duplicate', icon: <Copy size={14} />, onSelect: () => duplicate.mutate(template.id) },
+                          ...(template.builtin
+                            ? []
+                            : [
+                                {
+                                  id: 'edit',
+                                  label: 'Edit',
+                                  icon: <Pencil size={14} />,
+                                  onSelect: () => navigate(`/templates/${template.id}`),
+                                },
+                              ]),
+                          {
+                            id: 'duplicate',
+                            label: template.builtin ? 'Make a copy to edit' : 'Duplicate',
+                            icon: <Copy size={14} />,
+                            onSelect: () => duplicate.mutate(template.id),
+                          },
                           ...(template.builtin
                             ? []
                             : [
@@ -199,7 +242,9 @@ export function TemplatesPage() {
         confirmLabel="Delete template"
         loading={remove.isPending}
       >
-        <p>Campaigns and automations already made from it keep their own copy and are not affected.</p>
+        <p>
+          Campaigns and automations already made from it keep their own copy and are not affected.
+        </p>
         {remove.isError && <Banner tone="danger">{errorMessage(remove.error)}</Banner>}
       </ConfirmDialog>
     </Page>

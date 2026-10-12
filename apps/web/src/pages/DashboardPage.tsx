@@ -2,10 +2,25 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { BarChart3, Check, Megaphone, Plus } from 'lucide-react'
-import { ratesFrom, roleAtLeast, type CampaignSummary, type DashboardData, type Role, type SetupStep } from '@ariad/shared'
+import {
+  ratesFrom,
+  roleAtLeast,
+  type CampaignSummary,
+  type DashboardData,
+  type Role,
+  type SetupStep,
+} from '@ariad/shared'
 import { api, errorMessage } from '@/lib/api'
 import { cn } from '@/lib/cn'
-import { formatCompact, formatDate, formatDay, formatNumber, formatRate, formatRelative, plural } from '@/lib/format'
+import {
+  formatCompact,
+  formatDate,
+  formatDay,
+  formatNumber,
+  formatRate,
+  formatRelative,
+  plural,
+} from '@/lib/format'
 import { useAuthState } from '@/lib/queries'
 import { Button } from '@/ui/Button'
 import { LineChart } from '@/ui/Chart'
@@ -55,7 +70,11 @@ export function DashboardPage() {
     <Page>
       <PageHeader
         title="Dashboard"
-        description={data ? `The last 30 days. Updated ${formatRelative(new Date(dashboard.dataUpdatedAt).toISOString())}.` : 'The last 30 days.'}
+        description={
+          data
+            ? `The last 30 days. Updated ${formatRelative(new Date(dashboard.dataUpdatedAt).toISOString())}.`
+            : 'The last 30 days.'
+        }
         actions={
           data && !settingUp && canSend ? (
             <Button startIcon={<Plus />} onClick={() => navigate('/campaigns')}>
@@ -89,12 +108,21 @@ function DashboardSkeleton() {
   )
 }
 
-function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role; readAt: number }) {
+function DashboardBody({
+  data,
+  role,
+  readAt,
+}: {
+  data: DashboardData
+  role: Role
+  readAt: number
+}) {
   const navigate = useNavigate()
   const { contacts, totals, rates, series, queue } = data
   const settingUp = data.setup.some((step) => !step.done)
   const sent = sentTotal(totals)
-  const anyActivity = sent > 0 || series.some((point) => point.sent + point.opens + point.clicks > 0)
+  const anyActivity =
+    sent > 0 || series.some((point) => point.sent + point.opens + point.clicks > 0)
   const anyNewContacts = series.some((point) => point.newContacts > 0)
   // A new install: nothing to count yet, so the page is the setup list and one line about what will be here.
   const blank = contacts.total === 0 && !anyActivity && data.recentCampaigns.length === 0
@@ -102,13 +130,24 @@ function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role
   const activity = useMemo(
     () => [
       { name: 'Sent', points: series.map((point) => ({ x: formatDay(point.day), y: point.sent })) },
-      { name: 'Opens', points: series.map((point) => ({ x: formatDay(point.day), y: point.opens })) },
-      { name: 'Clicks', points: series.map((point) => ({ x: formatDay(point.day), y: point.clicks })) },
+      {
+        name: 'Opens',
+        points: series.map((point) => ({ x: formatDay(point.day), y: point.opens })),
+      },
+      {
+        name: 'Clicks',
+        points: series.map((point) => ({ x: formatDay(point.day), y: point.clicks })),
+      },
     ],
     [series],
   )
   const growth = useMemo(
-    () => [{ name: 'New contacts', points: series.map((point) => ({ x: formatDay(point.day), y: point.newContacts })) }],
+    () => [
+      {
+        name: 'New contacts',
+        points: series.map((point) => ({ x: formatDay(point.day), y: point.newContacts })),
+      },
+    ],
     [series],
   )
   const opens = series.reduce((sum, point) => sum + point.opens, 0)
@@ -122,7 +161,10 @@ function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role
       className: 'w-full max-w-0',
       cell: (campaign) => (
         <div className="flex min-w-0 flex-col">
-          <Link to={`/campaigns/${campaign.id}`} className="truncate rounded-[var(--radius-xs)] text-label text-[var(--ds-fg)] hover:underline">
+          <Link
+            to={`/campaigns/${campaign.id}`}
+            className="truncate rounded-[var(--radius-xs)] text-label text-[var(--ds-fg)] hover:underline"
+          >
             {campaign.name}
           </Link>
           <span className="truncate text-caption text-[var(--ds-fg-muted)]">
@@ -135,9 +177,25 @@ function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role
         </div>
       ),
     },
-    { key: 'status', header: 'Status', cell: (campaign) => <CampaignStatusBadge status={campaign.status} /> },
-    { key: 'open', header: 'Open rate', align: 'right', hideBelow: 'sm', cell: (campaign) => formatRate(ratesFrom(campaign.stats).openRate) },
-    { key: 'click', header: 'Click rate', align: 'right', hideBelow: 'sm', cell: (campaign) => formatRate(ratesFrom(campaign.stats).clickRate) },
+    {
+      key: 'status',
+      header: 'Status',
+      cell: (campaign) => <CampaignStatusBadge status={campaign.status} />,
+    },
+    {
+      key: 'open',
+      header: 'Open rate',
+      align: 'right',
+      hideBelow: 'sm',
+      cell: (campaign) => formatRate(ratesFrom(campaign.stats).openRate),
+    },
+    {
+      key: 'click',
+      header: 'Click rate',
+      align: 'right',
+      hideBelow: 'sm',
+      cell: (campaign) => formatRate(ratesFrom(campaign.stats).clickRate),
+    },
   ]
 
   return (
@@ -146,8 +204,10 @@ function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role
 
       {stopped && (
         <Banner tone="warning" title="The background sender is not running">
-          {queue.lastTickAt ? `It last ran ${formatRelative(queue.lastTickAt)}.` : 'It has not run since Ariad started.'} Nothing in the queue goes
-          out until it is back. Restarting Ariad starts it again
+          {queue.lastTickAt
+            ? `It last ran ${formatRelative(queue.lastTickAt)}.`
+            : 'It has not run since Ariad started.'}{' '}
+          Nothing in the queue goes out until it is back. Restarting Ariad starts it again
           {roleAtLeast(role, 'admin') ? (
             <>
               ; the{' '}
@@ -172,32 +232,63 @@ function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role
         </Card>
       ) : (
         <>
-          <div className={cn('grid grid-cols-1 gap-3 min-[23rem]:grid-cols-2', anyActivity && 'lg:grid-cols-3')}>
+          <div
+            className={cn(
+              'grid grid-cols-1 gap-3 min-[23rem]:grid-cols-2',
+              anyActivity && 'lg:grid-cols-3',
+            )}
+          >
             <StatTile
               label="Subscribed contacts"
               value={formatCompact(contacts.subscribed)}
               hint={
-                contacts.newLast30Days > 0 ? `${formatNumber(contacts.newLast30Days)} new in the last 30 days` : 'None new in the last 30 days'
+                contacts.newLast30Days > 0
+                  ? `${formatNumber(contacts.newLast30Days)} new in the last 30 days`
+                  : 'None new in the last 30 days'
               }
             />
             <StatTile
               label="Emails sent"
               value={formatCompact(sent)}
-              hint={sent > 0 ? `${formatNumber(totals.delivered)} delivered` : 'None in the last 30 days'}
+              hint={
+                sent > 0
+                  ? `${formatNumber(totals.delivered)} delivered`
+                  : 'None in the last 30 days'
+              }
             />
             {/* Rates of nothing are not zero, they are not there: the four tiles wait for a first send. */}
             {anyActivity && (
               <>
-                <StatTile label="Open rate" value={formatRate(rates.openRate)} hint={`${plural(totals.opened, 'person', 'people')} opened`} />
-                <StatTile label="Click rate" value={formatRate(rates.clickRate)} hint={`${plural(totals.clicked, 'person', 'people')} clicked`} />
-                <StatTile label="Unsubscribe rate" value={formatRate(rates.unsubscribeRate)} hint={`${formatNumber(totals.unsubscribed)} unsubscribed`} />
-                <StatTile label="Bounce rate" value={formatRate(rates.bounceRate)} hint={`${formatNumber(totals.bounced)} bounced`} />
+                <StatTile
+                  label="Open rate"
+                  value={formatRate(rates.openRate)}
+                  hint={`${plural(totals.opened, 'person', 'people')} opened`}
+                />
+                <StatTile
+                  label="Click rate"
+                  value={formatRate(rates.clickRate)}
+                  hint={`${plural(totals.clicked, 'person', 'people')} clicked`}
+                />
+                <StatTile
+                  label="Unsubscribe rate"
+                  value={formatRate(rates.unsubscribeRate)}
+                  hint={`${formatNumber(totals.unsubscribed)} unsubscribed`}
+                />
+                <StatTile
+                  label="Bounce rate"
+                  value={formatRate(rates.bounceRate)}
+                  hint={`${formatNumber(totals.bounced)} bounced`}
+                />
               </>
             )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Panel title="Email activity" description="Sent, opens and clicks by day" className="lg:col-span-2">
+            <Panel
+              title="Email activity"
+              description="Sent, opens and clicks by day"
+              className="lg:col-span-2"
+            >
               {anyActivity ? (
                 <LineChart
                   series={activity}
@@ -205,7 +296,12 @@ function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role
                   aria-label={`Email activity by day over the last 30 days: ${formatNumber(sent)} sent, ${formatNumber(opens)} opens and ${formatNumber(clicks)} clicks in all.`}
                 />
               ) : (
-                <EmptyState compact icon={<Megaphone />} title="No email in the last 30 days" description="When a campaign goes out, what was sent, opened and clicked shows here day by day." />
+                <EmptyState
+                  compact
+                  icon={<Megaphone />}
+                  title="No email in the last 30 days"
+                  description="When a campaign goes out, what was sent, opened and clicked shows here day by day."
+                />
               )}
             </Panel>
 
@@ -217,7 +313,9 @@ function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role
                   aria-label={`New contacts by day over the last 30 days: ${formatNumber(contacts.newLast30Days)} in all.`}
                 />
               ) : (
-                <p className="grid h-full min-h-24 place-items-center text-center text-body-sm text-[var(--ds-fg-muted)]">Nobody new in the last 30 days.</p>
+                <p className="grid h-full min-h-24 place-items-center text-center text-body-sm text-[var(--ds-fg-muted)]">
+                  Nobody new in the last 30 days.
+                </p>
               )}
             </Panel>
           </div>
@@ -258,11 +356,23 @@ function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role
               />
             </Panel>
 
-            <Panel title="Sending queue" description="Mail waiting to go out, and the last 24 hours">
+            <Panel
+              title="Sending queue"
+              description="Mail waiting to go out, and the last 24 hours"
+            >
               <div className="flex flex-col gap-4">
                 <p className="flex items-center gap-2 text-body-sm text-[var(--ds-fg)]">
-                  <StatusDot tone={stopped ? 'warning' : 'success'} pulse={!stopped && queue.sending > 0} />
-                  {stopped ? 'The sender is not running' : queue.sending > 0 ? 'Sending now' : queue.queued > 0 ? 'Waiting on sending limits' : 'Up to date'}
+                  <StatusDot
+                    tone={stopped ? 'warning' : 'success'}
+                    pulse={!stopped && queue.sending > 0}
+                  />
+                  {stopped
+                    ? 'The sender is not running'
+                    : queue.sending > 0
+                      ? 'Sending now'
+                      : queue.queued > 0
+                        ? 'Waiting on sending limits'
+                        : 'Up to date'}
                 </p>
                 <dl className="flex flex-col divide-y divide-[var(--ds-border-subtle)] border-t border-[var(--ds-border-subtle)]">
                   {[
@@ -270,11 +380,21 @@ function DashboardBody({ data, role, readAt }: { data: DashboardData; role: Role
                     { label: 'Sending now', value: queue.sending },
                     { label: 'Waiting to retry', value: queue.retrying },
                     { label: 'Sent in 24 hours', value: queue.sentLast24h },
-                    { label: 'Failed in 24 hours', value: queue.failedLast24h, bad: queue.failedLast24h > 0 },
+                    {
+                      label: 'Failed in 24 hours',
+                      value: queue.failedLast24h,
+                      bad: queue.failedLast24h > 0,
+                    },
                   ].map((row) => (
                     <div key={row.label} className="flex items-baseline justify-between gap-4 py-2">
                       <dt className="text-body-sm text-[var(--ds-fg-secondary)]">{row.label}</dt>
-                      <dd data-tabular className={cn('text-label', row.bad ? 'text-[var(--ds-danger-text)]' : 'text-[var(--ds-fg)]')}>
+                      <dd
+                        data-tabular
+                        className={cn(
+                          'text-label',
+                          row.bad ? 'text-[var(--ds-danger-text)]' : 'text-[var(--ds-fg)]',
+                        )}
+                      >
                         {formatNumber(row.value)}
                       </dd>
                     </div>
@@ -306,11 +426,17 @@ function SetupChecklist({ steps, role }: { steps: SetupStep[]; role: Role }) {
         <div className="flex flex-col gap-1">
           <h2 className="text-h3 text-[var(--ds-fg)]">Get set up</h2>
           <p className="text-body-sm text-[var(--ds-fg-muted)]">
-            {done === 0 ? 'Five steps to your first campaign.' : `${done} of ${steps.length} done. ${steps.length - done === 1 ? 'One to go.' : `${steps.length - done} to go.`}`}
+            {done === 0
+              ? 'Five steps to your first campaign.'
+              : `${done} of ${steps.length} done. ${steps.length - done === 1 ? 'One to go.' : `${steps.length - done} to go.`}`}
             {blocked ? ' The next one needs an admin.' : ''}
           </p>
         </div>
-        <ProgressBar value={done} max={steps.length} tone={done === steps.length ? 'success' : 'accent'} />
+        <ProgressBar
+          value={done}
+          max={steps.length}
+          tone={done === steps.length ? 'success' : 'accent'}
+        />
       </div>
 
       <ol className="flex flex-col divide-y divide-[var(--ds-border-subtle)] border-t border-[var(--ds-border-subtle)]">
@@ -319,7 +445,10 @@ function SetupChecklist({ steps, role }: { steps: SetupStep[]; role: Role }) {
           const allowed = roleAtLeast(role, action.role)
           const isNext = step.key === next?.key
           return (
-            <li key={step.key} className="flex flex-wrap items-center gap-x-4 gap-y-3 py-3.5 last:pb-0">
+            <li
+              key={step.key}
+              className="flex flex-wrap items-center gap-x-4 gap-y-3 py-3.5 last:pb-0"
+            >
               <div className="flex min-w-0 flex-1 basis-64 items-start gap-3">
                 <span
                   className={cn(
@@ -335,7 +464,12 @@ function SetupChecklist({ steps, role }: { steps: SetupStep[]; role: Role }) {
                   {step.done ? <Check size={14} strokeWidth={2.5} /> : index + 1}
                 </span>
                 <div className="flex min-w-0 flex-col gap-0.5">
-                  <p className={cn('text-label', step.done ? 'text-[var(--ds-fg-secondary)]' : 'text-[var(--ds-fg)]')}>
+                  <p
+                    className={cn(
+                      'text-label',
+                      step.done ? 'text-[var(--ds-fg-secondary)]' : 'text-[var(--ds-fg)]',
+                    )}
+                  >
                     {step.title}
                     <span className="sr-only-ds">{step.done ? ' (done)' : ' (to do)'}</span>
                   </p>
@@ -343,7 +477,12 @@ function SetupChecklist({ steps, role }: { steps: SetupStep[]; role: Role }) {
                 </div>
               </div>
               {!step.done && allowed && (
-                <Button variant={isNext ? 'filled' : 'outlined'} size={isNext ? 'md' : 'sm'} className="ml-9 sm:ml-0" onClick={() => navigate(step.to)}>
+                <Button
+                  variant={isNext ? 'filled' : 'outlined'}
+                  size={isNext ? 'md' : 'sm'}
+                  className="ml-9 sm:ml-0"
+                  onClick={() => navigate(step.to)}
+                >
                   {action.label}
                 </Button>
               )}

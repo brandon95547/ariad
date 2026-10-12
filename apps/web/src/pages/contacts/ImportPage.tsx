@@ -100,7 +100,11 @@ function previewCsv(input: string, keep = 3): Preview {
   if (field !== '' || record.length > 0) endRecord()
 
   const [headers = [], ...samples] = kept
-  return { headers: headers.map((header) => header.trim()), samples, rowCount: Math.max(0, filled - 1) }
+  return {
+    headers: headers.map((header) => header.trim()),
+    samples,
+    rowCount: Math.max(0, filled - 1),
+  }
 }
 
 const squash = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -145,7 +149,10 @@ const GUESSES: Record<string, string> = {
 }
 
 /** What each column most likely is, from its header. Only the first email-looking column is taken as the email. */
-function guessMapping(headers: readonly string[], fields: readonly CustomField[]): Record<string, string> {
+function guessMapping(
+  headers: readonly string[],
+  fields: readonly CustomField[],
+): Record<string, string> {
   const mapping: Record<string, string> = {}
   let hasEmail = false
   for (const header of headers) {
@@ -215,7 +222,10 @@ export function ImportPage() {
   })
 
   const targetOptions = [
-    ...IMPORT_TARGETS.map((target) => ({ value: target.key as string, label: target.label as string })),
+    ...IMPORT_TARGETS.map((target) => ({
+      value: target.key as string,
+      label: target.label as string,
+    })),
     ...(fields.data ?? []).map((field) => ({ value: `custom.${field.key}`, label: field.label })),
   ]
 
@@ -224,7 +234,9 @@ export function ImportPage() {
     if (file.size > MAX_BYTES) {
       setCsv('')
       setFileName(null)
-      setFileError(`${file.name} is too big to import in one go. Split it into files of under 20 MB each.`)
+      setFileError(
+        `${file.name} is too big to import in one go. Split it into files of under 20 MB each.`,
+      )
       return
     }
     try {
@@ -258,7 +270,9 @@ export function ImportPage() {
     setMapping((current) => {
       const next = { ...current, [header]: target }
       // One column is the email. Choosing another gives up the first.
-      if (target === 'email') for (const other of Object.keys(next)) if (other !== header && next[other] === 'email') next[other] = 'skip'
+      if (target === 'email')
+        for (const other of Object.keys(next))
+          if (other !== header && next[other] === 'email') next[other] = 'skip'
       return next
     })
 
@@ -289,7 +303,11 @@ export function ImportPage() {
   if (summary) {
     return (
       <Page width="narrow">
-        <PageHeader title="Import finished" back={BACK} description={`${plural(summary.total, 'row')} read${fileName ? ` from ${fileName}` : ''}.`} />
+        <PageHeader
+          title="Import finished"
+          back={BACK}
+          description={`${plural(summary.total, 'row')} read${fileName ? ` from ${fileName}` : ''}.`}
+        />
         <ImportResult summary={summary} updated={updateExisting} />
         <div className="flex flex-wrap items-center gap-2 coarse:gap-3">
           <Button onClick={() => navigate('/contacts')}>View contacts</Button>
@@ -301,12 +319,20 @@ export function ImportPage() {
     )
   }
 
-  const importing = preview?.headers.filter((header) => (mapping[header] ?? 'skip') !== 'skip').length ?? 0
-  const general = run.isError && !(run.error instanceof ApiError && run.error.fields.consentConfirmed) ? errorMessage(run.error) : null
+  const importing =
+    preview?.headers.filter((header) => (mapping[header] ?? 'skip') !== 'skip').length ?? 0
+  const general =
+    run.isError && !(run.error instanceof ApiError && run.error.fields.consentConfirmed)
+      ? errorMessage(run.error)
+      : null
 
   return (
     <Page width="narrow">
-      <PageHeader title="Import contacts" back={BACK} description="Bring in a spreadsheet of people who have agreed to hear from you." />
+      <PageHeader
+        title="Import contacts"
+        back={BACK}
+        description="Bring in a spreadsheet of people who have agreed to hear from you."
+      />
 
       <ol className="flex w-full max-w-md items-start">
         {STEPS.map((label, index) => {
@@ -314,7 +340,13 @@ export function ImportPage() {
           return (
             <li key={label} className="relative flex flex-1 flex-col items-center gap-2">
               {index > 0 && (
-                <span aria-hidden className={cn('absolute top-[11px] right-1/2 h-px w-full', state === 'todo' ? 'bg-[var(--ds-border-subtle)]' : 'bg-[var(--ds-accent)]')} />
+                <span
+                  aria-hidden
+                  className={cn(
+                    'absolute top-[11px] right-1/2 h-px w-full',
+                    state === 'todo' ? 'bg-[var(--ds-border-subtle)]' : 'bg-[var(--ds-accent)]',
+                  )}
+                />
               )}
               <span
                 aria-hidden
@@ -329,7 +361,14 @@ export function ImportPage() {
               >
                 {state === 'done' ? <Check size={13} /> : index + 1}
               </span>
-              <span className={cn('text-caption', state === 'todo' ? 'text-[var(--ds-fg-muted)]' : 'text-[var(--ds-fg)]')}>{label}</span>
+              <span
+                className={cn(
+                  'text-caption',
+                  state === 'todo' ? 'text-[var(--ds-fg-muted)]' : 'text-[var(--ds-fg)]',
+                )}
+              >
+                {label}
+              </span>
               {state === 'current' && (
                 <span className="sr-only-ds" aria-current="step">
                   Current step
@@ -345,11 +384,20 @@ export function ImportPage() {
           <div className="flex flex-col gap-1">
             <h2 className="text-h4 text-[var(--ds-fg)]">Choose the file</h2>
             <p className="text-body-sm text-[var(--ds-fg-muted)]">
-              A CSV file with one contact on each line and the column names on the first. Any spreadsheet can save one, and so can other email tools.
+              A CSV file with one contact on each line and the column names on the first. Any
+              spreadsheet can save one, and so can other email tools.
             </p>
           </div>
-          <FileDrop key={dropKey} accept=".csv,text/csv,.txt" hint="CSV or text, up to 20 MB" onFile={(file) => void takeFile(file)} />
-          <Field label="Or paste the rows here" hint="Include the first line with the column names.">
+          <FileDrop
+            key={dropKey}
+            accept=".csv,text/csv,.txt"
+            hint="CSV or text, up to 20 MB"
+            onFile={(file) => void takeFile(file)}
+          />
+          <Field
+            label="Or paste the rows here"
+            hint="Include the first line with the column names."
+          >
             <Textarea
               mono
               rows={5}
@@ -368,7 +416,10 @@ export function ImportPage() {
             />
           </Field>
           {fileError && (
-            <p role="alert" className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]">
+            <p
+              role="alert"
+              className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]"
+            >
               <AlertCircle size={13} aria-hidden className="mt-0.5 shrink-0" />
               <span className="[overflow-wrap:anywhere]">{fileError}</span>
             </p>
@@ -376,7 +427,8 @@ export function ImportPage() {
           {preview && preview.rowCount > 0 && !fileError && (
             <p className="text-body-sm text-[var(--ds-fg-secondary)]" role="status">
               {fileName ? `${fileName}: ` : ''}
-              {plural(preview.rowCount, 'row')} and {plural(preview.headers.length, 'column')} found.
+              {plural(preview.rowCount, 'row')} and {plural(preview.headers.length, 'column')}{' '}
+              found.
             </p>
           )}
           <div className="flex items-center gap-3 border-t border-[var(--ds-border-subtle)] pt-5">
@@ -392,15 +444,18 @@ export function ImportPage() {
           <div className="flex flex-col gap-1 p-5">
             <h2 className="text-h4 text-[var(--ds-fg)]">Match the columns</h2>
             <p className="text-body-sm text-[var(--ds-fg-muted)]">
-              Say what each column of your file holds. {plural(preview.rowCount, 'row')}, {plural(preview.headers.length, 'column')}:{' '}
-              {formatNumber(importing)} to import, {formatNumber(preview.headers.length - importing)} left out.
+              Say what each column of your file holds. {plural(preview.rowCount, 'row')},{' '}
+              {plural(preview.headers.length, 'column')}: {formatNumber(importing)} to import,{' '}
+              {formatNumber(preview.headers.length - importing)} left out.
             </p>
           </div>
           <ul>
             {preview.headers.map((header, index) => {
               const target = mapping[header] ?? 'skip'
               const repeat = preview.headers.indexOf(header) !== index
-              const samples = preview.samples.map((row) => (row[index] ?? '').trim()).filter(Boolean)
+              const samples = preview.samples
+                .map((row) => (row[index] ?? '').trim())
+                .filter(Boolean)
               const selectId = `import-column-${index}`
               return (
                 <li
@@ -408,15 +463,30 @@ export function ImportPage() {
                   className="flex flex-col gap-2 border-t border-[var(--ds-border-subtle)] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
                 >
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <label htmlFor={selectId} className={cn('text-label [overflow-wrap:anywhere]', target === 'skip' ? 'text-[var(--ds-fg-secondary)]' : 'text-[var(--ds-fg)]')}>
+                    <label
+                      htmlFor={selectId}
+                      className={cn(
+                        'text-label [overflow-wrap:anywhere]',
+                        target === 'skip' ? 'text-[var(--ds-fg-secondary)]' : 'text-[var(--ds-fg)]',
+                      )}
+                    >
                       {header || `Column ${index + 1} (no name)`}
                     </label>
                     <span className="truncate text-caption text-[var(--ds-fg-muted)]">
-                      {repeat ? 'Another column has this name. The two are imported the same way.' : samples.length > 0 ? samples.join(' · ') : 'Empty in the first rows'}
+                      {repeat
+                        ? 'Another column has this name. The two are imported the same way.'
+                        : samples.length > 0
+                          ? samples.join(' · ')
+                          : 'Empty in the first rows'}
                     </span>
                   </div>
                   <div className="w-full shrink-0 sm:w-[17rem]">
-                    <Select id={selectId} value={target} onChange={(event) => setTarget(header, event.target.value)} options={targetOptions} />
+                    <Select
+                      id={selectId}
+                      value={target}
+                      onChange={(event) => setTarget(header, event.target.value)}
+                      options={targetOptions}
+                    />
                   </div>
                 </li>
               )
@@ -424,9 +494,15 @@ export function ImportPage() {
           </ul>
           <div className="flex flex-col gap-4 border-t border-[var(--ds-border-subtle)] p-5">
             {checked && !emailMapped && (
-              <p role="alert" className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]">
+              <p
+                role="alert"
+                className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]"
+              >
                 <AlertCircle size={13} aria-hidden className="mt-0.5 shrink-0" />
-                <span>Choose which column holds the email address. Without one there is nobody to import.</span>
+                <span>
+                  Choose which column holds the email address. Without one there is nobody to
+                  import.
+                </span>
               </p>
             )}
             <div className="flex items-center gap-3">
@@ -456,7 +532,8 @@ export function ImportPage() {
           <div className="flex flex-col gap-1">
             <h2 className="text-h4 text-[var(--ds-fg)]">What to do with them</h2>
             <p className="text-body-sm text-[var(--ds-fg-muted)]">
-              {plural(preview.rowCount, 'row')} from {fileName ?? 'what you pasted'}. The same address twice in the file becomes one contact.
+              {plural(preview.rowCount, 'row')} from {fileName ?? 'what you pasted'}. The same
+              address twice in the file becomes one contact.
             </p>
           </div>
           {general && <Banner tone="danger">{general}</Banner>}
@@ -466,19 +543,37 @@ export function ImportPage() {
             value={status}
             onChange={setStatus}
             options={[
-              { value: 'subscribed', label: 'Subscribed', description: 'They can be emailed right away.' },
+              {
+                value: 'subscribed',
+                label: 'Subscribed',
+                description: 'They can be emailed right away.',
+              },
               {
                 value: 'pending',
                 label: 'Pending',
-                description: 'On file, but not emailed. Nothing is sent to ask them to confirm, so use this while you still need their permission.',
+                description:
+                  'On file, but not emailed. Nothing is sent to ask them to confirm, so use this while you still need their permission.',
               },
-              { value: 'unsubscribed', label: 'Unsubscribed', description: 'On file so they are never emailed. For an opt-out list from another tool.' },
+              {
+                value: 'unsubscribed',
+                label: 'Unsubscribed',
+                description:
+                  'On file so they are never emailed. For an opt-out list from another tool.',
+              },
             ]}
           />
           {status !== 'unsubscribed' && (
-            <Field label="Add to lists" optional hint="Nobody gets a welcome email for being imported: automations do not start.">
+            <Field
+              label="Add to lists"
+              optional
+              hint="Nobody gets a welcome email for being imported: automations do not start."
+            >
               <MultiSelect
-                options={(lists.data ?? []).map((list) => ({ value: list.id, label: list.name, hint: formatNumber(list.subscribedCount) }))}
+                options={(lists.data ?? []).map((list) => ({
+                  value: list.id,
+                  label: list.name,
+                  hint: formatNumber(list.subscribedCount),
+                }))}
                 value={listIds}
                 onChange={setListIds}
                 placeholder="Choose lists…"
@@ -486,9 +581,17 @@ export function ImportPage() {
               />
             </Field>
           )}
-          <Field label="Add tags" optional hint="On top of any tags a column of the file gives them.">
+          <Field
+            label="Add tags"
+            optional
+            hint="On top of any tags a column of the file gives them."
+          >
             <MultiSelect
-              options={(tags.data ?? []).map((tag) => ({ value: tag.id, label: tag.name, hint: formatNumber(tag.contactCount) }))}
+              options={(tags.data ?? []).map((tag) => ({
+                value: tag.id,
+                label: tag.name,
+                hint: formatNumber(tag.contactCount),
+              }))}
               value={tagIds}
               onChange={setTagIds}
               placeholder="Choose tags…"
@@ -502,36 +605,53 @@ export function ImportPage() {
             onChange={setUpdateExisting}
           />
 
-          <div className="flex flex-col gap-4 border-t border-[var(--ds-border-subtle)] pt-5">
-            <h3 className="text-overline text-[var(--ds-fg-muted)] uppercase">Consent</h3>
-            <div className="flex flex-col gap-1.5">
-              <Checkbox
-                id={consentId}
-                checked={consent}
-                onChange={setConsent}
-                label="These people agreed to receive email from us."
-                description="Anti-spam and privacy law require permission before marketing email is sent. Ariad keeps your statement with each contact as the record of it, and will not import without it."
-              />
-              {((checked && !consent) || (run.error instanceof ApiError && run.error.fields.consentConfirmed && !consent)) && (
-                <p role="alert" className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]">
-                  <AlertCircle size={13} aria-hidden className="mt-0.5 shrink-0" />
-                  <span>Tick this to confirm before importing.</span>
-                </p>
+          {/* Bringing people in as unsubscribed claims no permission, so none is asked for. */}
+          {status !== 'unsubscribed' && (
+            <div className="flex flex-col gap-4 border-t border-[var(--ds-border-subtle)] pt-5">
+              <h3 className="text-overline text-[var(--ds-fg-muted)] uppercase">Consent</h3>
+              <div className="flex flex-col gap-1.5">
+                <Checkbox
+                  id={consentId}
+                  checked={consent}
+                  onChange={setConsent}
+                  label="These people agreed to receive email from us."
+                  description="Anti-spam and privacy law require permission before marketing email is sent. Ariad keeps your statement with each contact as the record of it, and will not import without it."
+                />
+                {((checked && !consent) ||
+                  (run.error instanceof ApiError &&
+                    run.error.fields.consentConfirmed &&
+                    !consent)) && (
+                  <p
+                    role="alert"
+                    className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]"
+                  >
+                    <AlertCircle size={13} aria-hidden className="mt-0.5 shrink-0" />
+                    <span>Tick this to confirm before importing.</span>
+                  </p>
+                )}
+              </div>
+              {status === 'subscribed' && (
+                <Field
+                  label="How they agreed"
+                  optional
+                  hint="Kept on each contact. For example: signed up at the spring trade show."
+                >
+                  <TextInput
+                    value={consentSource}
+                    onChange={(event) => setConsentSource(event.target.value)}
+                    maxLength={200}
+                  />
+                </Field>
               )}
             </div>
-            {status === 'subscribed' && (
-              <Field label="How they agreed" optional hint="Kept on each contact. For example: signed up at the spring trade show.">
-                <TextInput value={consentSource} onChange={(event) => setConsentSource(event.target.value)} maxLength={200} />
-              </Field>
-            )}
-          </div>
+          )}
 
           <div className="flex items-center gap-3 border-t border-[var(--ds-border-subtle)] pt-5">
             <Button
               startIcon={<Upload />}
               loading={run.isPending}
               onClick={() => {
-                if (!consent) {
+                if (!consent && status !== 'unsubscribed') {
                   setChecked(true)
                   return
                 }
@@ -540,10 +660,19 @@ export function ImportPage() {
             >
               Import {plural(preview.rowCount, 'row')}
             </Button>
-            <Button variant="text" startIcon={<ArrowLeft />} onClick={() => setStep(1)} disabled={run.isPending}>
+            <Button
+              variant="text"
+              startIcon={<ArrowLeft />}
+              onClick={() => setStep(1)}
+              disabled={run.isPending}
+            >
               Back
             </Button>
-            {run.isPending && <span className="text-caption text-[var(--ds-fg-muted)]">A big file takes a few seconds.</span>}
+            {run.isPending && (
+              <span className="text-caption text-[var(--ds-fg-muted)]">
+                A big file takes a few seconds.
+              </span>
+            )}
           </div>
         </Card>
       )}
@@ -554,11 +683,22 @@ export function ImportPage() {
 type InvalidRow = ImportSummary['invalid'][number]
 
 const INVALID_COLUMNS: Column<InvalidRow>[] = [
-  { key: 'row', header: 'Row', align: 'right', width: '1%', cell: (row) => <span data-tabular>{formatNumber(row.row)}</span> },
+  {
+    key: 'row',
+    header: 'Row',
+    align: 'right',
+    width: '1%',
+    cell: (row) => <span data-tabular>{formatNumber(row.row)}</span>,
+  },
   {
     key: 'value',
     header: 'What the file has',
-    cell: (row) => (row.value ? <span className="[overflow-wrap:anywhere] text-[var(--ds-fg)]">{row.value}</span> : <span className="text-[var(--ds-fg-muted)]">Nothing</span>),
+    cell: (row) =>
+      row.value ? (
+        <span className="[overflow-wrap:anywhere] text-[var(--ds-fg)]">{row.value}</span>
+      ) : (
+        <span className="text-[var(--ds-fg-muted)]">Nothing</span>
+      ),
   },
   { key: 'reason', header: 'Why it was left out', cell: (row) => row.reason },
 ]
@@ -573,10 +713,22 @@ function ImportResult({ summary, updated }: { summary: ImportSummary; updated: b
         <StatTile
           label={updated ? 'Updated' : 'Already contacts'}
           value={formatNumber(summary.updated)}
-          hint={updated ? 'Already contacts. The file replaced what was saved.' : 'Only their blank details were filled in.'}
+          hint={
+            updated
+              ? 'Already contacts. The file replaced what was saved.'
+              : 'Only their blank details were filled in.'
+          }
         />
-        <StatTile label="Repeated in the file" value={formatNumber(summary.duplicatesInFile)} hint="The same address more than once, folded into one contact." />
-        <StatTile label="Kept unsubscribed" value={formatNumber(summary.suppressed)} hint="Unsubscribed, bounced or on the suppression list. Not subscribed again." />
+        <StatTile
+          label="Repeated in the file"
+          value={formatNumber(summary.duplicatesInFile)}
+          hint="The same address more than once, folded into one contact."
+        />
+        <StatTile
+          label="Kept unsubscribed"
+          value={formatNumber(summary.suppressed)}
+          hint="Unsubscribed, bounced or on the suppression list. Not subscribed again."
+        />
       </div>
 
       {invalid === 0 ? (
@@ -584,14 +736,24 @@ function ImportResult({ summary, updated }: { summary: ImportSummary; updated: b
       ) : (
         <section className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <h2 className="text-h4 text-[var(--ds-fg)]">{invalid >= 200 ? 'The first 200 rows that were left out' : `${plural(invalid, 'row')} left out`}</h2>
+            <h2 className="text-h4 text-[var(--ds-fg)]">
+              {invalid >= 200
+                ? 'The first 200 rows that were left out'
+                : `${plural(invalid, 'row')} left out`}
+            </h2>
             <p className="text-body-sm text-[var(--ds-fg-muted)]">
-              Row 1 is the header, and blank lines are not counted. Fix these in the file and import it again: contacts already in are not
-              doubled.
+              Row 1 is the header, and blank lines are not counted. Fix these in the file and import
+              it again: contacts already in are not doubled.
             </p>
           </div>
           <Card padding="none" className="overflow-hidden">
-            <DataTable aria-label="Rows that were left out" gutter="md" columns={INVALID_COLUMNS} rows={summary.invalid} rowKey={(row) => String(row.row)} />
+            <DataTable
+              aria-label="Rows that were left out"
+              gutter="md"
+              columns={INVALID_COLUMNS}
+              rows={summary.invalid}
+              rowKey={(row) => String(row.row)}
+            />
           </Card>
         </section>
       )}

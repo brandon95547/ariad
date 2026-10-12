@@ -46,7 +46,14 @@ export type TemplateInput = z.input<typeof templateInputSchema>
  *   sent       every recipient has been attempted
  *   canceled   stopped for good; what was not sent never will be
  */
-export const CAMPAIGN_STATUSES = ['draft', 'scheduled', 'sending', 'paused', 'sent', 'canceled'] as const
+export const CAMPAIGN_STATUSES = [
+  'draft',
+  'scheduled',
+  'sending',
+  'paused',
+  'sent',
+  'canceled',
+] as const
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number]
 
 export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
@@ -157,7 +164,10 @@ export const campaignInputSchema = emailContentSchema.extend({
   fromName: optionalText(120),
   fromEmail: emailSchema.nullish().or(z.literal('').transform(() => null)),
   replyTo: emailSchema.nullish().or(z.literal('').transform(() => null)),
-  accountId: z.string().nullish().transform((value) => value || null),
+  accountId: z
+    .string()
+    .nullish()
+    .transform((value) => value || null),
   audience: audienceSchema.default(EMPTY_AUDIENCE),
   /** Left out on create, these take the account-wide setting. */
   trackOpens: z.boolean().optional(),
@@ -185,7 +195,13 @@ export interface AudienceEstimate {
   matched: number
   /** Of those, how many will actually be sent to. */
   sendable: number
-  excluded: { unsubscribed: number; pending: number; bounced: number; complained: number; suppressed: number }
+  excluded: {
+    unsubscribed: number
+    pending: number
+    bounced: number
+    complained: number
+    suppressed: number
+  }
 }
 
 /** Everything that has to be true before a campaign can be sent. */

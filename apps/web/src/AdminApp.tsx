@@ -93,19 +93,35 @@ function AccountFooter({ user }: { user: User }) {
   })
   return (
     <div className="flex items-center gap-2.5">
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--ds-accent-subtle)] text-label text-[var(--ds-accent-text)]" aria-hidden>
+      <span
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--ds-accent-subtle)] text-label text-[var(--ds-accent-text)]"
+        aria-hidden
+      >
         {user.name.slice(0, 1).toUpperCase()}
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-label text-[var(--ds-fg)]">{user.name}</span>
-        <span className="truncate text-caption text-[var(--ds-fg-muted)]">{ROLE_LABELS[user.role]}</span>
+        <span className="truncate text-caption text-[var(--ds-fg-muted)]">
+          {ROLE_LABELS[user.role]}
+        </span>
       </div>
       <ActionMenu
         label="Account"
         icon={<UserRound size={16} />}
         actions={[
-          { id: 'profile', label: 'Your profile', icon: <UserRound size={14} />, onSelect: () => navigate('/settings/profile') },
-          { id: 'logout', label: 'Sign out', icon: <LogOut size={14} />, onSelect: () => logout.mutate(), separated: true },
+          {
+            id: 'profile',
+            label: 'Your profile',
+            icon: <UserRound size={14} />,
+            onSelect: () => navigate('/settings/profile'),
+          },
+          {
+            id: 'logout',
+            label: 'Sign out',
+            icon: <LogOut size={14} />,
+            onSelect: () => logout.mutate(),
+            separated: true,
+          },
         ]}
       />
     </div>
@@ -151,7 +167,12 @@ export default function AdminApp() {
           title="Ariad could not be reached"
           className="max-w-[28rem]"
           actions={
-            <Button size="sm" variant="outlined" onClick={() => auth.refetch()} loading={auth.isFetching}>
+            <Button
+              size="sm"
+              variant="outlined"
+              onClick={() => auth.refetch()}
+              loading={auth.isFetching}
+            >
               Try again
             </Button>
           }

@@ -33,14 +33,27 @@ export type AutomationTrigger =
 
 export type AutomationTriggerType = AutomationTrigger['type']
 
-export const TRIGGER_LABELS: Record<AutomationTriggerType, { label: string; description: string }> = {
-  list_subscribed: { label: 'Someone subscribes', description: 'Welcome new subscribers as they join a list.' },
-  form_submitted: { label: 'A signup form is submitted', description: 'Respond to a specific form.' },
-  tag_added: { label: 'A tag is added', description: 'Start when a contact is given a tag.' },
-  date: { label: 'A date comes round', description: 'Birthdays, anniversaries and other yearly dates.' },
-  campaign_followup: { label: 'After a campaign', description: 'Follow up with people who did, or did not, respond.' },
-  manual: { label: 'Started by hand', description: 'Add contacts yourself.' },
-}
+export const TRIGGER_LABELS: Record<AutomationTriggerType, { label: string; description: string }> =
+  {
+    list_subscribed: {
+      label: 'Someone subscribes',
+      description: 'Welcome new subscribers as they join a list.',
+    },
+    form_submitted: {
+      label: 'A signup form is submitted',
+      description: 'Respond to a specific form.',
+    },
+    tag_added: { label: 'A tag is added', description: 'Start when a contact is given a tag.' },
+    date: {
+      label: 'A date comes round',
+      description: 'Birthdays, anniversaries and other yearly dates.',
+    },
+    campaign_followup: {
+      label: 'After a campaign',
+      description: 'Follow up with people who did, or did not, respond.',
+    },
+    manual: { label: 'Started by hand', description: 'Add contacts yourself.' },
+  }
 
 export type AutomationStep =
   | { id: string; type: 'delay'; amount: number; unit: 'minutes' | 'hours' | 'days' }
@@ -108,7 +121,10 @@ export const automationInputSchema = z.object({
   description: optionalText(500),
   trigger: triggerSchema,
   steps: z.array(stepSchema).max(40).default([]),
-  accountId: z.string().nullish().transform((value) => value || null),
+  accountId: z
+    .string()
+    .nullish()
+    .transform((value) => value || null),
 })
 export type AutomationInput = z.input<typeof automationInputSchema>
 

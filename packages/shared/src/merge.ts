@@ -20,11 +20,31 @@ export const MERGE_TAGS: readonly MergeTag[] = [
   { tag: 'company', label: 'Company', sample: 'Northwind', group: 'Contact' },
   { tag: 'phone', label: 'Phone', sample: '555-0100', group: 'Contact' },
   { tag: 'unsubscribe_url', label: 'Unsubscribe link', sample: '#unsubscribe', group: 'Links' },
-  { tag: 'preferences_url', label: 'Email preferences link', sample: '#preferences', group: 'Links' },
+  {
+    tag: 'preferences_url',
+    label: 'Email preferences link',
+    sample: '#preferences',
+    group: 'Links',
+  },
   { tag: 'view_url', label: 'View in browser link', sample: '#view', group: 'Links' },
-  { tag: 'organization', label: 'Organization name', sample: 'Your organization', group: 'Your organization' },
-  { tag: 'address', label: 'Mailing address', sample: '123 Main St, Charlotte, NC 28202', group: 'Your organization' },
-  { tag: 'year', label: 'Current year', sample: String(new Date().getFullYear()), group: 'Your organization' },
+  {
+    tag: 'organization',
+    label: 'Organization name',
+    sample: 'Your organization',
+    group: 'Your organization',
+  },
+  {
+    tag: 'address',
+    label: 'Mailing address',
+    sample: '123 Main St, Charlotte, NC 28202',
+    group: 'Your organization',
+  },
+  {
+    tag: 'year',
+    label: 'Current year',
+    sample: String(new Date().getFullYear()),
+    group: 'Your organization',
+  },
 ]
 
 const TAG_PATTERN = /\{\{\s*([a-zA-Z_][\w.]*)\s*(?:\|([^}]*))?\}\}/g
@@ -71,10 +91,13 @@ export function htmlToText(html: string): string {
   return html
     .replace(/<(style|script|head|title)[\s\S]*?<\/\1>/gi, '')
     .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, label: string) => {
-      const text = label.replace(/<[^>]+>/g, '').trim()
-      return !text || text === href ? href : `${text} (${href})`
-    })
+    .replace(
+      /<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+      (_m, href: string, label: string) => {
+        const text = label.replace(/<[^>]+>/g, '').trim()
+        return !text || text === href ? href : `${text} (${href})`
+      },
+    )
     .replace(/<\s*br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|h[1-6]|tr|table|li|ul|ol)>/gi, '\n')
     .replace(/<li[^>]*>/gi, '- ')

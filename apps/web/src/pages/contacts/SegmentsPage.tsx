@@ -22,7 +22,14 @@ import { cn } from '@/lib/cn'
 import { contactName, formatNumber, formatRelative, plural } from '@/lib/format'
 import { keys, useFields, useInvalidate, useLists, useSegments, useTags } from '@/lib/queries'
 import { Button, IconButton } from '@/ui/Button'
-import { Combobox, Field, SegmentedControl, Select, type ComboboxOption, type SelectOption } from '@/ui/Controls'
+import {
+  Combobox,
+  Field,
+  SegmentedControl,
+  Select,
+  type ComboboxOption,
+  type SelectOption,
+} from '@/ui/Controls'
 import { DataTable, type Column } from '@/ui/DataTable'
 import { Dialog } from '@/ui/Dialog'
 import { Banner, EmptyState, Spinner } from '@/ui/Feedback'
@@ -61,13 +68,23 @@ const CUSTOM_TYPE: Record<CustomField['type'], SegmentFieldType> = {
 
 function fieldChoices(custom: readonly CustomField[]): FieldChoice[] {
   return [
-    ...SEGMENT_FIELDS.map((field) => ({ key: field.key, label: field.label, type: field.type, group: field.group as string })),
+    ...SEGMENT_FIELDS.map((field) => ({
+      key: field.key,
+      label: field.label,
+      type: field.type,
+      group: field.group as string,
+    })),
     ...custom.map((field) => ({
       key: `custom.${field.key}`,
       label: field.label,
       type: CUSTOM_TYPE[field.type],
       group: 'Custom fields',
-      choices: field.type === 'select' ? field.options : field.type === 'boolean' ? ['Yes', 'No'] : undefined,
+      choices:
+        field.type === 'select'
+          ? field.options
+          : field.type === 'boolean'
+            ? ['Yes', 'No']
+            : undefined,
     })),
   ]
 }
@@ -90,7 +107,11 @@ const toRules = (rules: readonly RuleDraft[], choices: readonly FieldChoice[]) =
       choices.find((choice) => choice.key === rule.field),
       rule.op,
     )
-    return { field: rule.field, op: rule.op, value: operator?.value === 'none' ? null : rule.value.trim() }
+    return {
+      field: rule.field,
+      op: rule.op,
+      value: operator?.value === 'none' ? null : rule.value.trim(),
+    }
   })
 
 type Editor = { segment: Segment | null } | null
@@ -128,7 +149,9 @@ export function SegmentsPage() {
           <Link to={`/contacts?segmentId=${segment.id}`} className={`${rowLink} self-start`}>
             {segment.name}
           </Link>
-          {segment.description && <span className="text-caption text-[var(--ds-fg-muted)]">{segment.description}</span>}
+          {segment.description && (
+            <span className="text-caption text-[var(--ds-fg-muted)]">{segment.description}</span>
+          )}
         </div>
       ),
     },
@@ -138,10 +161,23 @@ export function SegmentsPage() {
       hideBelow: 'md',
       className: 'whitespace-nowrap',
       cell: (segment) =>
-        segment.rules.length === 1 ? '1 condition' : `${segment.match === 'all' ? 'All' : 'Any'} of ${formatNumber(segment.rules.length)} conditions`,
+        segment.rules.length === 1
+          ? '1 condition'
+          : `${segment.match === 'all' ? 'All' : 'Any'} of ${formatNumber(segment.rules.length)} conditions`,
     },
-    { key: 'contacts', header: 'Contacts', align: 'right', cell: (segment) => <span data-tabular>{formatNumber(segment.contactCount)}</span> },
-    { key: 'updated', header: 'Changed', hideBelow: 'sm', className: 'whitespace-nowrap', cell: (segment) => formatRelative(segment.updatedAt) },
+    {
+      key: 'contacts',
+      header: 'Contacts',
+      align: 'right',
+      cell: (segment) => <span data-tabular>{formatNumber(segment.contactCount)}</span>,
+    },
+    {
+      key: 'updated',
+      header: 'Changed',
+      hideBelow: 'sm',
+      className: 'whitespace-nowrap',
+      cell: (segment) => formatRelative(segment.updatedAt),
+    },
     ...(canEdit
       ? [
           {
@@ -154,8 +190,18 @@ export function SegmentsPage() {
                 label={`Actions for ${segment.name}`}
                 icon={<MoreHorizontal size={16} />}
                 actions={[
-                  { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, onSelect: () => setEditor({ segment }) },
-                  { id: 'contacts', label: 'View contacts', icon: <Users size={14} />, onSelect: () => navigate(`/contacts?segmentId=${segment.id}`) },
+                  {
+                    id: 'edit',
+                    label: 'Edit',
+                    icon: <Pencil size={14} />,
+                    onSelect: () => setEditor({ segment }),
+                  },
+                  {
+                    id: 'contacts',
+                    label: 'View contacts',
+                    icon: <Users size={14} />,
+                    onSelect: () => navigate(`/contacts?segmentId=${segment.id}`),
+                  },
                   {
                     id: 'delete',
                     label: 'Delete',
@@ -247,7 +293,10 @@ export function SegmentsPage() {
         confirmLabel="Delete segment"
         loading={remove.isPending}
       >
-        <p>Only the saved question goes. The contacts who match it are not touched. Check any campaign or automation set to use it afterward.</p>
+        <p>
+          Only the saved question goes. The contacts who match it are not touched. Check any
+          campaign or automation set to use it afterward.
+        </p>
         {remove.isError && <Banner tone="danger">{errorMessage(remove.error)}</Banner>}
       </ConfirmDialog>
     </div>
@@ -285,12 +334,19 @@ function SegmentDialog({
   /** Set by a save that found a condition unfinished, so the unfinished ones are pointed out. */
   const [checked, setChecked] = useState(false)
 
-  const blank = (): RuleDraft => ({ id: nextId.current++, field: 'email', op: 'contains', value: '' })
+  const blank = (): RuleDraft => ({
+    id: nextId.current++,
+    field: 'email',
+    op: 'contains',
+    value: '',
+  })
 
   const save = useMutation({
     mutationFn: () => {
       const body = { name, description, match, rules: toRules(rules, choices) }
-      return segment ? api.patch<Segment>(`/segments/${segment.id}`, body) : api.post<Segment>('/segments', body)
+      return segment
+        ? api.patch<Segment>(`/segments/${segment.id}`, body)
+        : api.post<Segment>('/segments', body)
     },
     onSuccess: (saved) => onSaved(saved, !segment),
   })
@@ -302,7 +358,12 @@ function SegmentDialog({
     setMatch(segment?.match ?? 'all')
     setRules(
       segment && segment.rules.length > 0
-        ? segment.rules.map((rule) => ({ id: nextId.current++, field: rule.field, op: rule.op, value: rule.value === null || rule.value === undefined ? '' : String(rule.value) }))
+        ? segment.rules.map((rule) => ({
+            id: nextId.current++,
+            field: rule.field,
+            op: rule.op,
+            value: rule.value === null || rule.value === undefined ? '' : String(rule.value),
+          }))
         : [blank()],
     )
     setChecked(false)
@@ -311,10 +372,14 @@ function SegmentDialog({
   }, [open, segment?.id])
 
   const ready = rules.length > 0 && rules.every((rule) => complete(rule, choices))
-  const definition = useDebounced(ready ? JSON.stringify({ match, rules: toRules(rules, choices) }) : '', 400)
+  const definition = useDebounced(
+    ready ? JSON.stringify({ match, rules: toRules(rules, choices) }) : '',
+    400,
+  )
   const preview = useQuery({
     queryKey: ['segments', 'preview', definition],
-    queryFn: () => api.post<{ count: number; sample: Contact[] }>('/segments/preview', JSON.parse(definition)),
+    queryFn: () =>
+      api.post<{ count: number; sample: Contact[] }>('/segments/preview', JSON.parse(definition)),
     enabled: open && definition !== '',
     placeholderData: keepPreviousData,
   })
@@ -323,7 +388,8 @@ function SegmentDialog({
     setRules((current) => current.map((rule) => (rule.id === id ? { ...rule, ...changes } : rule)))
 
   const errors = save.error instanceof ApiError ? save.error.fields : {}
-  const general = save.isError && !errors.name && !errors.description ? errorMessage(save.error) : null
+  const general =
+    save.isError && !errors.name && !errors.description ? errorMessage(save.error) : null
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -364,14 +430,20 @@ function SegmentDialog({
           />
         </Field>
         <Field label="Description" optional error={errors.description}>
-          <Textarea rows={2} value={description} onChange={(event) => setDescription(event.target.value)} />
+          <Textarea
+            rows={2}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
         </Field>
 
         <div className="flex flex-col gap-4 border-t border-[var(--ds-border-subtle)] pt-5">
           <h3 className="text-overline text-[var(--ds-fg-muted)] uppercase">Conditions</h3>
           {rules.length > 1 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-label text-[var(--ds-fg-secondary)]">A contact matches when</span>
+              <span className="text-label text-[var(--ds-fg-secondary)]">
+                A contact matches when
+              </span>
               <SegmentedControl
                 label="A contact matches when"
                 value={match}
@@ -399,7 +471,11 @@ function SegmentDialog({
                   setRule(rule.id, changes)
                   if (save.isError) save.reset()
                 }}
-                onRemove={rules.length > 1 ? () => setRules((current) => current.filter((one) => one.id !== rule.id)) : undefined}
+                onRemove={
+                  rules.length > 1
+                    ? () => setRules((current) => current.filter((one) => one.id !== rule.id))
+                    : undefined
+                }
               />
             ))}
           </ul>
@@ -421,9 +497,14 @@ function SegmentDialog({
           )}
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-[var(--ds-border-subtle)] pt-5" aria-live="polite">
+        <div
+          className="flex flex-col gap-3 border-t border-[var(--ds-border-subtle)] pt-5"
+          aria-live="polite"
+        >
           {!ready ? (
-            <p className="text-body-sm text-[var(--ds-fg-muted)]">Finish the conditions to see who matches.</p>
+            <p className="text-body-sm text-[var(--ds-fg-muted)]">
+              Finish the conditions to see who matches.
+            </p>
           ) : preview.isError ? (
             <Banner tone="danger">{errorMessage(preview.error)}</Banner>
           ) : !preview.data ? (
@@ -435,11 +516,17 @@ function SegmentDialog({
               <div className="flex flex-col gap-1">
                 <p className="flex flex-wrap items-center gap-x-2 text-h4 text-[var(--ds-fg)]">
                   <span data-tabular>
-                    {plural(preview.data.count, 'contact')} {preview.data.count === 1 ? 'matches' : 'match'}
+                    {plural(preview.data.count, 'contact')}{' '}
+                    {preview.data.count === 1 ? 'matches' : 'match'}
                   </span>
-                  {(preview.isFetching || definition === '') && <Spinner size={14} label="Counting again" />}
+                  {(preview.isFetching || definition === '') && (
+                    <Spinner size={14} label="Counting again" />
+                  )}
                 </p>
-                <p className="text-caption text-[var(--ds-fg-muted)]">Everyone who fits is counted, subscribed or not. Only subscribed contacts are ever emailed.</p>
+                <p className="text-caption text-[var(--ds-fg-muted)]">
+                  Everyone who fits is counted, subscribed or not. Only subscribed contacts are ever
+                  emailed.
+                </p>
               </div>
               {preview.data.sample.length > 0 && (
                 <ul className="flex flex-col">
@@ -449,8 +536,14 @@ function SegmentDialog({
                       className="flex min-w-0 items-center justify-between gap-3 border-t border-[var(--ds-border-subtle)] py-2 first:border-t-0 first:pt-0 last:pb-0"
                     >
                       <span className="flex min-w-0 flex-col">
-                        <span className="truncate text-label text-[var(--ds-fg)]">{contactName(contact)}</span>
-                        {contactName(contact) !== contact.email && <span className="truncate text-caption text-[var(--ds-fg-muted)]">{contact.email}</span>}
+                        <span className="truncate text-label text-[var(--ds-fg)]">
+                          {contactName(contact)}
+                        </span>
+                        {contactName(contact) !== contact.email && (
+                          <span className="truncate text-caption text-[var(--ds-fg-muted)]">
+                            {contact.email}
+                          </span>
+                        )}
                       </span>
                       <StatusBadge status={contact.status} size="sm" />
                     </li>
@@ -498,7 +591,11 @@ function RuleRow({
   const kind = operator?.value ?? 'none'
   const number = index + 1
 
-  const fieldOptions: ComboboxOption[] = choices.map((one) => ({ value: one.key, label: one.label, group: one.group }))
+  const fieldOptions: ComboboxOption[] = choices.map((one) => ({
+    value: one.key,
+    label: one.label,
+    group: one.group,
+  }))
 
   const chooseField = (key: string) => {
     const next = choices.find((one) => one.key === key)
@@ -524,15 +621,40 @@ function RuleRow({
   const valueLabel = `Value for condition ${number}`
   let control = null
   if (kind === 'status') {
-    control = pick(valueLabel, 'Choose a status', CONTACT_STATUSES.map((status) => ({ value: status, label: CONTACT_STATUS_LABELS[status] })), rule.value)
+    control = pick(
+      valueLabel,
+      'Choose a status',
+      CONTACT_STATUSES.map((status) => ({ value: status, label: CONTACT_STATUS_LABELS[status] })),
+      rule.value,
+    )
   } else if (kind === 'tag') {
-    control = pick(valueLabel, 'Choose a tag', tags.map((tag) => ({ value: tag.id, label: tag.name })), 'A deleted tag')
+    control = pick(
+      valueLabel,
+      'Choose a tag',
+      tags.map((tag) => ({ value: tag.id, label: tag.name })),
+      'A deleted tag',
+    )
   } else if (kind === 'list') {
-    control = pick(valueLabel, 'Choose a list', lists.map((list) => ({ value: list.id, label: list.name })), 'A deleted list')
+    control = pick(
+      valueLabel,
+      'Choose a list',
+      lists.map((list) => ({ value: list.id, label: list.name })),
+      'A deleted list',
+    )
   } else if (kind === 'month') {
-    control = pick(valueLabel, 'Choose a month', MONTHS.map((month, at) => ({ value: String(at + 1), label: month })), rule.value)
+    control = pick(
+      valueLabel,
+      'Choose a month',
+      MONTHS.map((month, at) => ({ value: String(at + 1), label: month })),
+      rule.value,
+    )
   } else if (kind === 'text' && choice?.choices && (rule.op === 'is' || rule.op === 'is_not')) {
-    control = pick(valueLabel, 'Choose one', choice.choices.map((option) => ({ value: option, label: option })), rule.value)
+    control = pick(
+      valueLabel,
+      'Choose one',
+      choice.choices.map((option) => ({ value: option, label: option })),
+      rule.value,
+    )
   } else if (kind === 'days') {
     control = (
       <TextInput
@@ -567,7 +689,12 @@ function RuleRow({
       )}
     >
       <div className={cn('min-w-0 sm:col-span-1', !onRemove && 'col-span-2')}>
-        <Combobox aria-label={`Field for condition ${number}`} options={fieldOptions} value={choice ? rule.field : ''} onChange={chooseField} />
+        <Combobox
+          aria-label={`Field for condition ${number}`}
+          options={fieldOptions}
+          value={choice ? rule.field : ''}
+          onChange={chooseField}
+        />
       </div>
       <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
         <Select
@@ -576,24 +703,47 @@ function RuleRow({
           onChange={(event) => chooseOperator(event.target.value)}
           disabled={!choice}
           // With nothing chosen the list says so, in place of showing its first comparison as if it had been picked.
-          options={[...(operator ? [] : [{ value: '', label: 'Choose…' }]), ...operators.map((one) => ({ value: one.key, label: one.label }))]}
+          options={[
+            ...(operator ? [] : [{ value: '', label: 'Choose…' }]),
+            ...operators.map((one) => ({ value: one.key, label: one.label })),
+          ]}
         />
       </div>
       {/* Nothing to show for "is blank" on a phone; side by side, the column is held. */}
-      <div className={cn('col-span-2 min-w-0 sm:col-span-1 sm:col-start-3 sm:row-start-1', !control && 'hidden sm:block')}>{control}</div>
+      <div
+        className={cn(
+          'col-span-2 min-w-0 sm:col-span-1 sm:col-start-3 sm:row-start-1',
+          !control && 'hidden sm:block',
+        )}
+      >
+        {control}
+      </div>
       {onRemove ? (
-        <IconButton label={`Remove condition ${number}`} icon={<X />} size="md" onClick={onRemove} className="col-start-2 row-start-1 sm:col-start-4" />
+        <IconButton
+          label={`Remove condition ${number}`}
+          icon={<X />}
+          size="md"
+          onClick={onRemove}
+          className="col-start-2 row-start-1 sm:col-start-4"
+        />
       ) : (
         // Holds the column, so one condition lines up with the many it may become.
         <span aria-hidden className="hidden w-9 sm:col-start-4 sm:row-start-1 sm:block" />
       )}
       {!choice ? (
-        <p role="alert" className="col-span-2 text-caption text-[var(--ds-danger-text)] sm:col-span-4">
-          This condition is about a field that no longer exists. Choose another field, or remove the condition.
+        <p
+          role="alert"
+          className="col-span-2 text-caption text-[var(--ds-danger-text)] sm:col-span-4"
+        >
+          This condition is about a field that no longer exists. Choose another field, or remove the
+          condition.
         </p>
       ) : (
         flagged && (
-          <p role="alert" className="col-span-2 text-caption text-[var(--ds-danger-text)] sm:col-span-4">
+          <p
+            role="alert"
+            className="col-span-2 text-caption text-[var(--ds-danger-text)] sm:col-span-4"
+          >
             {operator ? 'This condition needs a value.' : 'Choose how to compare.'}
           </p>
         )

@@ -5,7 +5,10 @@ import type { FastifyInstance } from 'fastify'
 import { client, setupOwner, startApp } from './helpers.js'
 
 /** A 1×1 transparent PNG. */
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+)
 
 describe('image uploads', () => {
   let app: FastifyInstance
@@ -24,7 +27,10 @@ describe('image uploads', () => {
   })
 
   it('stores an image under its own hash and serves it to anyone', async () => {
-    const upload = await api.post('/uploads', { filename: 'logo.png', data: `data:image/png;base64,${PNG.toString('base64')}` })
+    const upload = await api.post('/uploads', {
+      filename: 'logo.png',
+      data: `data:image/png;base64,${PNG.toString('base64')}`,
+    })
     expect(upload.status).toBe(200)
     expect(upload.body.url).toMatch(/^https:\/\/mail\.example\.test\/media\/[0-9a-f]{24}\.png$/)
     written.push(path.join(app.ctx.config.dataDir, 'uploads', path.basename(upload.body.path)))
@@ -36,12 +42,18 @@ describe('image uploads', () => {
     expect(fetched.rawPayload.equals(PNG)).toBe(true)
 
     // The same picture again is the same file.
-    const again = await api.post('/uploads', { filename: 'other-name.png', data: PNG.toString('base64') })
+    const again = await api.post('/uploads', {
+      filename: 'other-name.png',
+      data: PNG.toString('base64'),
+    })
     expect(again.body.url).toBe(upload.body.url)
   })
 
   it('goes by what the file is, not what it is called', async () => {
-    const response = await api.post('/uploads', { filename: 'totally-a.png', data: Buffer.from('<script>alert(1)</script>').toString('base64') })
+    const response = await api.post('/uploads', {
+      filename: 'totally-a.png',
+      data: Buffer.from('<script>alert(1)</script>').toString('base64'),
+    })
     expect(response.status).toBe(400)
     expect(response.body.error.message).toMatch(/PNG, JPEG, GIF or WebP/)
   })
@@ -53,6 +65,9 @@ describe('image uploads', () => {
   })
 
   it('needs a signed-in editor to upload', async () => {
-    expect((await client(app).post('/uploads', { filename: 'a.png', data: PNG.toString('base64') })).status).toBe(401)
+    expect(
+      (await client(app).post('/uploads', { filename: 'a.png', data: PNG.toString('base64') }))
+        .status,
+    ).toBe(401)
   })
 })

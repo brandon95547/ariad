@@ -4,7 +4,13 @@ import { useParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import type { ConfirmationResult } from '@ariad/shared'
 import { api } from '@/lib/api'
-import { PublicFrame, PublicHeading, PublicLoading, ResultMark, useDocumentTitle } from './PublicFrame'
+import {
+  PublicFrame,
+  PublicHeading,
+  PublicLoading,
+  ResultMark,
+  useDocumentTitle,
+} from './PublicFrame'
 import { LinkProblem } from './UnsubscribePage'
 
 /**
@@ -29,7 +35,9 @@ export function ConfirmPage() {
   })
 
   const organization = confirmation.data?.organization ?? ''
-  useDocumentTitle(organization ? `Subscription confirmed · ${organization}` : 'Confirm your subscription')
+  useDocumentTitle(
+    organization ? `Subscription confirmed · ${organization}` : 'Confirm your subscription',
+  )
 
   // The form they signed up on may have a page of its own to finish at. Replaced,
   // not pushed: Back from there should not land on a confirmation that is already done.
@@ -43,17 +51,25 @@ export function ConfirmPage() {
       {confirmation.isPending ? (
         <PublicLoading />
       ) : confirmation.isError ? (
-        <LinkProblem error={confirmation.error} onRetry={() => void confirmation.refetch()} retrying={confirmation.isFetching} />
+        <LinkProblem
+          error={confirmation.error}
+          onRetry={() => void confirmation.refetch()}
+          retrying={confirmation.isFetching}
+        />
       ) : (
         <div className="flex flex-col gap-5" role="status">
           <ResultMark tone="success">
             <Check size={22} />
           </ResultMark>
           <PublicHeading title="You are subscribed" focusOnMount>
-            {confirmation.data.message && <p className="whitespace-pre-line">{confirmation.data.message}</p>}
+            {confirmation.data.message && (
+              <p className="whitespace-pre-line">{confirmation.data.message}</p>
+            )}
             <p>
-              <strong className="font-medium text-[var(--ds-fg)]">{confirmation.data.email}</strong> is confirmed
-              {organization ? `, and ${organization} can now send you email` : ''}. There is nothing else to do.
+              <strong className="font-medium text-[var(--ds-fg)]">{confirmation.data.email}</strong>{' '}
+              is confirmed
+              {organization ? `, and ${organization} can now send you email` : ''}. There is nothing
+              else to do.
             </p>
             <p>You can unsubscribe at any time from the link at the bottom of every email.</p>
           </PublicHeading>

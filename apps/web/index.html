@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#101010" />
+    <!-- The pages a subscriber reaches from an email are light. Set before
+         anything paints, or they would flash the app's dark canvas while the
+         page's own code is still on its way. -->
+    <script>
+      if (/^\/(subscribe|unsubscribe|preferences|confirm)\//.test(location.pathname)) {
+        document.documentElement.dataset.theme = 'light'
+        document.querySelector('meta[name="color-scheme"]').content = 'light'
+        document.querySelector('meta[name="theme-color"]').content = '#ffffff'
+      }
+    </script>
     <meta name="description" content="Ariad — email marketing you host yourself." />
     <title>Ariad</title>
   </head>

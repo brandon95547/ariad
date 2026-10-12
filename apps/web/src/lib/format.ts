@@ -4,12 +4,27 @@
  */
 const number = new Intl.NumberFormat('en-US')
 const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 })
-const dateTime = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
-const dateOnly = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-const shortDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+const dateTime = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+})
+const dateOnly = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+})
+const shortDay = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  timeZone: 'UTC',
+})
 
 export const formatNumber = (value: number): string => number.format(value)
-export const formatCompact = (value: number): string => (Math.abs(value) < 10_000 ? number.format(value) : compact.format(value))
+export const formatCompact = (value: number): string =>
+  Math.abs(value) < 10_000 ? number.format(value) : compact.format(value)
 
 /** A rate as a percentage. Null (nothing to divide by) is a dash, not 0%. */
 export function formatRate(value: number | null, digits = 1): string {
@@ -54,7 +69,11 @@ export function plural(count: number, one: string, many = `${one}s`): string {
   return `${formatNumber(count)} ${count === 1 ? one : many}`
 }
 
-export function contactName(contact: { firstName: string | null; lastName: string | null; email: string }): string {
+export function contactName(contact: {
+  firstName: string | null
+  lastName: string | null
+  email: string
+}): string {
   return [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.email
 }
 

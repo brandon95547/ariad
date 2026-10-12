@@ -1,4 +1,11 @@
-import { API_PREFIX, escapeHtml, publicFieldsOf, type CustomField, type PublicFormField, type SignupForm } from '@ariad/shared'
+import {
+  API_PREFIX,
+  escapeHtml,
+  publicFieldsOf,
+  type CustomField,
+  type PublicFormField,
+  type SignupForm,
+} from '@ariad/shared'
 import { FormSection } from '@/components/FormSection'
 import { Button } from '@/ui/Button'
 import { CodeSnippet } from '@/ui/CodeSnippet'
@@ -25,7 +32,10 @@ function inputFor(field: PublicFormField): string {
   const name = escapeHtml(field.key)
   const required = field.required ? ' required' : ''
   if (field.type === 'select' && field.options.length > 0) {
-    const options = ['<option value=""></option>', ...field.options.map((option) => `<option>${escapeHtml(option)}</option>`)].join('')
+    const options = [
+      '<option value=""></option>',
+      ...field.options.map((option) => `<option>${escapeHtml(option)}</option>`),
+    ].join('')
     return `<select name="${name}"${required}>${options}</select>`
   }
   if (field.type === 'boolean') {
@@ -43,7 +53,9 @@ function plainHtml(form: SignupForm, fields: PublicFormField[], action: string):
     ...fields.map((field) => `  <label>${escapeHtml(field.label)} ${inputFor(field)}</label>`),
   ]
   if (form.consentRequired) {
-    lines.push(`  <label><input type="checkbox" name="consent" required> ${escapeHtml(form.consentText)}</label>`)
+    lines.push(
+      `  <label><input type="checkbox" name="consent" required> ${escapeHtml(form.consentText)}</label>`,
+    )
   }
   lines.push(
     '  <!-- Leave this in, and leave it hidden. People never see it; bots fill it in and are turned away. -->',
@@ -97,8 +109,8 @@ export function FormShare({
                 </Button>
               }
             >
-              {publicUrl} cannot be reached from anyone else's device. Give Ariad a public URL before you share this form, then copy these
-              again.
+              {publicUrl} cannot be reached from anyone else's device. Give Ariad a public URL
+              before you share this form, then copy these again.
             </Banner>
           )}
           {!form.enabled && (
@@ -114,7 +126,10 @@ export function FormShare({
         </div>
       )}
 
-      <FormSection title="Hosted page" description="A page of its own for the form. Link to it from an email, a social profile or a QR code.">
+      <FormSection
+        title="Hosted page"
+        description="A page of its own for the form. Link to it from an email, a social profile or a QR code."
+      >
         <CodeSnippet label="Link" code={hosted} />
       </FormSection>
 
@@ -125,7 +140,8 @@ export function FormShare({
         <div className="flex flex-col gap-1.5">
           <CodeSnippet label="Embed code" code={iframe} wrap />
           <p className="text-caption text-[var(--ds-fg-muted)]">
-            The height fits the form as it is now. If your site shows it with a scrollbar, make the number larger.
+            The height fits the form as it is now. If your site shows it with a scrollbar, make the
+            number larger.
           </p>
         </div>
       </FormSection>
@@ -135,10 +151,16 @@ export function FormShare({
         description="The form as bare HTML, for when you want it in your own site's styles. It posts to Ariad, which sends people on to your redirect URL or to the hosted page with the result."
       >
         <div className="flex flex-col gap-1.5">
-          <CodeSnippet label="HTML form" code={plainHtml(form, publicFieldsOf(form.fields, customFields), action)} />
+          <CodeSnippet
+            label="HTML form"
+            code={plainHtml(form, publicFieldsOf(form.fields, customFields), action)}
+          />
           <p className="text-caption text-[var(--ds-fg-muted)]">
-            Keep the field names as they are. Paste it again after you add or remove a field here: unlike the embed, it does not update itself.
-            {choosesLists ? ' People who sign up this way join every list on the form; only the hosted form offers the choice.' : ''}
+            Keep the field names as they are. Paste it again after you add or remove a field here:
+            unlike the embed, it does not update itself.
+            {choosesLists
+              ? ' People who sign up this way join every list on the form; only the hosted form offers the choice.'
+              : ''}
           </p>
         </div>
       </FormSection>

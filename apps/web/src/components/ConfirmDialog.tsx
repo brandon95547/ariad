@@ -45,7 +45,9 @@ export function ConfirmDialog({
         </>
       }
     >
-      <div className="flex flex-col gap-3 text-body-sm text-[var(--ds-fg-secondary)]">{children}</div>
+      <div className="flex flex-col gap-3 text-body-sm text-[var(--ds-fg-secondary)]">
+        {children}
+      </div>
     </Dialog>
   )
 }

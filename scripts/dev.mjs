@@ -38,7 +38,8 @@ const halves = [
     port: API_PORT,
     task: 'npm:dev:api',
     color: 'magenta',
-    identify: () => identify(`http://127.0.0.1:${API_PORT}/api/v1/health`, (body) => /"name":"ariad"/.test(body)),
+    identify: () =>
+      identify(`http://127.0.0.1:${API_PORT}/api/v1/health`, (body) => /"name":"ariad"/.test(body)),
   },
   {
     name: 'web',
@@ -79,7 +80,14 @@ if (build.status !== 0) process.exit(build.status ?? 1)
 const tasks = [{ name: 'shared', task: 'npm:dev:shared', color: 'gray' }, ...toStart]
 const child = spawn(
   'npx',
-  ['concurrently', '-n', tasks.map((t) => t.name).join(','), '-c', tasks.map((t) => t.color).join(','), ...tasks.map((t) => t.task)],
+  [
+    'concurrently',
+    '-n',
+    tasks.map((t) => t.name).join(','),
+    '-c',
+    tasks.map((t) => t.color).join(','),
+    ...tasks.map((t) => t.task),
+  ],
   { stdio: 'inherit' },
 )
 

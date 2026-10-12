@@ -5,7 +5,8 @@ import { optionalText } from './api.js'
  * A segment is a saved question about the audience, answered fresh each time
  * it is used. Nobody is "in" a segment; they match it or they do not.
  */
-export type SegmentFieldType = 'text' | 'status' | 'date' | 'month' | 'tag' | 'list' | 'activity' | 'number'
+export type SegmentFieldType =
+  'text' | 'status' | 'date' | 'month' | 'tag' | 'list' | 'activity' | 'number'
 
 export interface SegmentOperator {
   key: string

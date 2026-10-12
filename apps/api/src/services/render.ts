@@ -63,8 +63,16 @@ export function mergeData(
   settings: Settings,
   urls: ReturnType<typeof contactUrls>,
 ): Record<string, string> {
-  const organization = { organization: settings.organization.name, address: formatAddress(settings.organization), year: String(new Date().getFullYear()) }
-  const links = { unsubscribe_url: urls.unsubscribe, preferences_url: urls.preferences, view_url: urls.view }
+  const organization = {
+    organization: settings.organization.name,
+    address: formatAddress(settings.organization),
+    year: String(new Date().getFullYear()),
+  }
+  const links = {
+    unsubscribe_url: urls.unsubscribe,
+    preferences_url: urls.preferences,
+    view_url: urls.view,
+  }
   if (!contact) return { ...sampleMergeData(), ...organization, ...links }
 
   const custom = parseJson<Record<string, string>>(contact.custom, {})
@@ -87,7 +95,8 @@ export function mergeData(
  * and the address itself.
  */
 function complianceFooter(settings: Settings): string {
-  const style = 'font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b7280;'
+  const style =
+    'font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b7280;'
   const link = 'color:#6b7280;text-decoration:underline;'
   const lines = [
     `<strong>{{organization}}</strong>`,
@@ -111,7 +120,12 @@ export function needsFooter(template: string): boolean {
 }
 
 const decodeAttr = (value: string) =>
-  value.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  value
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
 
 /**
  * Points every outside link at our redirect. The target travels in the link
@@ -119,13 +133,16 @@ const decodeAttr = (value: string) =>
  * wrote said to — it cannot be borrowed to dress up someone else's link.
  */
 export function trackClicks(ctx: Ctx, html: string, baseUrl: string, messageToken: string): string {
-  return html.replace(/(<a\b[^>]*?\shref\s*=\s*)(["'])(.*?)\2/gi, (match, before: string, quote: string, raw: string) => {
-    const url = decodeAttr(raw.trim())
-    if (!/^https?:\/\//i.test(url) || url.startsWith(baseUrl)) return match
-    const encoded = Buffer.from(url, 'utf8').toString('base64url')
-    const signature = ctx.secrets.sign(`${messageToken}|${url}`)
-    return `${before}${quote}${baseUrl}/t/c/${messageToken}?u=${encoded}&amp;s=${signature}${quote}`
-  })
+  return html.replace(
+    /(<a\b[^>]*?\shref\s*=\s*)(["'])(.*?)\2/gi,
+    (match, before: string, quote: string, raw: string) => {
+      const url = decodeAttr(raw.trim())
+      if (!/^https?:\/\//i.test(url) || url.startsWith(baseUrl)) return match
+      const encoded = Buffer.from(url, 'utf8').toString('base64url')
+      const signature = ctx.secrets.sign(`${messageToken}|${url}`)
+      return `${before}${quote}${baseUrl}/t/c/${messageToken}?u=${encoded}&amp;s=${signature}${quote}`
+    },
+  )
 }
 
 function openPixel(baseUrl: string, messageToken: string): string {
@@ -137,7 +154,10 @@ export function renderEmail(ctx: Ctx, input: RenderInput): OutgoingMail {
   const urls = contactUrls(baseUrl, contact?.token ?? null, messageToken)
   const data = mergeData(contact, settings, urls)
 
-  const template = source.marketing && needsFooter(source.html) ? withFooter(source.html, complianceFooter(settings)) : source.html
+  const template =
+    source.marketing && needsFooter(source.html)
+      ? withFooter(source.html, complianceFooter(settings))
+      : source.html
   const merged = renderMerge(template, data, { html: true })
   const text = htmlToText(merged)
 
@@ -153,14 +173,16 @@ export function renderEmail(ctx: Ctx, input: RenderInput): OutgoingMail {
   const subject = renderMerge(source.subject, data).replace(/\s+/g, ' ').trim()
   // Gmail sends as the signed-in mailbox whatever the From header says, and
   // rewrites a header that disagrees; so for Gmail the account's address wins.
-  const fromAddress = account.kind === 'gmail' ? account.from_email : source.fromEmail || account.from_email
+  const fromAddress =
+    account.kind === 'gmail' ? account.from_email : source.fromEmail || account.from_email
   const replyTo = source.replyTo || account.reply_to
 
   const headers: Record<string, string> = { 'X-Ariad-Message': messageToken }
   if (source.marketing && contact) {
     // RFC 8058 one-click: the mailbox provider POSTs to this URL itself when
     // the person presses "Unsubscribe" in its own interface.
-    headers['List-Unsubscribe'] = `<${urls.oneClick}>, <mailto:${replyTo || fromAddress}?subject=unsubscribe>`
+    headers['List-Unsubscribe'] =
+      `<${urls.oneClick}>, <mailto:${replyTo || fromAddress}?subject=unsubscribe>`
     headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
     headers['Precedence'] = 'bulk'
   }

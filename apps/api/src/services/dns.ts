@@ -74,7 +74,12 @@ export async function checkSpf(domain: string, smtpHost: string | null): Promise
   }
   const record = spf[0]!
   if (/\+all\b/i.test(record)) {
-    return { status: 'fail', summary: 'The SPF record ends in +all, which lets anyone send as this domain.', record, advice: 'Change +all to ~all.' }
+    return {
+      status: 'fail',
+      summary: 'The SPF record ends in +all, which lets anyone send as this domain.',
+      record,
+      advice: 'Change +all to ~all.',
+    }
   }
   if (include && !record.toLowerCase().includes(include.toLowerCase())) {
     return {
@@ -88,9 +93,28 @@ export async function checkSpf(domain: string, smtpHost: string | null): Promise
 }
 
 /** The selectors the common providers use, tried when none is given. */
-const COMMON_SELECTORS = ['google', 'default', 'selector1', 'selector2', 's1', 's2', 'k1', 'k2', 'mail', 'dkim', 'smtp', 'mxvault', 'pm', 'brevo', 'zoho']
+const COMMON_SELECTORS = [
+  'google',
+  'default',
+  'selector1',
+  'selector2',
+  's1',
+  's2',
+  'k1',
+  'k2',
+  'mail',
+  'dkim',
+  'smtp',
+  'mxvault',
+  'pm',
+  'brevo',
+  'zoho',
+]
 
-export async function checkDkim(domain: string, selector: string | null): Promise<DnsCheck & { selector: string | null }> {
+export async function checkDkim(
+  domain: string,
+  selector: string | null,
+): Promise<DnsCheck & { selector: string | null }> {
   const candidates = selector ? [selector] : COMMON_SELECTORS
   let sawFailure = false
   for (const candidate of candidates) {
@@ -102,9 +126,21 @@ export async function checkDkim(domain: string, selector: string | null): Promis
     const record = records.find((entry) => /(^|;)\s*p=/i.test(entry) || /v=DKIM1/i.test(entry))
     if (!record) continue
     if (/(^|;)\s*p=\s*(;|$)/i.test(record)) {
-      return { status: 'fail', summary: `The DKIM key at selector "${candidate}" has been revoked (empty p=).`, record, advice: 'Publish a new key from your mail provider.', selector: candidate }
+      return {
+        status: 'fail',
+        summary: `The DKIM key at selector "${candidate}" has been revoked (empty p=).`,
+        record,
+        advice: 'Publish a new key from your mail provider.',
+        selector: candidate,
+      }
     }
-    return { status: 'pass', summary: `DKIM key found at selector "${candidate}".`, record: record.length > 140 ? `${record.slice(0, 140)}…` : record, advice: null, selector: candidate }
+    return {
+      status: 'pass',
+      summary: `DKIM key found at selector "${candidate}".`,
+      record: record.length > 140 ? `${record.slice(0, 140)}…` : record,
+      advice: null,
+      selector: candidate,
+    }
   }
   if (sawFailure && !selector) return { ...unknown('DKIM'), selector: null }
   return {
@@ -138,10 +174,16 @@ export async function checkDmarc(domain: string): Promise<DnsCheck> {
       status: 'warn',
       summary: 'DMARC is published with p=none: it reports, but does not protect the domain yet.',
       record,
-      advice: 'This is the right place to start. Once the reports show your real mail passing, move to p=quarantine.',
+      advice:
+        'This is the right place to start. Once the reports show your real mail passing, move to p=quarantine.',
     }
   }
-  return { status: 'pass', summary: `DMARC is published with p=${policy ?? 'unknown'}.`, record, advice: null }
+  return {
+    status: 'pass',
+    summary: `DMARC is published with p=${policy ?? 'unknown'}.`,
+    record,
+    advice: null,
+  }
 }
 
 export async function checkMx(domain: string): Promise<DnsCheck> {
@@ -149,7 +191,12 @@ export async function checkMx(domain: string): Promise<DnsCheck> {
     const records = await resolver.resolveMx(domain)
     if (records.length === 0) throw Object.assign(new Error('none'), { code: 'ENODATA' })
     const hosts = records.sort((a, b) => a.priority - b.priority).map((record) => record.exchange)
-    return { status: 'pass', summary: `Mail for this domain goes to ${hosts[0]}.`, record: hosts.join(', '), advice: null }
+    return {
+      status: 'pass',
+      summary: `Mail for this domain goes to ${hosts[0]}.`,
+      record: hosts.join(', '),
+      advice: null,
+    }
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code
     if (code === 'ENODATA' || code === 'ENOTFOUND' || code === 'NXDOMAIN') {
@@ -157,7 +204,8 @@ export async function checkMx(domain: string): Promise<DnsCheck> {
         status: 'warn',
         summary: 'This domain has no MX record, so it cannot receive mail.',
         record: null,
-        advice: 'Replies and bounces to addresses at this domain will be lost. Add MX records, or send from a domain that has them.',
+        advice:
+          'Replies and bounces to addresses at this domain will be lost. Add MX records, or send from a domain that has them.',
       }
     }
     return unknown('MX')
@@ -166,11 +214,30 @@ export async function checkMx(domain: string): Promise<DnsCheck> {
 
 /** Free mailbox providers: you cannot publish DNS for them, and they do it themselves. */
 export const FREE_MAIL_DOMAINS = new Set([
-  'gmail.com', 'googlemail.com', 'yahoo.com', 'ymail.com', 'outlook.com', 'hotmail.com', 'live.com', 'msn.com',
-  'icloud.com', 'me.com', 'mac.com', 'aol.com', 'proton.me', 'protonmail.com', 'zoho.com', 'gmx.com', 'mail.com',
+  'gmail.com',
+  'googlemail.com',
+  'yahoo.com',
+  'ymail.com',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'msn.com',
+  'icloud.com',
+  'me.com',
+  'mac.com',
+  'aol.com',
+  'proton.me',
+  'protonmail.com',
+  'zoho.com',
+  'gmx.com',
+  'mail.com',
 ])
 
-export async function checkDomain(domain: string, dkimSelector: string | null, smtpHost: string | null) {
+export async function checkDomain(
+  domain: string,
+  dkimSelector: string | null,
+  smtpHost: string | null,
+) {
   const [spf, dkim, dmarc, mx] = await Promise.all([
     checkSpf(domain, smtpHost),
     checkDkim(domain, dkimSelector),

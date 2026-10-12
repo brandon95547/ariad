@@ -38,7 +38,12 @@ export class ApiError extends Error {
  */
 const TIMEOUT_MS = 45_000
 
-async function request<T>(method: string, path: string, body?: unknown, init?: { signal?: AbortSignal }): Promise<T> {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  init?: { signal?: AbortSignal },
+): Promise<T> {
   const timeout = AbortSignal.timeout(TIMEOUT_MS)
   const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout
 
@@ -77,7 +82,11 @@ async function request<T>(method: string, path: string, body?: unknown, init?: {
 
   if (!response.ok) {
     const envelope = (data as ApiErrorBody | null)?.error
-    if (response.status === 401 && envelope?.code === 'unauthorized' && !path.startsWith('/auth/')) {
+    if (
+      response.status === 401 &&
+      envelope?.code === 'unauthorized' &&
+      !path.startsWith('/auth/')
+    ) {
       // The session ended while the app was open. Tell whoever is listening
       // (the auth gate) so the sign-in page appears instead of a wall of errors.
       window.dispatchEvent(new Event('ariad:signed-out'))
@@ -93,7 +102,8 @@ async function request<T>(method: string, path: string, body?: unknown, init?: {
 }
 
 export const api = {
-  get: <T>(path: string, init?: { signal?: AbortSignal }) => request<T>('GET', path, undefined, init),
+  get: <T>(path: string, init?: { signal?: AbortSignal }) =>
+    request<T>('GET', path, undefined, init),
   post: <T>(path: string, body: unknown = {}) => request<T>('POST', path, body),
   patch: <T>(path: string, body: unknown = {}) => request<T>('PATCH', path, body),
   delete: <T = { ok: true }>(path: string) => request<T>('DELETE', path),

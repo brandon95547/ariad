@@ -60,7 +60,12 @@ export function EmailFrame({
   }, [document, device, measure])
 
   return (
-    <div className={cn('flex justify-center overflow-hidden rounded-[var(--radius-lg)] border border-[var(--ds-border)] bg-[var(--c-email-stage)]', className)}>
+    <div
+      className={cn(
+        'flex justify-center overflow-hidden rounded-[var(--radius-lg)] border border-[var(--ds-border)] bg-[var(--c-email-stage)]',
+        className,
+      )}
+    >
       <iframe
         ref={frame}
         title="Email preview"
@@ -81,17 +86,43 @@ const DEVICES: { value: PreviewDevice; label: string }[] = [
   { value: 'mobile', label: 'Phone' },
 ]
 
-export function DeviceToggle({ value, onChange }: { value: PreviewDevice; onChange: (device: PreviewDevice) => void }) {
+export function DeviceToggle({
+  value,
+  onChange,
+}: {
+  value: PreviewDevice
+  onChange: (device: PreviewDevice) => void
+}) {
   return (
     <div className="flex items-center gap-2">
-      {value === 'desktop' ? <Monitor size={15} aria-hidden className="text-[var(--ds-fg-muted)]" /> : <Smartphone size={15} aria-hidden className="text-[var(--ds-fg-muted)]" />}
-      <SegmentedControl label="Preview size" value={value} onChange={onChange} options={DEVICES} className="w-44" />
+      {value === 'desktop' ? (
+        <Monitor size={15} aria-hidden className="text-[var(--ds-fg-muted)]" />
+      ) : (
+        <Smartphone size={15} aria-hidden className="text-[var(--ds-fg-muted)]" />
+      )}
+      <SegmentedControl
+        label="Preview size"
+        value={value}
+        onChange={onChange}
+        options={DEVICES}
+        className="w-44"
+      />
     </div>
   )
 }
 
 /** A preview with its own desktop / phone switch. */
-export function EmailPreview({ html, merged, subject, from }: { html: string; merged?: boolean; subject?: string; from?: string }) {
+export function EmailPreview({
+  html,
+  merged,
+  subject,
+  from,
+}: {
+  html: string
+  merged?: boolean
+  subject?: string
+  from?: string
+}) {
   const [device, setDevice] = React.useState<PreviewDevice>('desktop')
   return (
     <div className="flex flex-col gap-3">
@@ -100,7 +131,9 @@ export function EmailPreview({ html, merged, subject, from }: { html: string; me
         <div className="flex min-w-0 flex-col gap-0.5">
           {from && <span className="truncate text-caption text-[var(--ds-fg-muted)]">{from}</span>}
           {subject !== undefined && (
-            <span className="truncate text-label text-[var(--ds-fg)]">{subject || 'No subject yet'}</span>
+            <span className="truncate text-label text-[var(--ds-fg)]">
+              {subject || 'No subject yet'}
+            </span>
           )}
         </div>
         <DeviceToggle value={device} onChange={setDevice} />
