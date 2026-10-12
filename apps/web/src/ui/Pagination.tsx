@@ -88,10 +88,7 @@ export function Pagination({
         onClick={() => {
           if (!disabled) go(current + direction)
         }}
-        className={cn(
-          target,
-          disabled ? 'cursor-default text-[var(--ds-fg-disabled)]' : idle,
-        )}
+        className={cn(target, disabled ? 'cursor-default text-[var(--ds-fg-disabled)]' : idle)}
       >
         <Icon size={15} aria-hidden />
       </button>
@@ -127,7 +124,7 @@ export function Pagination({
 
       {/* 2px between the numbers, which are one control; 8px to Previous and
           Next, which are a different kind of step. */}
-      <div className="flex items-center gap-2 coarse:gap-3">
+      <div className="ml-auto flex items-center gap-2 coarse:gap-3">
         {step(-1, 'Previous page')}
         {folded ? (
           <span data-tabular className="px-1 text-label-sm text-[var(--ds-fg-secondary)]">

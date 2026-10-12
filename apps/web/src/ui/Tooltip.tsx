@@ -130,7 +130,7 @@ export function Tooltip({
     })
   }, [open, side, content])
 
-  const child = children as React.ReactElement<{ 'aria-describedby'?: string }>
+  const child = children as React.ReactElement<{ 'aria-describedby'?: string; title?: string }>
   const described = [child.props['aria-describedby'], open ? id : undefined]
     .filter(Boolean)
     .join(' ')
@@ -170,7 +170,9 @@ export function Tooltip({
         hide()
       }}
     >
-      {React.cloneElement(child, { 'aria-describedby': described || undefined })}
+      {/* The browser's own tooltip is taken off the trigger — an IconButton
+          sets one — or the two would show together. */}
+      {React.cloneElement(child, { 'aria-describedby': described || undefined, title: undefined })}
       {open &&
         // Out of the page's flow and its clipping: a tooltip on a button in a
         // table or a dialog is not cut off by what scrolls around it. It is

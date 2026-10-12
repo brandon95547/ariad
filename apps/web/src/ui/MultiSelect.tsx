@@ -33,11 +33,7 @@ export interface MultiSelectOption {
 }
 
 /** Lower case and without accents, so "zoe" finds "Zoë". */
-const fold = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
+const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 export function MultiSelect({
   options,
@@ -184,6 +180,9 @@ export function MultiSelect({
           autoComplete="off"
           spellCheck={false}
           disabled={disabled}
+          // Takes the room left on the line, and only moves to a new one when
+          // less than its 64px floor is left.
+          size={1}
           value={query}
           placeholder={chosen.length === 0 ? placeholder : undefined}
           onChange={(event) => {

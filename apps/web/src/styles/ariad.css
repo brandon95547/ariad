@@ -180,3 +180,57 @@
     min-height: 44px;
   }
 }
+
+/* ============================================================================
+   THE EMAIL CANVAS
+   ----------------------------------------------------------------------------
+   An exception to the surface ramp, on purpose. An email is a real-world
+   object with colors of its own — the ones its design sets and an inbox will
+   show — so the canvas is painted from the design's theme, not from --ds-*
+   tokens. Only what belongs to the app (the selection, the drop line, the
+   block toolbar) uses the app's tokens.
+   ========================================================================= */
+:root {
+  /* The desk an email sits on in a preview. Light in both themes: mail apps
+     show a message on its own background, whatever the app around it does. */
+  --c-email-stage: #e5e7eb;
+}
+
+.email-block {
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  transition: outline-color var(--duration-fast) var(--ease-standard);
+}
+.email-block:hover {
+  outline: 1px dashed rgb(104 103 201 / 0.55);
+}
+.email-block[data-selected] {
+  outline: 2px solid var(--ds-accent);
+}
+
+/* Bare tags inside editable text, drawn as renderDesign will style them. */
+.email-rich p {
+  margin: 0 0 14px 0;
+}
+.email-rich ul,
+.email-rich ol {
+  margin: 0 0 14px 0;
+  padding-left: 22px;
+  list-style: revert;
+}
+.email-rich li {
+  margin: 0 0 6px 0;
+}
+.email-rich a {
+  color: var(--email-accent);
+  text-decoration: underline;
+}
+.email-rich b,
+.email-rich strong {
+  font-weight: 700;
+}
+/* The canvas keeps its own text selection color: the app's is tuned for dark. */
+.email-canvas ::selection {
+  background: rgb(104 103 201 / 0.25);
+  color: inherit;
+}

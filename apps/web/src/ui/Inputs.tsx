@@ -66,8 +66,7 @@ function sizeIcon(node: React.ReactNode, size: number) {
   return node
 }
 
-export interface TextInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   size?: ControlSize
   /** The error state. Inside a Field with an `error` it is set already. */
   invalid?: boolean
@@ -151,6 +150,10 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(func
         readOnly={readOnly}
         aria-invalid={isInvalid || undefined}
         aria-describedby={joinIds(describedBy, field.describedBy)}
+        // One character of its own width, and the rest from the shell. Left at
+        // the browser's twenty, a field has a floor near 200px that nothing
+        // around it can go under, and a form in a card stops fitting a phone.
+        size={1}
         // Above the shell's touch overlay, so a tap in the text still places
         // the caret where it landed.
         className="control-input relative z-[1] h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--ds-fg-muted)] disabled:cursor-not-allowed"
@@ -261,9 +264,7 @@ export const PasswordInput = React.forwardRef<
   const toggle = () => {
     const input = inner.current
     caret.current =
-      input && document.activeElement === input
-        ? [input.selectionStart, input.selectionEnd]
-        : null
+      input && document.activeElement === input ? [input.selectionStart, input.selectionEnd] : null
     setShown((current) => !current)
   }
 

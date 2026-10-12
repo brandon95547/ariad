@@ -138,7 +138,10 @@ export function FileDrop({
               {title}
             </span>
           )}
-          <span id={title ? undefined : nameId} className="text-body-sm text-[var(--ds-fg-secondary)]">
+          <span
+            id={title ? undefined : nameId}
+            className="text-body-sm text-[var(--ds-fg-secondary)]"
+          >
             <span className="font-medium text-[var(--ds-accent-text)]">
               {picked ? 'Choose another file' : 'Choose a file'}
             </span>
@@ -166,7 +169,10 @@ export function FileDrop({
       </label>
 
       {refusal && (
-        <p role="alert" className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]">
+        <p
+          role="alert"
+          className="flex items-start gap-1.5 text-caption text-[var(--ds-danger-text)]"
+        >
           <AlertCircle size={13} aria-hidden className="mt-0.5 shrink-0" />
           <span className="[overflow-wrap:anywhere]">{refusal}</span>
         </p>

@@ -64,9 +64,13 @@ export function Tabs<T extends string>({
     const list = listRef.current
     const tab = list?.querySelector<HTMLElement>('[aria-selected="true"]')
     if (!list || !tab) return
-    const overLeft = tab.offsetLeft < list.scrollLeft
-    const overRight = tab.offsetLeft + tab.offsetWidth > list.scrollLeft + list.clientWidth
-    if (overLeft || overRight) list.scrollTo?.({ left: tab.offsetLeft - 24 })
+    // Measured against the row itself, and moved sideways only: asking the
+    // browser to bring the tab into view could scroll the page as well.
+    const row = list.getBoundingClientRect()
+    const box = tab.getBoundingClientRect()
+    if (box.left < row.left || box.right > row.right) {
+      list.scrollLeft += box.left - row.left - 24
+    }
   }, [value])
 
   return (

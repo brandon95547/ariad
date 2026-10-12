@@ -16,9 +16,12 @@ import { useDismissable } from '@/lib/hooks'
 
 export type ControlSize = 'sm' | 'md'
 
+// 16px where a finger types or a phone would zoom the page in to the field;
+// 13px from `md` up with a mouse. The same step the text inputs take, so a
+// select beside a text field reads as the same kind of control.
 const controlSizes: Record<ControlSize, string> = {
   sm: 'h-8 text-body-sm rounded-[var(--radius-md)]',
-  md: 'h-9 text-body rounded-[var(--radius-md)]',
+  md: 'h-9 text-body md:text-body-sm coarse:text-body rounded-[var(--radius-md)]',
 }
 
 export function controlShell(disabled?: boolean) {

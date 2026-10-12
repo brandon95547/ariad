@@ -191,7 +191,10 @@ export function LineChart({
   // Fewer x labels rather than turned ones: counted back from the latest, so
   // the newest point is always the one that is named.
   const widestLabel = Math.max(...categories.map((text) => text.length), 1) * CHARACTER + 16
-  const every = last <= 0 ? 1 : Math.max(1, Math.ceil(widestLabel / (plotWidth / last)))
+  // One and a half label widths apart, not one: the last label is set flush to
+  // the plot's edge and so reaches a full width back toward its neighbor,
+  // which is centered and reaches half a width forward.
+  const every = last <= 0 ? 1 : Math.max(1, Math.ceil((widestLabel * 1.5) / (plotWidth / last)))
 
   const nearest = (clientX: number) => {
     const frame = frameRef.current
@@ -294,7 +297,13 @@ export function LineChart({
                     key={category}
                     x={xAt(index)}
                     y={height - 6}
-                    textAnchor={last > 0 && index === last ? 'end' : last > 0 && index === 0 ? 'start' : 'middle'}
+                    textAnchor={
+                      last > 0 && index === last
+                        ? 'end'
+                        : last > 0 && index === 0
+                          ? 'start'
+                          : 'middle'
+                    }
                     className="fill-[var(--ds-fg-muted)] text-[11px]"
                   >
                     {category}
@@ -330,7 +339,8 @@ export function LineChart({
                   })
                   .join(' ')
                 const end = lastCategory === undefined ? undefined : line.values.get(lastCategory)
-                const marked = activeCategory === undefined ? undefined : line.values.get(activeCategory)
+                const marked =
+                  activeCategory === undefined ? undefined : line.values.get(activeCategory)
                 return (
                   <g key={lineIndex}>
                     <path
@@ -342,10 +352,24 @@ export function LineChart({
                       strokeLinejoin="round"
                     />
                     {end !== undefined && (
-                      <circle cx={xAt(last)} cy={yAt(end)} r={4} fill={line.color} stroke={SURFACE} strokeWidth={2} />
+                      <circle
+                        cx={xAt(last)}
+                        cy={yAt(end)}
+                        r={4}
+                        fill={line.color}
+                        stroke={SURFACE}
+                        strokeWidth={2}
+                      />
                     )}
                     {marked !== undefined && active !== last && (
-                      <circle cx={activeX} cy={yAt(marked)} r={4} fill={line.color} stroke={SURFACE} strokeWidth={2} />
+                      <circle
+                        cx={activeX}
+                        cy={yAt(marked)}
+                        r={4}
+                        fill={line.color}
+                        stroke={SURFACE}
+                        strokeWidth={2}
+                      />
                     )}
                     {named && end !== undefined && (
                       <text
@@ -386,7 +410,9 @@ export function LineChart({
                       className="h-0.5 w-3 shrink-0 rounded-full"
                       style={{ background: line.color }}
                     />
-                    <span className="min-w-0 truncate text-[var(--ds-fg-secondary)]">{line.name}</span>
+                    <span className="min-w-0 truncate text-[var(--ds-fg-secondary)]">
+                      {line.name}
+                    </span>
                     <span data-tabular className="ml-auto pl-3 font-medium text-[var(--ds-fg)]">
                       {value === undefined ? '—' : valueText(value)}
                     </span>
@@ -496,7 +522,9 @@ export function BarList({
               <span className="flex min-w-0 items-baseline gap-2">
                 <span className="truncate text-body-sm text-[var(--ds-fg)]">{item.label}</span>
                 {item.hint && (
-                  <span className="shrink-0 text-caption text-[var(--ds-fg-muted)]">{item.hint}</span>
+                  <span className="shrink-0 text-caption text-[var(--ds-fg-muted)]">
+                    {item.hint}
+                  </span>
                 )}
               </span>
               <span data-tabular className="shrink-0 text-body-sm font-medium text-[var(--ds-fg)]">

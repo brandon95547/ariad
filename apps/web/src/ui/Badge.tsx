@@ -21,12 +21,14 @@ import type { Tone } from './Display'
 
 const tint: Record<Tone, string> = {
   neutral: 'bg-[var(--ds-layer-active)] text-[var(--ds-fg-secondary)] ring-[var(--ds-border)]',
-  accent: 'bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)] ring-[var(--ds-accent-border)]',
+  accent:
+    'bg-[var(--ds-accent-subtle)] text-[var(--ds-accent-text)] ring-[var(--ds-accent-border)]',
   success:
     'bg-[var(--ds-success-subtle)] text-[var(--ds-success-text)] ring-[var(--ds-success-border)]',
   warning:
     'bg-[var(--ds-warning-subtle)] text-[var(--ds-warning-text)] ring-[var(--ds-warning-border)]',
-  danger: 'bg-[var(--ds-danger-subtle)] text-[var(--ds-danger-text)] ring-[var(--ds-danger-border)]',
+  danger:
+    'bg-[var(--ds-danger-subtle)] text-[var(--ds-danger-text)] ring-[var(--ds-danger-border)]',
   info: 'bg-[var(--ds-info-subtle)] text-[var(--ds-info-text)] ring-[var(--ds-info-border)]',
 }
 
@@ -65,7 +67,9 @@ export function Badge({
         className,
       )}
     >
-      {dot && <span aria-hidden className={cn('h-1.5 w-1.5 shrink-0 rounded-full', dotFill[tone])} />}
+      {dot && (
+        <span aria-hidden className={cn('h-1.5 w-1.5 shrink-0 rounded-full', dotFill[tone])} />
+      )}
       {children}
     </span>
   )

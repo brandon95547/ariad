@@ -282,7 +282,9 @@ export function AppShell({
           />
           <div className="min-w-0 flex-1 lg:hidden">{brand}</div>
           {topbarEnd ? (
-            <div className="ml-auto flex shrink-0 items-center gap-0.5 coarse:gap-3">{topbarEnd}</div>
+            <div className="ml-auto flex shrink-0 items-center gap-0.5 coarse:gap-3">
+              {topbarEnd}
+            </div>
           ) : null}
         </header>
 

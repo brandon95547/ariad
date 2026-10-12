@@ -24,9 +24,34 @@ import { ActionMenu } from '@/ui/Menu'
 import { AppShell, type NavGroup } from '@/ui/Shell'
 import { LoginPage } from './pages/auth/LoginPage'
 import { SetupPage } from './pages/auth/SetupPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { ReportsPage } from './pages/ReportsPage'
+import { AutomationEditorPage } from './pages/automations/AutomationEditorPage'
+import { AutomationsPage } from './pages/automations/AutomationsPage'
+import { CampaignPage } from './pages/campaigns/CampaignPage'
+import { CampaignsPage } from './pages/campaigns/CampaignsPage'
+import { TemplateEditorPage } from './pages/campaigns/TemplateEditorPage'
+import { TemplatesPage } from './pages/campaigns/TemplatesPage'
+import { AudienceLayout } from './pages/contacts/AudienceLayout'
+import { ContactDetailPage } from './pages/contacts/ContactDetailPage'
+import { ContactsPage } from './pages/contacts/ContactsPage'
+import { DuplicatesPage } from './pages/contacts/DuplicatesPage'
+import { FieldsPage } from './pages/contacts/FieldsPage'
+import { ImportPage } from './pages/contacts/ImportPage'
+import { ListsPage } from './pages/contacts/ListsPage'
+import { SegmentsPage } from './pages/contacts/SegmentsPage'
+import { SuppressionPage } from './pages/contacts/SuppressionPage'
+import { TagsPage } from './pages/contacts/TagsPage'
+import { FormEditorPage } from './pages/forms/FormEditorPage'
+import { FormsPage } from './pages/forms/FormsPage'
+import { ApiKeysPage } from './pages/settings/ApiKeysPage'
+import { DomainsPage } from './pages/settings/DomainsPage'
+import { LogsPage } from './pages/settings/LogsPage'
 import { OrganizationPage } from './pages/settings/OrganizationPage'
+import { ProfilePage } from './pages/settings/ProfilePage'
 import { SendingAccountsPage } from './pages/settings/SendingAccountsPage'
 import { SettingsLayout } from './pages/settings/SettingsLayout'
+import { TeamPage } from './pages/settings/TeamPage'
 
 const NAV: NavGroup[] = [
   { items: [{ to: '/', label: 'Dashboard', icon: <LayoutDashboard />, end: true }] },
@@ -142,12 +167,42 @@ export default function AdminApp() {
   return (
     <Routes>
       <Route element={<Shell user={auth.data.user} />}>
+        <Route index element={<DashboardPage />} />
+
+        <Route path="campaigns" element={<CampaignsPage />} />
+        <Route path="campaigns/:id" element={<CampaignPage />} />
+        <Route path="templates" element={<TemplatesPage />} />
+        <Route path="templates/:id" element={<TemplateEditorPage />} />
+        <Route path="automations" element={<AutomationsPage />} />
+        <Route path="automations/:id" element={<AutomationEditorPage />} />
+
+        <Route path="contacts" element={<ContactsPage />} />
+        <Route path="contacts/import" element={<ImportPage />} />
+        <Route path="contacts/:id" element={<ContactDetailPage />} />
+        <Route path="audience" element={<AudienceLayout />}>
+          <Route index element={<Navigate to="lists" replace />} />
+          <Route path="lists" element={<ListsPage />} />
+          <Route path="segments" element={<SegmentsPage />} />
+          <Route path="tags" element={<TagsPage />} />
+          <Route path="fields" element={<FieldsPage />} />
+          <Route path="suppression" element={<SuppressionPage />} />
+          <Route path="duplicates" element={<DuplicatesPage />} />
+        </Route>
+        <Route path="forms" element={<FormsPage />} />
+        <Route path="forms/:id" element={<FormEditorPage />} />
+
+        <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsLayout />}>
           <Route index element={<Navigate to="sending" replace />} />
           <Route path="sending" element={<SendingAccountsPage />} />
           <Route path="organization" element={<OrganizationPage />} />
+          <Route path="domains" element={<DomainsPage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="api-keys" element={<ApiKeysPage />} />
+          <Route path="logs" element={<LogsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/settings/sending" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   )

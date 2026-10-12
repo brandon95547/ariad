@@ -254,7 +254,10 @@ export function DataTable<T>({
           <thead>
             <tr className="border-b border-[var(--ds-border-subtle)]">
               {selection && (
-                <th scope="col" className="h-9 w-px pr-0 pl-[var(--dt-gutter)] text-left align-middle">
+                <th
+                  scope="col"
+                  className="h-9 w-px pr-0 pl-[var(--dt-gutter)] text-left align-middle"
+                >
                   {/* Zero line height: the cell is as tall as the box, and the box sits mid-row. */}
                   <span className="flex" style={{ lineHeight: 0 }}>
                     <Checkbox
@@ -274,9 +277,7 @@ export function DataTable<T>({
                     key={column.key}
                     scope="col"
                     style={column.width ? { width: column.width } : undefined}
-                    aria-sort={
-                      sorted ? (sorted === 'asc' ? 'ascending' : 'descending') : undefined
-                    }
+                    aria-sort={sorted ? (sorted === 'asc' ? 'ascending' : 'descending') : undefined}
                     className={cn(
                       'h-9 align-middle text-label-sm font-medium whitespace-nowrap text-[var(--ds-fg-muted)]',
                       alignment[column.align ?? 'left'],

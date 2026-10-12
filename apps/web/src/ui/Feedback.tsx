@@ -1,5 +1,13 @@
 import * as React from 'react'
-import { AlertTriangle, CheckCircle2, Info, Loader2, X, XCircle, type LucideIcon } from 'lucide-react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  Loader2,
+  X,
+  XCircle,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { IconButton } from './Button'
 
@@ -74,7 +82,11 @@ export function Banner({
       role={urgent ? 'alert' : 'status'}
       aria-live={urgent ? 'assertive' : 'polite'}
       aria-labelledby={title ? titleId : undefined}
-      className={cn('flex gap-3 rounded-[var(--radius-lg)] border p-3.5', bannerSkin[tone], className)}
+      className={cn(
+        'flex gap-3 rounded-[var(--radius-lg)] border p-3.5',
+        bannerSkin[tone],
+        className,
+      )}
     >
       {/* A pixel down, which puts it between a title's line and a body's. */}
       <span className={cn('mt-px shrink-0', bannerInk[tone])} aria-hidden>
@@ -86,12 +98,8 @@ export function Banner({
             {title}
           </p>
         )}
-        {children && (
-          <div className="text-body-sm text-[var(--ds-fg-secondary)]">{children}</div>
-        )}
-        {actions && (
-          <div className="flex flex-wrap items-center gap-2 coarse:gap-3">{actions}</div>
-        )}
+        {children && <div className="text-body-sm text-[var(--ds-fg-secondary)]">{children}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2 coarse:gap-3">{actions}</div>}
       </div>
       {onDismiss && (
         <IconButton
@@ -158,12 +166,12 @@ export function EmptyState({
       )}
       <div className="flex max-w-sm flex-col gap-1.5">
         <h2 className={cn('text-[var(--ds-fg)]', compact ? 'text-h4' : 'text-h3')}>{title}</h2>
-        {description && (
-          <p className="text-body-sm text-[var(--ds-fg-muted)]">{description}</p>
-        )}
+        {description && <p className="text-body-sm text-[var(--ds-fg-muted)]">{description}</p>}
       </div>
       {action && (
-        <div className="flex flex-wrap items-center justify-center gap-2 coarse:gap-3">{action}</div>
+        <div className="flex flex-wrap items-center justify-center gap-2 coarse:gap-3">
+          {action}
+        </div>
       )}
     </div>
   )

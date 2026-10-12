@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url'
+import os from 'node:os'
 import path from 'node:path'
 import { z } from 'zod'
 
@@ -62,7 +63,9 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     port: env.PORT,
     host: env.HOST,
     databasePath,
-    dataDir: inMemory ? path.resolve(APP_ROOT, 'data') : path.dirname(databasePath),
+    // An in-memory database is a test: whatever it writes to disk goes to the
+    // system's temporary directory, never beside real data.
+    dataDir: inMemory ? path.join(os.tmpdir(), `ariad-${process.pid}`) : path.dirname(databasePath),
     appUrl: env.APP_URL.replace(/\/+$/, ''),
     corsOrigins: env.CORS_ORIGINS.split(',')
       .map((o) => o.trim())

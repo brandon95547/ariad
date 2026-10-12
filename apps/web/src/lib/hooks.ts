@@ -119,3 +119,13 @@ export function useDismissable(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, onDismiss])
 }
+
+/** The value, once it has stopped changing for `delay` ms. For search boxes and live counts. */
+export function useDebounced<T>(value: T, delay = 300): T {
+  const [settled, setSettled] = React.useState(value)
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(value), delay)
+    return () => window.clearTimeout(timer)
+  }, [value, delay])
+  return settled
+}
