@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { client, decodeQp, startApp, startCatcher } from './helpers.js'
+import { client, decodeQp, setupOwner, smtpAccount, startApp, startCatcher } from './helpers.js'
 
 /**
  * The whole path a campaign takes: contacts in, a message out through SMTP,
@@ -17,11 +17,8 @@ describe('a campaign, end to end', () => {
     app = await startApp()
     catcher = await startCatcher({ rejectRecipient: /^gone@/ })
     api = client(app)
-    await api.post('/auth/setup', { name: 'Brandon', email: 'owner@example.test', password: 'correct horse', organization: 'Northwind' })
-    await api.post('/sending-accounts', {
-      kind: 'smtp', label: 'Catcher', host: '127.0.0.1', port: catcher.port, security: 'none',
-      username: 'sender', password: 'right-password', fromName: 'Northwind', fromEmail: 'news@northwind.test', perMinute: 600,
-    })
+    await setupOwner(api)
+    await api.post('/sending-accounts', smtpAccount(catcher))
     listId = (await api.post('/lists', { name: 'Newsletter' })).body.id
   })
 

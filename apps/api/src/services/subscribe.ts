@@ -135,7 +135,7 @@ export function signup(ctx: Ctx, input: SignupInput): FormSubmissionResult['stat
 }
 
 /** The click on the confirmation link. Safe to repeat. */
-export function confirmSignup(ctx: Ctx, token: string, ip: string | null): { email: string; organization: string } {
+export function confirmSignup(ctx: Ctx, token: string, ip: string | null): { email: string; organization: string; formId: string | null } {
   const { db } = ctx
   const row = db.prepare('SELECT * FROM confirmations WHERE token = ?').get(token) as
     | { token: string; contact_id: string; list_ids: string; form_id: string | null; confirmed_at: string | null }
@@ -169,5 +169,5 @@ export function confirmSignup(ctx: Ctx, token: string, ip: string | null): { ema
       if (row.form_id) fireTrigger(ctx, { type: 'form_submitted', formId: row.form_id, contactId: contact.id })
     })()
   }
-  return { email: contact.email, organization }
+  return { email: contact.email, organization, formId: row.form_id }
 }

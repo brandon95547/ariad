@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { emailSchema, optionalText } from './api.js'
+import type { CustomField, CustomFieldType } from './contacts.js'
 
 /**
  * A signup form: a hosted page, and the same form as an embed for another
@@ -80,13 +81,37 @@ export const formInputSchema = z.object({
 })
 export type FormInput = z.input<typeof formInputSchema>
 
+/** A field as the public page is told about it: with the kind of answer it takes, so a select is shown as a select. */
+export interface PublicFormField extends FormFieldDef {
+  type: CustomFieldType
+  /** The choices, when `type` is `select`. */
+  options: string[]
+}
+
+/** Looks up what each field of a form takes. Birthday is a date; a custom field is whatever it was defined as. */
+export function publicFieldsOf(
+  fields: readonly FormFieldDef[],
+  custom: readonly Pick<CustomField, 'key' | 'type' | 'options'>[],
+): PublicFormField[] {
+  return fields.map((field) => {
+    const definition = field.key.startsWith('custom.') ? custom.find((entry) => entry.key === field.key.slice(7)) : undefined
+    return {
+      ...field,
+      type: definition?.type ?? (field.key === 'birthday' ? 'date' : 'text'),
+      options: definition?.options ?? [],
+    }
+  })
+}
+
 /** What the public page is told about a form. Nothing private. */
 export interface PublicForm {
   id: string
   title: string
   description: string | null
   buttonText: string
-  fields: FormFieldDef[]
+  /** Shown after a signup that needs no confirmation. */
+  successMessage: string
+  fields: PublicFormField[]
   lists: { id: string; name: string; description: string | null }[]
   letSubscriberChoose: boolean
   consentText: string
@@ -107,6 +132,17 @@ export type FormSubmission = z.input<typeof formSubmissionSchema>
 export interface FormSubmissionResult {
   status: 'subscribed' | 'confirmation_sent' | 'already_subscribed'
   message: string
+  redirectUrl: string | null
+}
+
+/** What the confirmation page is told once the link in the email has been followed. */
+export interface ConfirmationResult {
+  /** Partly hidden, as on the preferences page. */
+  email: string
+  organization: string
+  /** The success message of the form they signed up on, when it was a form. */
+  message: string | null
+  /** That form's page to go to instead, when it has one. */
   redirectUrl: string | null
 }
 

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { client, decodeQp, startApp, startCatcher } from './helpers.js'
+import { client, decodeQp, setupOwner, smtpAccount, startApp, startCatcher } from './helpers.js'
 
 /**
  * Audience growth and automation together, because that is how they are used:
@@ -19,11 +19,8 @@ describe('signup form, double opt-in and a welcome automation', () => {
     app = await startApp()
     catcher = await startCatcher()
     api = client(app)
-    await api.post('/auth/setup', { name: 'Brandon', email: 'owner@example.test', password: 'correct horse', organization: 'Northwind' })
-    await api.post('/sending-accounts', {
-      kind: 'smtp', label: 'Catcher', host: '127.0.0.1', port: catcher.port, security: 'none',
-      username: 'sender', password: 'right-password', fromName: 'Northwind', fromEmail: 'news@northwind.test', perMinute: 600,
-    })
+    await setupOwner(api)
+    await api.post('/sending-accounts', smtpAccount(catcher))
     await api.patch('/settings', { organization: { address1: '1 Main St', city: 'Charlotte', region: 'NC', postalCode: '28202' } })
     listId = (await api.post('/lists', { name: 'Newsletter', doubleOptIn: true })).body.id
   })

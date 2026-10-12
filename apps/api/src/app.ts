@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import Fastify, { type FastifyError, type FastifyInstance } from 'fastify'
+import Fastify, { LogController, type FastifyError, type FastifyInstance } from 'fastify'
 import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
@@ -27,7 +27,7 @@ import { contactRoutes } from './routes/contacts.js'
 import { formRoutes } from './routes/forms.js'
 import { publicRoutes, trackingRoutes } from './routes/public.js'
 import { reportRoutes } from './routes/reports.js'
-import { settingsRoutes } from './routes/settings.js'
+import { mediaRoutes, settingsRoutes } from './routes/settings.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -58,7 +58,10 @@ export async function buildApp(config: Config, options: BuildOptions = {}): Prom
     trustProxy: config.isProduction,
     // Big enough for an email body; the CSV import route raises its own.
     bodyLimit: 2 * 1024 * 1024,
-    disableRequestLogging: true,
+    // Fastify's own request logging writes several lines per request, which
+    // buries what is worth reading. One line per request is logged instead,
+    // from the onResponse hook below.
+    logController: new LogController({ disableRequestLogging: true }),
     forceCloseConnections: 'idle',
   }).withTypeProvider<ZodTypeProvider>()
 
@@ -161,6 +164,7 @@ export async function buildApp(config: Config, options: BuildOptions = {}): Prom
 
   // Open pixels and click redirects: short paths, because they are in every email.
   await app.register(trackingRoutes, { prefix: '/t' })
+  await app.register(mediaRoutes, { prefix: '/media' })
 
   /**
    * In production the API also serves the built web app, so the whole product
@@ -172,8 +176,12 @@ export async function buildApp(config: Config, options: BuildOptions = {}): Prom
     await app.register(fastifyStatic, { root: config.webDist, wildcard: false })
   }
   app.setNotFoundHandler((request, reply) => {
-    const isApi = request.url.startsWith('/api/') || request.url.startsWith('/t/')
-    if (hasWeb && !isApi && request.method === 'GET') return reply.sendFile('index.html')
+    const isApi = ['/api/', '/t/', '/media/'].some((prefix) => request.url.startsWith(prefix))
+    if (hasWeb && !isApi && request.method === 'GET') {
+      // A signup form is the one page meant to be framed by other sites: its embed is an iframe.
+      if (request.url.startsWith('/subscribe/')) reply.removeHeader('x-frame-options')
+      return reply.sendFile('index.html')
+    }
     return reply.code(404).send({
       error: { code: 'not_found', message: `No route for ${request.method} ${request.url}.` },
     })

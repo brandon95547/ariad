@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { client, startApp, startCatcher } from './helpers.js'
+import { APP_PASSWORD, CATCHER_LOGIN, client, randomPassword, setupOwner, smtpAccount, startApp, startCatcher } from './helpers.js'
 
 /**
  * Sending accounts: the first thing anyone sets up, and the one place a
@@ -15,7 +15,7 @@ describe('sending accounts', () => {
     app = await startApp()
     catcher = await startCatcher()
     api = client(app)
-    const setup = await api.post('/auth/setup', { name: 'Brandon', email: 'owner@example.test', password: 'correct horse', organization: 'Northwind' })
+    const setup = await setupOwner(api)
     expect(setup.status).toBe(200)
   })
 
@@ -24,18 +24,7 @@ describe('sending accounts', () => {
     await catcher.close()
   })
 
-  const smtp = (overrides: Record<string, unknown> = {}) => ({
-    kind: 'smtp',
-    label: 'Local catcher',
-    host: '127.0.0.1',
-    port: catcher.port,
-    security: 'none',
-    username: 'sender',
-    password: 'right-password',
-    fromName: 'Northwind',
-    fromEmail: 'news@northwind.test',
-    ...overrides,
-  })
+  const smtp = (overrides: Record<string, unknown> = {}) => smtpAccount(catcher, { label: 'Local catcher', perMinute: undefined, ...overrides })
 
   it('is closed to anyone who is not signed in', async () => {
     const anonymous = client(app)
@@ -49,26 +38,26 @@ describe('sending accounts', () => {
     expect(response.body.verify).toMatchObject({ ok: true })
     expect(response.body.account).toMatchObject({ kind: 'smtp', status: 'ok', isDefault: true, enabled: true, fromEmail: 'news@northwind.test' })
     // The password is not in the response in any form.
-    expect(JSON.stringify(response.body)).not.toContain('right-password')
+    expect(JSON.stringify(response.body)).not.toContain(CATCHER_LOGIN.pass)
     expect(response.body.account.password).toBeUndefined()
   })
 
   it('stores the password encrypted, not in the clear', async () => {
     const row = app.ctx.db.prepare("SELECT password_enc FROM sending_accounts WHERE label = 'Local catcher'").get() as { password_enc: string }
     expect(row.password_enc).toMatch(/^v1:/)
-    expect(row.password_enc).not.toContain('right-password')
-    expect(app.ctx.secrets.decrypt(row.password_enc)).toBe('right-password')
+    expect(row.password_enc).not.toContain(CATCHER_LOGIN.pass)
+    expect(app.ctx.secrets.decrypt(row.password_enc)).toBe(CATCHER_LOGIN.pass)
   })
 
   it('keeps an account whose password is wrong, and says what to fix', async () => {
-    const response = await api.post('/sending-accounts', smtp({ label: 'Typo', fromEmail: 'typo@northwind.test', password: 'wrong' }))
+    const response = await api.post('/sending-accounts', smtp({ label: 'Typo', fromEmail: 'typo@northwind.test', password: `${CATCHER_LOGIN.pass}-typo` }))
     expect(response.status).toBe(201)
     expect(response.body.verify.ok).toBe(false)
     expect(response.body.verify.message).toMatch(/did not accept the username and password/i)
     expect(response.body.account).toMatchObject({ status: 'error', isDefault: false })
 
     // Correcting the password re-verifies and clears the error.
-    const fixed = await api.patch(`/sending-accounts/${response.body.account.id}`, { password: 'right-password' })
+    const fixed = await api.patch(`/sending-accounts/${response.body.account.id}`, { password: CATCHER_LOGIN.pass })
     expect(fixed.body.verify).toMatchObject({ ok: true })
     expect(fixed.body.account).toMatchObject({ status: 'ok', lastError: null })
   })
@@ -80,24 +69,26 @@ describe('sending accounts', () => {
   })
 
   it('adds a Gmail account from an address and an app password pasted with its spaces', async () => {
-    const response = await api.post('/sending-accounts', { kind: 'gmail', email: 'Brandon@Gmail.com', appPassword: 'abcd abcd abcd abcd', fromName: 'Brandon' })
+    // As Google shows it: four groups of four, with spaces.
+    const pasted = APP_PASSWORD.replace(/(.{4})/g, '$1 ').trim()
+    const response = await api.post('/sending-accounts', { kind: 'gmail', email: 'Sender@Example.test', appPassword: pasted, fromName: 'Brandon' })
     expect(response.status).toBe(201)
     expect(response.body.account).toMatchObject({
       kind: 'gmail',
       host: 'smtp.gmail.com',
       port: 465,
       security: 'ssl',
-      username: 'brandon@gmail.com',
-      fromEmail: 'brandon@gmail.com',
+      username: 'sender@example.test',
+      fromEmail: 'sender@example.test',
       dailyLimit: 500,
       status: 'ok',
     })
     const row = app.ctx.db.prepare("SELECT password_enc FROM sending_accounts WHERE kind = 'gmail'").get() as { password_enc: string }
-    expect(app.ctx.secrets.decrypt(row.password_enc)).toBe('abcdabcdabcdabcd')
+    expect(app.ctx.secrets.decrypt(row.password_enc)).toBe(APP_PASSWORD)
   })
 
   it('refuses something that is plainly a Google sign-in password, before saving it', async () => {
-    const response = await api.post('/sending-accounts', { kind: 'gmail', email: 'other@gmail.com', appPassword: 'MyRealPassword!23', fromName: 'Other' })
+    const response = await api.post('/sending-accounts', { kind: 'gmail', email: 'other@example.test', appPassword: 'not sixteen letters', fromName: 'Other' })
     expect(response.status).toBe(400)
     expect(response.body.error.message).toMatch(/app password is 16 letters/i)
   })
@@ -134,9 +125,10 @@ describe('sending accounts', () => {
   })
 
   it('lets a viewer see accounts but not change them', async () => {
-    await api.post('/users', { name: 'Vee', email: 'viewer@example.test', role: 'viewer', password: 'password123' })
+    const viewerLogin = { email: 'viewer@example.test', password: randomPassword() }
+    await api.post('/users', { name: 'Vee', role: 'viewer', ...viewerLogin })
     const viewer = client(app)
-    await viewer.post('/auth/login', { email: 'viewer@example.test', password: 'password123' })
+    await viewer.post('/auth/login', viewerLogin)
     expect((await viewer.get('/sending-accounts')).status).toBe(200)
     expect((await viewer.post('/sending-accounts', smtp({ label: 'Nope', fromEmail: 'nope@northwind.test' }))).status).toBe(403)
   })

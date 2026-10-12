@@ -149,7 +149,11 @@ function styleRichText(html: string, theme: DesignTheme): string {
   ].reduce((source, apply) => apply(source), tidyHtml(html))
 }
 
-function renderBlock(block: Block, theme: DesignTheme): string {
+/**
+ * One block as the table row it becomes in the email. Exported so the builder
+ * draws its canvas from the same markup that is sent.
+ */
+export function renderBlock(block: Block, theme: DesignTheme): string {
   const pad = 'padding:0 32px;'
   const body = `font-family:${theme.font};font-size:16px;line-height:1.6;color:${theme.text};`
   switch (block.type) {
@@ -190,17 +194,22 @@ export interface RenderDesignOptions {
   title?: string | null
 }
 
-export function renderDesign(design: EmailDesign, options: RenderDesignOptions = {}): string {
-  const theme: DesignTheme = {
+/** The theme with anything that is not a color replaced by the default. */
+export function safeTheme(theme: DesignTheme): DesignTheme {
+  return {
     ...DEFAULT_THEME,
-    ...design.theme,
-    background: color(design.theme.background, DEFAULT_THEME.background),
-    surface: color(design.theme.surface, DEFAULT_THEME.surface),
-    text: color(design.theme.text, DEFAULT_THEME.text),
-    muted: color(design.theme.muted, DEFAULT_THEME.muted),
-    accent: color(design.theme.accent, DEFAULT_THEME.accent),
-    accentText: color(design.theme.accentText, DEFAULT_THEME.accentText),
+    ...theme,
+    background: color(theme.background, DEFAULT_THEME.background),
+    surface: color(theme.surface, DEFAULT_THEME.surface),
+    text: color(theme.text, DEFAULT_THEME.text),
+    muted: color(theme.muted, DEFAULT_THEME.muted),
+    accent: color(theme.accent, DEFAULT_THEME.accent),
+    accentText: color(theme.accentText, DEFAULT_THEME.accentText),
   }
+}
+
+export function renderDesign(design: EmailDesign, options: RenderDesignOptions = {}): string {
+  const theme = safeTheme(design.theme)
   const rows = design.blocks.map((block) => renderBlock(block, theme)).join('\n')
   return wrapEmailHtml(rows, theme, options)
 }

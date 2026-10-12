@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { emailSchema, optionalText, pageQuerySchema } from './api.js'
+import { emailSchema, optionalText, pageQuerySchema, patchOf } from './api.js'
 
 /**
  * Where a contact stands with us as a whole.
@@ -153,7 +153,7 @@ export const contactInputSchema = z.object({
 })
 export type ContactInput = z.input<typeof contactInputSchema>
 
-export const contactUpdateSchema = contactInputSchema.partial()
+export const contactUpdateSchema = patchOf(contactInputSchema)
 export type ContactUpdateInput = z.input<typeof contactUpdateSchema>
 
 export const contactQuerySchema = pageQuerySchema.extend({
@@ -191,6 +191,7 @@ export const listInputSchema = z.object({
   isPublic: z.boolean().default(true),
 })
 export type ListInput = z.input<typeof listInputSchema>
+export const listUpdateSchema = patchOf(listInputSchema)
 
 export const TAG_COLORS = ['#706fd3', '#33d9b2', '#ff5252', '#ccae62', '#218c74', '#ff793f', '#34ace0', '#ffb142'] as const
 
@@ -202,6 +203,7 @@ export const tagInputSchema = z.object({
     .default(TAG_COLORS[0]),
 })
 export type TagInput = z.input<typeof tagInputSchema>
+export const tagUpdateSchema = patchOf(tagInputSchema)
 
 export const customFieldInputSchema = z.object({
   label: z.string().trim().min(1, 'Give the field a label.').max(80),
@@ -214,6 +216,8 @@ export const customFieldInputSchema = z.object({
   options: z.array(z.string().trim().min(1).max(80)).max(50).default([]),
 })
 export type CustomFieldInput = z.input<typeof customFieldInputSchema>
+/** The key is the field's identity in merge tags and segments, so an update cannot change it. */
+export const customFieldUpdateSchema = patchOf(customFieldInputSchema.omit({ key: true }))
 
 /** Which CSV column feeds which contact field. `skip` drops the column. */
 export const IMPORT_TARGETS = [

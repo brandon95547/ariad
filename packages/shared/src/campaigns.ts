@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { emailSchema, optionalText } from './api.js'
+import { emailSchema, optionalText, patchOf } from './api.js'
 import { emailDesignSchema, type EmailDesign } from './design.js'
 
 /**
@@ -159,12 +159,13 @@ export const campaignInputSchema = emailContentSchema.extend({
   replyTo: emailSchema.nullish().or(z.literal('').transform(() => null)),
   accountId: z.string().nullish().transform((value) => value || null),
   audience: audienceSchema.default(EMPTY_AUDIENCE),
-  trackOpens: z.boolean().default(true),
-  trackClicks: z.boolean().default(true),
+  /** Left out on create, these take the account-wide setting. */
+  trackOpens: z.boolean().optional(),
+  trackClicks: z.boolean().optional(),
 })
 export type CampaignInput = z.input<typeof campaignInputSchema>
 
-export const campaignUpdateSchema = campaignInputSchema.partial()
+export const campaignUpdateSchema = patchOf(campaignInputSchema)
 export type CampaignUpdateInput = z.input<typeof campaignUpdateSchema>
 
 export const sendCampaignSchema = z.object({

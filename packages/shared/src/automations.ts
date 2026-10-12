@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { optionalText } from './api.js'
+import { optionalText, patchOf } from './api.js'
 import { emailContentSchema, type EmailContent } from './campaigns.js'
 
 /**
@@ -112,7 +112,7 @@ export const automationInputSchema = z.object({
 })
 export type AutomationInput = z.input<typeof automationInputSchema>
 
-export const automationUpdateSchema = automationInputSchema.partial()
+export const automationUpdateSchema = patchOf(automationInputSchema)
 
 export interface AutomationRun {
   id: string

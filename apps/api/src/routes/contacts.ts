@@ -7,9 +7,11 @@ import {
   contactQuerySchema,
   contactUpdateSchema,
   customFieldInputSchema,
+  customFieldUpdateSchema,
   importContactsSchema,
   isEmail,
   listInputSchema,
+  listUpdateSchema,
   mergeContactsSchema,
   normalizeEmail,
   pageQuerySchema,
@@ -17,6 +19,7 @@ import {
   segmentInputSchema,
   suppressionInputSchema,
   tagInputSchema,
+  tagUpdateSchema,
   type Contact,
   type ContactEvent,
   type ContactList,
@@ -540,7 +543,7 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
 
   app.patch(
     '/lists/:id',
-    { preHandler: editor, schema: { params: idParams, body: listInputSchema.partial() } },
+    { preHandler: editor, schema: { params: idParams, body: listUpdateSchema } },
     async (request): Promise<ContactList> => {
       const current = getList(request.params.id)
       const next = { ...current, ...request.body }
@@ -576,7 +579,7 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
 
   app.patch(
     '/tags/:id',
-    { preHandler: editor, schema: { params: idParams, body: tagInputSchema.partial() } },
+    { preHandler: editor, schema: { params: idParams, body: tagUpdateSchema } },
     async (request): Promise<Tag> => {
       const current = db.prepare(`${TAGS_SQL} WHERE t.id = ?`).get(request.params.id) as Tag | undefined
       if (!current) throw AppError.notFound('tag')
@@ -626,7 +629,7 @@ export async function contactRoutes(base: FastifyInstance): Promise<void> {
   /** The key is the field's identity in merge tags and segments, so it does not change. */
   app.patch(
     '/fields/:id',
-    { preHandler: editor, schema: { params: idParams, body: customFieldInputSchema.omit({ key: true }).partial() } },
+    { preHandler: editor, schema: { params: idParams, body: customFieldUpdateSchema } },
     async (request): Promise<CustomField> => {
       const row = db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(request.params.id) as FieldRow | undefined
       if (!row) throw AppError.notFound('field')

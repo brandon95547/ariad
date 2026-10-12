@@ -5,12 +5,14 @@ import {
   UNSUBSCRIBE_REASONS,
   formSubmissionSchema,
   preferencesSchema,
+  publicFieldsOf,
   unsubscribeSchema,
+  type ConfirmationResult,
   type FormSubmissionResult,
   type PublicForm,
   type PublicPreferences,
 } from '@ariad/shared'
-import { placeholders } from '../db/index.js'
+import { parseJson, placeholders } from '../db/index.js'
 import { AppError } from '../errors.js'
 import { nowIso } from '../lib/crypto.js'
 import { accountFor, getCampaignRow } from '../services/campaigns.js'
@@ -130,7 +132,8 @@ export async function publicRoutes(base: FastifyInstance): Promise<void> {
     const reasonKey = parsed.success ? parsed.data.reason : undefined
     const label = UNSUBSCRIBE_REASONS.find((reason) => reason.key === reasonKey)?.label
     const comment = parsed.success ? parsed.data.comment?.trim() : undefined
-    const oneClick = !label && !comment
+    // Our own page posts JSON, with a reason or without one; the provider's button never does.
+    const oneClick = !String(request.headers['content-type'] ?? '').includes('application/json')
 
     db.transaction(() => {
       unsubscribeContact(db, contact.id, {
@@ -186,9 +189,18 @@ export async function publicRoutes(base: FastifyInstance): Promise<void> {
 
   /* ---- Double opt-in ---------------------------------------------------- */
 
-  app.post('/confirm/:token', { schema: { params: tokenParams } }, async (request): Promise<{ email: string; organization: string }> => {
+  app.post('/confirm/:token', { schema: { params: tokenParams } }, async (request): Promise<ConfirmationResult> => {
     const result = confirmSignup(ctx, request.params.token, request.ip)
-    return { email: maskEmail(result.email), organization: result.organization }
+    // With double opt-in this is where the signup ends, so it is where the form's own message or page belongs.
+    const form = result.formId
+      ? (db.prepare('SELECT success_message, redirect_url FROM forms WHERE id = ?').get(result.formId) as { success_message: string; redirect_url: string | null } | undefined)
+      : undefined
+    return {
+      email: maskEmail(result.email),
+      organization: result.organization,
+      message: form?.success_message ?? null,
+      redirectUrl: form?.redirect_url ?? null,
+    }
   })
 
   /* ---- Signup forms ----------------------------------------------------- */
@@ -201,6 +213,9 @@ export async function publicRoutes(base: FastifyInstance): Promise<void> {
     const lists = form.listIds.length
       ? (db.prepare(`SELECT id, name, description FROM lists WHERE id IN (${placeholders(form.listIds.length)}) ORDER BY name`).all(...form.listIds) as PublicForm['lists'])
       : []
+    const custom = (db.prepare('SELECT key, type, options FROM custom_fields').all() as { key: string; type: PublicForm['fields'][number]['type']; options: string }[]).map(
+      (row) => ({ key: row.key, type: row.type, options: parseJson<string[]>(row.options, []) }),
+    )
     return {
       form,
       view: {
@@ -208,7 +223,8 @@ export async function publicRoutes(base: FastifyInstance): Promise<void> {
         title: form.title,
         description: form.description,
         buttonText: form.buttonText,
-        fields: form.fields,
+        successMessage: form.successMessage,
+        fields: publicFieldsOf(form.fields, custom),
         lists,
         letSubscriberChoose: form.letSubscriberChoose,
         consentText: form.consentText,

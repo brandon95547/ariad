@@ -1,3 +1,6 @@
+import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
@@ -45,6 +48,39 @@ export async function settingsRoutes(base: FastifyInstance): Promise<void> {
     writeLog(db, 'info', 'settings', `Settings updated: ${Object.keys(request.body).join(', ')}`, null, request.actor!.name)
     return settingsView()
   })
+
+  /* ---- Images ----------------------------------------------------------- */
+
+  /**
+   * An image for an email. It is stored beside the database and served from
+   * /media under the public URL, because a picture in an email is fetched by
+   * the recipient's mail app from wherever the message says it lives.
+   *
+   * Named by its own hash: the same picture uploaded twice is one file, and a
+   * file's address never changes under a message that has already gone out.
+   */
+  app.post(
+    '/uploads',
+    {
+      preHandler: app.requireRole('editor'),
+      bodyLimit: 8 * 1024 * 1024,
+      schema: { body: z.object({ filename: z.string().max(200), data: z.string().max(7_500_000) }) },
+    },
+    async (request): Promise<{ url: string; path: string }> => {
+      const bytes = Buffer.from(request.body.data.replace(/^data:[^;]+;base64,/, ''), 'base64')
+      if (bytes.length === 0) throw AppError.badRequest('That file is empty.')
+      if (bytes.length > 5 * 1024 * 1024) throw AppError.badRequest('Images can be up to 5 MB. Smaller is better: large images are slow to load in an inbox.')
+      // Told from the bytes, not the name: the extension is whatever the sender says it is.
+      const kind = imageKind(bytes)
+      if (!kind) throw AppError.badRequest('Upload a PNG, JPEG, GIF or WebP image.')
+      const name = `${crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 24)}.${kind}`
+      const directory = path.join(ctx.config.dataDir, 'uploads')
+      fs.mkdirSync(directory, { recursive: true })
+      const file = path.join(directory, name)
+      if (!fs.existsSync(file)) fs.writeFileSync(file, bytes)
+      return { url: `${publicUrl(ctx)}/media/${name}`, path: `/media/${name}` }
+    },
+  )
 
   /* ---- Queue ------------------------------------------------------------ */
 
@@ -159,5 +195,32 @@ export async function settingsRoutes(base: FastifyInstance): Promise<void> {
   app.delete('/domains/:id', { preHandler: admin, schema: { params: idParams } }, async (request) => {
     db.prepare('DELETE FROM domains WHERE id = ?').run(request.params.id)
     return { ok: true }
+  })
+}
+
+const IMAGE_TYPES: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' }
+
+function imageKind(bytes: Buffer): 'png' | 'jpg' | 'gif' | 'webp' | null {
+  if (bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png'
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpg'
+  if (bytes.subarray(0, 4).toString('latin1') === 'GIF8') return 'gif'
+  if (bytes.subarray(0, 4).toString('latin1') === 'RIFF' && bytes.subarray(8, 12).toString('latin1') === 'WEBP') return 'webp'
+  return null
+}
+
+/** Uploaded images. Public on purpose: they are in emails. */
+export async function mediaRoutes(app: FastifyInstance): Promise<void> {
+  app.get('/:file', async (request, reply) => {
+    const { file } = request.params as { file: string }
+    // Only ever a name this server made up: a hash and one of four extensions.
+    const match = /^([0-9a-f]{24})\.(png|jpg|gif|webp)$/.exec(file)
+    const full = match ? path.join(app.ctx.config.dataDir, 'uploads', file) : null
+    if (!full || !fs.existsSync(full)) {
+      return reply.code(404).send({ error: { code: 'not_found', message: 'No such image.' } })
+    }
+    return reply
+      .header('content-type', IMAGE_TYPES[match![2]!]!)
+      .header('cache-control', 'public, max-age=31536000, immutable')
+      .send(fs.readFileSync(full))
   })
 }

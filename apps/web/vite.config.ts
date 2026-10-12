@@ -13,11 +13,15 @@ export default defineConfig({
     host: true,
     proxy: {
       // The browser only ever talks to one origin, so the session cookie is
-      // first-party in dev exactly as it is in production. `/t` and `/u` are
-      // the tracking and one-click unsubscribe endpoints the API serves itself.
-      '/api': { target: API_TARGET, changeOrigin: true },
-      '/t': { target: API_TARGET, changeOrigin: true },
-      '/media': { target: API_TARGET, changeOrigin: true },
+      // first-party in dev exactly as it is in production. `/t/` is tracking
+      // (open pixels, click redirects) and `/media/` is uploaded images, both
+      // served by the API itself.
+      //
+      // Anchored patterns, not bare prefixes: Vite matches a plain key with
+      // startsWith, so '/t' would also take '/templates' away from the app.
+      '^/api/': { target: API_TARGET, changeOrigin: true },
+      '^/t/': { target: API_TARGET, changeOrigin: true },
+      '^/media/': { target: API_TARGET, changeOrigin: true },
     },
   },
   build: { target: 'es2022', sourcemap: true },
