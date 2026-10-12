@@ -1,0 +1,37 @@
+{
+  "name": "ariad",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Ariad — email marketing you host yourself",
+  "type": "module",
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build:shared": "npm run build -w @ariad/shared",
+    "dev": "node scripts/dev.mjs",
+    "dev:shared": "npm run dev -w @ariad/shared",
+    "dev:api": "npm run dev -w @ariad/api",
+    "dev:web": "npm run dev -w @ariad/web",
+    "build": "npm run build:shared && npm run build -w @ariad/api && npm run build -w @ariad/web",
+    "start": "npm run start -w @ariad/api",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
+    "test": "npm run build:shared && npm run test --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,css,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,css,json,md}\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2",
+    "typescript": "~5.9.3"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true,
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
+  }
+}
